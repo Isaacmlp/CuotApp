@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 import 'core/supabase/supabase_config.dart';
 import 'ui/pages/cuotapp_login_page.dart';
 
 Future<void> main() async {
   // Asegurar bindings de Flutter
   WidgetsFlutterBinding.ensureInitialized();
+
+  await initializeDateFormatting('es', null);
+  Intl.defaultLocale = 'es';
   
   // Iniciar la app con un loader
   runApp(const MyApp());
@@ -53,9 +58,21 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     // Mostrar pantalla de carga mientras inicializa
     if (!_isInitialized && _errorMessage == null) {
-      return const MaterialApp(
+      return MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: Scaffold(
+        builder: (context, child) {
+          final mediaQueryData = MediaQuery.of(context);
+          return MediaQuery(
+            data: mediaQueryData.copyWith(
+              textScaler: mediaQueryData.textScaler.clamp(
+                minScaleFactor: 1.0, 
+                maxScaleFactor: 1.15,
+              ),
+            ),
+            child: child!,
+          );
+        },
+        home: const Scaffold(
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -74,6 +91,18 @@ class _MyAppState extends State<MyApp> {
     if (_errorMessage != null) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
+        builder: (context, child) {
+          final mediaQueryData = MediaQuery.of(context);
+          return MediaQuery(
+            data: mediaQueryData.copyWith(
+              textScaler: mediaQueryData.textScaler.clamp(
+                minScaleFactor: 1.0, 
+                maxScaleFactor: 1.15,
+              ),
+            ),
+            child: child!,
+          );
+        },
         home: Scaffold(
           body: Center(
             child: Padding(
@@ -139,6 +168,18 @@ class CuotApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),
+      builder: (context, child) {
+        final mediaQueryData = MediaQuery.of(context);
+        return MediaQuery(
+          data: mediaQueryData.copyWith(
+            textScaler: mediaQueryData.textScaler.clamp(
+              minScaleFactor: 1.0, 
+              maxScaleFactor: 1.15,
+            ),
+          ),
+          child: child!,
+        );
+      },
       home: const CuotAppLoginPage(),
     );
   }

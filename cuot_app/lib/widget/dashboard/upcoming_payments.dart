@@ -75,11 +75,11 @@ class UpcomingPayments extends StatelessWidget {
                     ),
                   ),
                   title: Text(
-                    'Crédito #${payment.creditId}',
+                    '${payment.clientName ?? 'Cliente'} - Cuota ${payment.installmentNumber}',
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   subtitle: Text(
-                    'Vence: ${DateFormat('dd/MM/yyyy').format(payment.date)}',
+                    '${payment.concept ?? 'Financiamiento'} - Vence: ${DateFormat('dd/MM/yyyy').format(payment.date)}',
                     style: const TextStyle(fontSize: 12),
                   ),
                   trailing: Column(

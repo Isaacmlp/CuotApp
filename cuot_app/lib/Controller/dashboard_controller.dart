@@ -50,29 +50,29 @@ class DashboardController extends ChangeNotifier {
   // 🔴 IMPLEMENTA CADA MÉTODO CON SU LÓGICA ESPECÍFICA
   
   Future<void> _loadTotalCredits() async {
-    totalCredits = await _creditService.getTotalCredits();
+    totalCredits = await _creditService.getTotalCredits(userName ?? '');
   }
 
   Future<void> _loadTotalPaid() async {
-    totalPaid = await _creditService.getTotalPaidAmount();
+    totalPaid = await _creditService.getTotalPaidAmount(userName ?? '');
   }
 
   Future<void> _loadPendingWeeklyQuotas() async {
-    final weeklyData = await _creditService.getPendingInstallmentsByWeek();
-    // Sumar todas las cuotas de la semana actual
-    pendingWeeklyQuotas = weeklyData.values.fold(0, (sum, item) => sum + item);
+    final weeklyData = await _creditService.getPendingInstallmentsByWeek(userName ?? '');
+    // Obtener cuotas de la semana actual
+    pendingWeeklyQuotas = weeklyData['actual'] ?? 0;
   }
 
   Future<void> _loadPendingBalance() async {
-    pendingBalance = await _creditService.getTotalPendingAmount();
+    pendingBalance = await _creditService.getTotalPendingAmount(userName ?? '');
   }
 
   Future<void> _loadUpcomingPayments() async {
-    upcomingPayments = await _creditService.getUpcomingPayments();
+    upcomingPayments = await _creditService.getUpcomingPayments(userName ?? '');
   }
 
   Future<void> _loadLatePayments() async {
-    latePayments = await _creditService.getLatePayments();
+    latePayments = await _creditService.getLatePayments(userName ?? '');
   }
 
   // Método para refrescar manualmente

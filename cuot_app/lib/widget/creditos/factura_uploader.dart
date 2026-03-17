@@ -154,7 +154,7 @@ class _FacturaUploaderState extends State<FacturaUploader> {
 
         // Área de selección/vista previa
         Container(
-          width: double.infinity,
+          width: 190,
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey.shade300),
             borderRadius: BorderRadius.circular(12),
@@ -168,28 +168,82 @@ class _FacturaUploaderState extends State<FacturaUploader> {
   }
 
   Widget _buildEmptyState() {
-    return GestureDetector(
-      onTap: _mostrarOpciones,
+  // Verificar que el método existe
+  return GestureDetector(
+    onTap: () {
+      try {
+        _mostrarOpciones();
+      } catch (e) {
+        print('Error en _mostrarOpciones: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    },
+    child: Center( // 👈 1. Envolver en Center para centrar horizontalmente
       child: Container(
-        padding: EdgeInsets.all(24),
+        //height: 165, // Altura fija (la puedes ajustar)
+        // width: double.infinity, // 👈 2. QUITAR esto para que no ocupe todo el ancho
+        
+        // 👇 3. OPCIONES PARA CONTROLAR EL ANCHO:
+        
+        // Opción A: Ancho fijo (ej: 300 píxeles)
+        width: 150, 
+        
+        // Opción B: Porcentaje del ancho de la pantalla
+        // width: MediaQuery.of(context).size.width * 0.8, // 80% del ancho
+        
+        // Opción C: Sin ancho definido (se ajusta al contenido)
+        // (comenta las opciones A y B si eliges esta)
+        
+        margin: const EdgeInsets.symmetric(
+          horizontal: 20, // Margen horizontal
+          vertical: 8,    // Margen vertical
+        ),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.grey.shade300,
+            width: 1,
+            style: BorderStyle.solid,
+          ),
+        ),
         child: Column(
+          mainAxisSize: MainAxisSize.min, // 👈 4. IMPORTANTE: Para que la columna no ocupe más espacio del necesario
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Icon(Icons.cloud_upload, size: 48, color: Colors.grey.shade400),
-            SizedBox(height: 8),
+            Icon(
+              Icons.cloud_upload_outlined, 
+              size: 48, 
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 8),
             Text(
               'Toca para subir la factura',
-              style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+              style: TextStyle(
+                fontSize: 16, 
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center, // 👈 5. Centrar texto por si es muy largo
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             Text(
-              'PDF, JPG o PNG',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              'PDF, JPG o PNG (Max. 10MB)',
+              style: TextStyle(
+                fontSize: 12, 
+                color: Colors.grey.shade500,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildFilePreview() {
     return Stack(

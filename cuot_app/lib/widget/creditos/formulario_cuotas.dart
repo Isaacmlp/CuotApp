@@ -1,10 +1,14 @@
-// 📝 VISTA 2: Formulario para créditos en cuotas
+// lib/widget/creditos/formulario_cuotas.dart
 import 'dart:io';
 import 'package:cuot_app/Model/credito_model.dart';
-import 'package:cuot_app/utils/validators.dart';
+import 'package:cuot_app/Model/cuota_personalizada.dart';
+import 'package:cuot_app/ui/pages/seguimiento_creditos_page.dart';
 import 'package:cuot_app/widget/creditos/custom_date_picker.dart';
-import 'package:cuot_app/widget/creditos/factura_uploader.dart'; // 👈 IMPORTANTE: Importar el widget
-import 'package:flutter/material.dart';
+import 'package:cuot_app/widget/creditos/factura_uploader.dart';
+import 'package:flutter/material.dart' hide DateUtils;
+import 'package:cuot_app/utils/validators.dart';
+import 'package:cuot_app/widget/creditos/selector_fechas_cuotas_compacto.dart';
+import 'package:cuot_app/utils/date_utils.dart';
 
 class FormularioCuotas extends StatefulWidget {
   final Function(Credito) onCreditoActualizado;
@@ -21,24 +25,30 @@ class FormularioCuotas extends StatefulWidget {
 }
 
 class _FormularioCuotasState extends State<FormularioCuotas> {
+  // 📌 LLAVE DEL FORMULARIO
   final _formKey = GlobalKey<FormState>();
-  
-  // Controladores
+
+  // 📌 CONTROLADORES
   final _conceptoController = TextEditingController();
   final _inversionController = TextEditingController();
   final _gananciaController = TextEditingController();
   final _cuotasController = TextEditingController();
   final _clienteController = TextEditingController();
-  
-  // Variables de estado
+
+  // 📌 VARIABLES DE ESTADO
   DateTime _fechaInicio = DateTime.now();
   ModalidadPago _modalidadSeleccionada = ModalidadPago.mensual;
-  bool _mostrarPersonalizado = false;
-  
-  // 🔧 NUEVO: Variable para almacenar la factura seleccionada
   File? _facturaSeleccionada;
-  
-  // Valores calculados
+
+  // 📌 VARIABLES PARA MODO PERSONALIZADO
+  List<CuotaPersonalizada>? _fechasPersonalizadas;
+  bool _mostrarSelectorPersonalizado = false;
+  bool _configuracionCompletada = false;
+
+  // 📌 Fecha límite calculada
+  DateTime? _fechaLimiteCalculada;
+
+  // 📌 PROPIEDADES CALCULADAS
   double get _inversion => double.tryParse(_inversionController.text) ?? 0;
   double get _ganancia => double.tryParse(_gananciaController.text) ?? 0;
   double get _precioTotal => _inversion + _ganancia;
@@ -46,87 +56,307 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
   double get _valorCuota => _numCuotas > 0 ? _precioTotal / _numCuotas : 0;
 
   @override
+  void initState() {
+    super.initState();
+    _calcularFechaLimite();
+  }
+
+  // 📌 Calcular fecha límite
+  void _calcularFechaLimite() {
+    if (_fechasPersonalizadas != null && _fechasPersonalizadas!.isNotEmpty) {
+      _fechaLimiteCalculada = _fechasPersonalizadas!.last.fechaPago;
+    } else if (_numCuotas > 0) {
+      switch (_modalidadSeleccionada) {
+        case ModalidadPago.diario:
+          _fechaLimiteCalculada = _fechaInicio.add(Duration(days: _numCuotas));
+          break;
+        case ModalidadPago.semanal:
+          _fechaLimiteCalculada = _fechaInicio.add(Duration(days: _numCuotas * 7));
+          break;
+        case ModalidadPago.quincenal:
+          _fechaLimiteCalculada = _fechaInicio.add(Duration(days: _numCuotas * 15));
+          break;
+        case ModalidadPago.mensual:
+          _fechaLimiteCalculada = DateTime(
+            _fechaInicio.year,
+            _fechaInicio.month + _numCuotas,
+            _fechaInicio.day,
+          );
+          break;
+        case ModalidadPago.personalizado:
+          _fechaLimiteCalculada = null;
+          break;
+      }
+    } else {
+      _fechaLimiteCalculada = null;
+    }
+    
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Form(
       key: _formKey,
       child: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-           
-            // Concepto/Producto
+            // 📌 1. CONCEPTO/PRODUCTO
+            _buildSeccionTitulo('Articulo', Icons.shopping_bag),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _conceptoController,
-              decoration: InputDecoration(
-                labelText: 'Concepto/Producto *',
-                border: OutlineInputBorder(),
+              decoration: _buildInputDecoration(
+                label: 'Ej: Laptop, Celular, Préstamo...',
+                icon: Icons.description,
               ),
               validator: (v) => Validators.required(v, 'Concepto'),
               onChanged: _actualizarCredito,
             ),
-            SizedBox(height: 16),
-            
-            // Coste/Inversión
+            const SizedBox(height: 20),
+
+            // 📌 2. INVERSIÓN
+            _buildSeccionTitulo('Inversión/Coste', Icons.attach_money),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _inversionController,
-              decoration: InputDecoration(
-                labelText: 'Coste/Inversión  *',
-                border: OutlineInputBorder(),
-                prefixText: '\$ ',
+              decoration: _buildInputDecoration(
+                label: 'Monto invertido',
+                icon: Icons.money,
+                prefix: '\$ ',
               ),
               keyboardType: TextInputType.number,
               validator: (v) => Validators.positiveNumber(v, 'Inversión'),
               onChanged: _actualizarCredito,
             ),
-            SizedBox(height: 16),
-            
+            const SizedBox(height: 20),
+
+            // 📌 3. FILA: GANANCIA Y CUOTAS
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded (
-                  child:TextFormField(
-                    controller: _gananciaController,
-                    decoration: InputDecoration(
-                      labelText: 'Margen de ganancia *',
-                      border: OutlineInputBorder(),
-                      prefixText: '\$ ',
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (v) => Validators.positiveNumber(v, 'Ganancia'),
-                    onChanged: _actualizarCredito,
+                // Ganancia
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSeccionTitulo('Ganancia', Icons.trending_up),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _gananciaController,
+                        decoration: _buildInputDecoration(
+                          label: 'Ganancia',
+                          icon: Icons.add_chart,
+                          prefix: '\$ ',
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (v) =>
+                            Validators.positiveNumber(v, 'Ganancia'),
+                        onChanged: (value) {
+                          _actualizarCredito();
+                        },
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(width: 16),
-                // Número de cuotas
+                const SizedBox(width: 12),
+                // Cuotas
                 Expanded(
-                  child: TextFormField(
-                    controller: _cuotasController,
-                    decoration: InputDecoration(
-                      labelText: 'Número de cuotas *',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (v) => Validators.positiveNumber(v, 'Cuotas'),
-                    onChanged: _actualizarCredito,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSeccionTitulo(
+                        'No. Cuotas',
+                        Icons.format_list_numbered,
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _cuotasController,
+                        decoration: _buildInputDecoration(
+                          label: 'Cantidad',
+                          icon: Icons.numbers,
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (v) =>
+                            Validators.positiveNumber(v, 'Cuotas'),
+                        onChanged: (value) {
+                          _actualizarCredito();
+                          if (_modalidadSeleccionada ==
+                              ModalidadPago.personalizado) {
+                            setState(() {
+                              _mostrarSelectorPersonalizado = false;
+                              _configuracionCompletada = false;
+                              _fechasPersonalizadas = null;
+                            });
+                          }
+                        },
+                      ),
+                    ],
                   ),
-                )
+                ),
               ],
             ),
-            SizedBox(height: 16),
-            
-            // Fecha de inicio
-            Text('Fecha de inicio *', style: TextStyle(fontWeight: FontWeight.w500)),
-            SizedBox(height: 8),
-            CustomDatePicker(
-              selectedDate: _fechaInicio,
-              onDateSelected: (date) {
-                setState(() => _fechaInicio = date);
+            const SizedBox(height: 20),
+
+            // 📌 4. FECHAS
+            _buildSeccionTitulo('Fecha de pago', Icons.date_range),
+            const SizedBox(height: 8),
+
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Fecha de inicio
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.play_circle, color: Colors.green, size: 20),
+                            const SizedBox(width: 8),
+                            const Text('Fecha de inicio:'),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        CustomDatePicker(
+                          selectedDate: _fechaInicio,
+                          onDateSelected: (date) {
+                            setState(() {
+                              _fechaInicio = date;
+                            });
+                            _actualizarCredito();
+                          },
+                          label: 'Seleccionar fecha',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(width: 12),
+                
+                // Fecha límite (solo informativa)
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.stop_circle, color: Colors.red, size: 20),
+                            const SizedBox(width: 8),
+                            const Text('Fecha límite:'),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.calendar_today, size: 16, color: Colors.grey.shade600),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _fechaLimiteCalculada != null
+                                      ? DateUt.formatearFecha(_fechaLimiteCalculada!)
+                                      : 'Por calcular',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    color: _fechaLimiteCalculada != null
+                                        ? Colors.black87
+                                        : Colors.grey.shade500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // 📌 5. MODALIDAD DE COBRO
+            _buildSeccionTitulo('Modalidad de cobro', Icons.payment),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<ModalidadPago>(
+              value: _modalidadSeleccionada,
+              decoration: _buildInputDecoration(label: 'Seleccionar'),
+              items: ModalidadPago.values.map((modalidad) {
+                return DropdownMenuItem(
+                  value: modalidad,
+                  child: Row(
+                    children: [
+                      Icon(
+                        _getModalidadIcon(modalidad),
+                        size: 18,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(_getModalidadText(modalidad)),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (modalidad) {
+                setState(() {
+                  _modalidadSeleccionada = modalidad!;
+                  _mostrarSelectorPersonalizado = false;
+                  _configuracionCompletada = false;
+                  _fechasPersonalizadas = null;
+                });
                 _actualizarCredito();
               },
-              label: 'Seleccionar fecha de inicio',
             ),
-            SizedBox(height: 16),
-             // 🔧 NUEVO: Widget de carga de factura
+            const SizedBox(height: 16),
+
+            // 📌 6. CONFIGURACIÓN PERSONALIZADA (solo si aplica)
+            if (_modalidadSeleccionada == ModalidadPago.personalizado) ...[
+              const SizedBox(height: 8),
+              _buildPersonalizadoSection(),
+              const SizedBox(height: 16),
+            ],
+
+            // 📌 7. RESUMEN DE VALORES
+            _buildResumenCard(),
+            const SizedBox(height: 20),
+            _buildSeccionTitulo('Cliente', Icons.person),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _clienteController,
+              decoration: _buildInputDecoration(
+                label: 'Nombre completo del cliente',
+                icon: Icons.person_outline,
+              ),
+              validator: (v) => Validators.required(v, 'Cliente'),
+              onChanged: _actualizarCredito,
+            ),
+            const SizedBox(height: 20),
+            
+            // 📌 8. FACTURA (OPCIONAL)
+            _buildSeccionTitulo('Factura (Opcional)', Icons.receipt),
+            const SizedBox(height: 8),
             FacturaUploader(
               onFacturaSeleccionada: (File? archivo) {
                 setState(() {
@@ -135,128 +365,43 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                 _actualizarCredito();
               },
             ),
-            SizedBox(height: 24),
+
+            // 📌 9. CLIENTE
             
-            // Modalidad de cobro
-            Text('Modalidad de cobro *', style: TextStyle(fontWeight: FontWeight.w500)),
-            SizedBox(height: 8),
-            DropdownButtonFormField<ModalidadPago>(
-              value: _modalidadSeleccionada,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-              ),
-              items: ModalidadPago.values.map((modalidad) {
-                return DropdownMenuItem(
-                  value: modalidad,
-                  child: Text(_getModalidadText(modalidad)),
-                );
-              }).toList(),
-              onChanged: (modalidad) {
-                setState(() {
-                  _modalidadSeleccionada = modalidad!;
-                  _mostrarPersonalizado = modalidad == ModalidadPago.personalizado;
-                });
-                _actualizarCredito();
-              },
-            ),
-            SizedBox(height: 16),
-            
-            // Configuración personalizada (solo si se elige personalizado)
-            if (_mostrarPersonalizado) ...[
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'Configuración personalizada de cuotas',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(height: 8),
-                    // Aquí iría la interfaz para configurar cada cuota manualmente
-                    Text('(Funcionalidad en desarrollo)'),
-                  ],
-                ),
-              ),
-              SizedBox(height: 16),
-            ],
-            
-            // Valores calculados automáticamente
-            Card(
-              color: Theme.of(context).primaryColor.withOpacity(0.1),
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _buildInfoRow('Precio total estimado:', '\$${_precioTotal.toStringAsFixed(2)}'),
-                    Divider(),
-                    _buildInfoRow('Valor por cuota:', '\$${_valorCuota.toStringAsFixed(2)}'),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: 16),
-            
-            // Nombre del cliente
-            TextFormField(
-              controller: _clienteController,
-              decoration: InputDecoration(
-                labelText: 'Nombre del cliente *',
-                border: OutlineInputBorder(),
-                hintText: 'Ej: Cliente 1, Juan Pérez, etc.',
-              ),
-              validator: (v) => Validators.required(v,'Cliente'),
-              onChanged: _actualizarCredito,
-            ),
-            SizedBox(height: 16),
-            
-            // 🔧 NUEVO: Mostrar resumen de factura seleccionada
-            if (_facturaSeleccionada != null)
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.green),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Factura adjunta:',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            _facturaSeleccionada!.path.split('/').last,
-                            style: TextStyle(fontSize: 12),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            
-            SizedBox(height: 24),
-            
-            // Botón guardar
+
+            // 📌 10. INDICADOR DE FACTURA (si hay)
+            if (_facturaSeleccionada != null) _buildFacturaIndicator(),
+            const SizedBox(height: 24),
+
+            // 📌 11. BOTÓN GUARDAR
             SizedBox(
               width: double.infinity,
+              height: 55,
               child: ElevatedButton(
                 onPressed: _guardarCredito,
                 style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 5,
                 ),
-                child: Text('GUARDAR CRÉDITO', style: TextStyle(fontSize: 16)),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.save),
+                    SizedBox(width: 8),
+                    Text(
+                      'GUARDAR CRÉDITO',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -264,8 +409,242 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
       ),
     );
   }
-  
+
+  /// 📌 SECCIÓN DE CONFIGURACIÓN PERSONALIZADA
+  Widget _buildPersonalizadoSection() {
+    if (_numCuotas <= 0) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.orange.shade300),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.warning, color: Colors.orange.shade700),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Primero ingresa el número de cuotas',
+                style: TextStyle(color: Colors.orange.shade800),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (!_mostrarSelectorPersonalizado) {
+      return Center(
+        child: ElevatedButton.icon(
+          onPressed: _iniciarConfiguracionPersonalizada,
+          icon: const Icon(Icons.add_circle),
+          label: const Text('CONFIGURAR FECHAS DE CUOTAS'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        SelectorFechasCuotasCompacto(
+          numeroCuotas: _numCuotas,
+          fechaInicio: _fechaInicio,
+          montoPorCuota: _valorCuota,
+          precioTotalEsperado: _precioTotal, // 👈 NUEVO: pasar precio total
+          onFechasSeleccionadas: (fechas) {
+            setState(() {
+              _fechasPersonalizadas = fechas;
+              _configuracionCompletada = true;
+              _calcularFechaLimite();
+            });
+            _actualizarCredito();
+          },
+        ),
+        if (_configuracionCompletada) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green.shade700),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '✅ Configuración completada (${_fechasPersonalizadas?.length ?? 0} cuotas configuradas)',
+                    style: TextStyle(color: Colors.green.shade800),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// 📌 INICIAR CONFIGURACIÓN PERSONALIZADA
+  void _iniciarConfiguracionPersonalizada() {
+    if (_precioTotal <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Primero completa los montos de inversión y ganancia'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _mostrarSelectorPersonalizado = true;
+    });
+  }
+
+  /// 📌 TARJETA DE RESUMEN (MODIFICADA con validación de total)
+  Widget _buildResumenCard() {
+    // 👇 NUEVO: Calcular total de cuotas y validar
+    final totalCuotas = CuotaPersonalizada.calcularTotalCuotas(_fechasPersonalizadas);
+    final diferencia = totalCuotas - _precioTotal;
+    final totalValido = (diferencia).abs() <= 0.01;
+    
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Theme.of(context).primaryColor.withOpacity(0.1),
+              Colors.white,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            _buildInfoRow(
+              'Precio total:',
+              '\$${_precioTotal.toStringAsFixed(2)}',
+            ),
+            _buildInfoRow(
+              'Duración:',
+              '${DateUt.calcularDiferenciaMeses(_fechaInicio, _fechaLimiteCalculada ?? _fechaInicio)} meses',
+            ),
+            const Divider(),
+            _buildInfoRow(
+              'Valor por cuota:',
+              '\$${_valorCuota.toStringAsFixed(2)}',
+            ),
+            if (_fechasPersonalizadas != null) ...[
+              const Divider(),
+              _buildInfoRow(
+                'Total cuotas:',
+                '${_fechasPersonalizadas!.length} configuradas',
+              ),
+              // 👇 NUEVO: Mostrar suma total de cuotas
+              _buildInfoRow(
+                'Suma cuotas:',
+                '\$${totalCuotas.toStringAsFixed(2)}',
+              ),
+              // 👇 NUEVO: Alerta si hay diferencia
+              if (!totalValido)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning, color: Colors.red.shade700, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Diferencia: \$${diferencia.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              color: Colors.red.shade700,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 📌 INDICADOR DE FACTURA ADJUNTA
+  Widget _buildFacturaIndicator() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.green.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.check_circle, color: Colors.green.shade700),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Factura adjunta:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  _facturaSeleccionada!.path.split('/').last,
+                  style: const TextStyle(fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, color: Colors.grey),
+            onPressed: () {
+              setState(() {
+                _facturaSeleccionada = null;
+              });
+              _actualizarCredito();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 📌 ACTUALIZAR CRÉDITO (callback)
   void _actualizarCredito([_]) {
+    _calcularFechaLimite();
+    
     if (_formKey.currentState?.validate() ?? false) {
       final credito = Credito(
         concepto: _conceptoController.text,
@@ -277,69 +656,203 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
         numeroCuotas: _numCuotas,
         facturaPath: _facturaSeleccionada?.path,
         nombreFactura: _facturaSeleccionada?.path.split('/').last,
+        fechasPersonalizadas: _fechasPersonalizadas,
       );
       widget.onCreditoActualizado(credito);
     }
   }
-  
+
+  /// 📌 GUARDAR CRÉDITO (con validaciones MEJORADAS)
   void _guardarCredito() {
-    if (_formKey.currentState?.validate() ?? false) {
-      // 🔧 NUEVO: Verificar si hay factura antes de guardar (opcional)
-      if (_facturaSeleccionada == null) {
-        _mostrarDialogoFacturaOpcional();
-      } else {
-        widget.onGuardar();
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    if (_modalidadSeleccionada == ModalidadPago.personalizado) {
+      if (_fechasPersonalizadas == null || _fechasPersonalizadas!.isEmpty) {
+        _mostrarError(
+          'Configuración incompleta',
+          'Debes configurar las fechas de las cuotas en modo personalizado',
+        );
+        return;
+      }
+
+      // 👇 NUEVA VALIDACIÓN: Verificar que el total de cuotas coincida con el precio total
+      final totalCuotas = CuotaPersonalizada.calcularTotalCuotas(_fechasPersonalizadas);
+      final diferencia = (totalCuotas - _precioTotal).abs();
+      
+      if (diferencia > 0.01) {
+        _mostrarError(
+          'Total de cuotas incorrecto',
+          'La suma de todas las cuotas (\$${totalCuotas.toStringAsFixed(2)}) '
+          'no coincide con el precio total (\$${_precioTotal.toStringAsFixed(2)}).\n\n'
+          'Diferencia: \$${diferencia.toStringAsFixed(2)}',
+        );
+        return;
+      }
+
+      if (!_validarFechasPersonalizadas()) {
+        _mostrarError(
+          'Fechas inválidas',
+          'Las fechas deben estar en orden cronológico y ser futuras',
+        );
+        return;
       }
     }
+
+    if (_facturaSeleccionada == null) {
+      _mostrarDialogoFacturaOpcional();
+    } else {
+      widget.onGuardar();
+    }
   }
-  
-  // 🔧 NUEVO: Diálogo para factura opcional
-  void _mostrarDialogoFacturaOpcional() {
+
+  /// 📌 VALIDAR FECHAS PERSONALIZADAS
+  bool _validarFechasPersonalizadas() {
+    if (_fechasPersonalizadas == null || _fechasPersonalizadas!.isEmpty) {
+      return false;
+    }
+
+    final fechas = _fechasPersonalizadas!.map((c) => c.fechaPago).toList();
+
+    for (int i = 0; i < fechas.length - 1; i++) {
+      if (fechas[i].isAfter(fechas[i + 1])) {
+        return false;
+      }
+    }
+
+    for (var fecha in fechas) {
+      if (fecha.isBefore(_fechaInicio)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /// 📌 MOSTRAR ERROR
+  void _mostrarError(String titulo, String mensaje) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('¿Adjuntar factura?'),
-        content: Text('No has adjuntado ninguna factura. ¿Deseas continuar sin factura?'),
+        title: Text(titulo),
+        content: Text(mensaje),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // El FacturaUploader ya está visible arriba
-            },
-            child: Text('ADJUNTAR'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              widget.onGuardar(); // Continuar sin factura
-            },
-            child: Text('CONTINUAR'),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ENTENDIDO'),
           ),
         ],
       ),
     );
   }
-  
-  String _getModalidadText(ModalidadPago modalidad) {
-    switch (modalidad) {
-      case ModalidadPago.diario: return 'Diario';
-      case ModalidadPago.semanal: return 'Semanal';
-      case ModalidadPago.quincenal: return 'Quincenal';
-      case ModalidadPago.mensual: return 'Mensual';
-      case ModalidadPago.personalizado: return 'Personalizado';
-    }
+
+  /// 📌 DIÁLOGO PARA FACTURA OPCIONAL
+  void _mostrarDialogoFacturaOpcional() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Adjuntar factura?'),
+        content: const Text(
+          'No has adjuntado ninguna factura. ¿Deseas continuar sin factura?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ADJUNTAR'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Cierra el diálogo
+              _actualizarCredito();   // 👈 Asegura guardar estado
+              widget.onGuardar();     // Guarda y navega
+            },
+            child: const Text('CONTINUAR'),
+          ),
+        ],
+      ),
+    );
   }
-  
-  Widget _buildInfoRow(String label, String value) {
+
+  /// 📌 MÉTODOS DE UTILIDAD
+  Widget _buildSeccionTitulo(String titulo, IconData icono) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(fontWeight: FontWeight.w500)),
-        Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Icon(icono, size: 20, color: Theme.of(context).primaryColor),
+        const SizedBox(width: 8),
+        Text(
+          titulo,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
       ],
     );
   }
-  
+
+  InputDecoration _buildInputDecoration({
+    required String label,
+    IconData? icon,
+    String? prefix,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      prefixText: prefix,
+      prefixIcon: icon != null ? Icon(icon, size: 20) : null,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      filled: true,
+      fillColor: Colors.grey.shade50,
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getModalidadText(ModalidadPago modalidad) {
+    switch (modalidad) {
+      case ModalidadPago.diario:
+        return 'Diario';
+      case ModalidadPago.semanal:
+        return 'Semanal';
+      case ModalidadPago.quincenal:
+        return 'Quincenal';
+      case ModalidadPago.mensual:
+        return 'Mensual';
+      case ModalidadPago.personalizado:
+        return 'Personalizado';
+    }
+  }
+
+  IconData _getModalidadIcon(ModalidadPago modalidad) {
+    switch (modalidad) {
+      case ModalidadPago.diario:
+        return Icons.today;
+      case ModalidadPago.semanal:
+        return Icons.calendar_view_week;
+      case ModalidadPago.quincenal:
+        return Icons.calendar_view_month;
+      case ModalidadPago.mensual:
+        return Icons.calendar_month;
+      case ModalidadPago.personalizado:
+        return Icons.edit_calendar;
+    }
+  }
+
   @override
   void dispose() {
     _conceptoController.dispose();

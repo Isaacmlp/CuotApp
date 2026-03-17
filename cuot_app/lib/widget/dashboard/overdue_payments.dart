@@ -17,6 +17,18 @@ class OverduePayments extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // Agrupar cuotas por cliente
+    final Map<String, List<PaymentModel>> groupedByClient = {};
+    for (var p in payments) {
+      final key = p.clientName ?? 'Cliente Desconocido';
+      if (!groupedByClient.containsKey(key)) {
+        groupedByClient[key] = [];
+      }
+      groupedByClient[key]!.add(p);
+    }
+
+    final clientNames = groupedByClient.keys.toList();
+
     return Card(
       color: AppColors.error.withOpacity(0.05),
       child: Padding(
@@ -29,7 +41,7 @@ class OverduePayments extends StatelessWidget {
                 Icon(Icons.warning_amber_rounded, color: AppColors.error),
                 const SizedBox(width: 8),
                 const Text(
-                  'Cuotas Atrasadas',
+                  'Cuotas Vencidas',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -58,11 +70,14 @@ class OverduePayments extends StatelessWidget {
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: payments.length > 3 ? 3 : payments.length,
+              itemCount: clientNames.length > 5 ? 5 : clientNames.length,
               separatorBuilder: (_, __) => const Divider(),
               itemBuilder: (context, index) {
-                final payment = payments[index];
-                final daysLate = DateTime.now().difference(payment.date).inDays;
+                final clientName = clientNames[index];
+                final clientPayments = groupedByClient[clientName]!;
+                final totalAmount = clientPayments.fold(0.0, (sum, p) => sum + p.amount);
+                final oldestDate = clientPayments.map((p) => p.date).reduce((a, b) => a.isBefore(b) ? a : b);
+                final daysLate = DateTime.now().difference(oldestDate).inDays;
                 
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -70,7 +85,7 @@ class OverduePayments extends StatelessWidget {
                     backgroundColor: AppColors.error,
                     radius: 18,
                     child: Text(
-                      '$daysLate',
+                      '${clientPayments.length}',
                       style: const TextStyle(
                         color: AppColors.pureWhite,
                         fontWeight: FontWeight.bold,
@@ -79,27 +94,25 @@ class OverduePayments extends StatelessWidget {
                     ),
                   ),
                   title: Text(
-                    'Crédito #${payment.creditId} - Cuota ${payment.installmentNumber}',
+                    '$clientName (${clientPayments.length} cuotas vencidas)',
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   subtitle: Text(
-                    'Vencía: ${DateFormat('dd/MM/yyyy').format(payment.date)}',
+                    'Monto total vencido: \$${totalAmount.toStringAsFixed(2)}',
+                    style: const TextStyle(fontSize: 12),
                   ),
                   trailing: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '\$${payment.amount.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.error,
-                        ),
+                        'Más antigua',
+                        style: TextStyle(fontSize: 10, color: AppColors.error.withOpacity(0.7)),
                       ),
                       Text(
-                        '$daysLate días',
-                        style: TextStyle(
-                          fontSize: 11,
+                        '$daysLate d',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
                           color: AppColors.error,
                         ),
                       ),
@@ -108,7 +121,7 @@ class OverduePayments extends StatelessWidget {
                 );
               },
             ),
-            if (payments.length > 3)
+            if (clientNames.length > 5)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Center(

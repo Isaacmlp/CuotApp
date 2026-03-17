@@ -5,6 +5,8 @@ class PaymentModel {
   final DateTime date;
   final int installmentNumber;
   final String status; // 'paid', 'pending', 'late'
+  final String? clientName;
+  final String? concept;
 
   PaymentModel({
     required this.id,
@@ -13,6 +15,8 @@ class PaymentModel {
     required this.date,
     required this.installmentNumber,
     required this.status,
+    this.clientName,
+    this.concept,
   });
 
   factory PaymentModel.fromJson(Map<String, dynamic> json) {
@@ -23,6 +27,8 @@ class PaymentModel {
       date: DateTime.parse(json['date']),
       installmentNumber: json['installment_number'] ?? 0,
       status: json['status'] ?? 'pending',
+      clientName: json['clientName'],
+      concept: json['concept'],
     );
   }
 }

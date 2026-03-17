@@ -8,7 +8,7 @@ class CreditoService {
     try {
       // Primero, crear el crédito en la BD
       final response = await _supabase
-          .schema("Financiamiento")
+          .schema("Financiamientos")
           .from('Productos_Financiados')
           .insert(credito.toJson())
           .select()

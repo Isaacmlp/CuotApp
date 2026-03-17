@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_config.dart';
 
@@ -12,53 +13,82 @@ class SupabaseService {
   // Obtener cliente (lanzará error si no está inicializado)
   SupabaseClient get client => SupabaseConfig.client;
 
-  // Métodos con verificación
-  Future<List<Map<String, dynamic>>> fetchAll(String schema,String table) async {
+  // 📁 STORAGE: Subir archivos al bucket 'Documentos'
+  Future<String> uploadFile({
+    required String folder,
+    required String fileName,
+    required File file,
+  }) async {
     _checkInitialized();
     try {
-      return await client.schema(schema).from(table).select();
+      final String path = '$folder/$fileName';
+      
+      await client.storage.from('Documentos').upload(
+        path,
+        file,
+        fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+      );
+
+      // Obtener la URL pública
+      return client.storage.from('Documentos').getPublicUrl(path);
     } catch (e) {
-      print('❌ Error en fetchAll: $e');
+      print('❌ Error al subir archivo a Storage: $e');
       rethrow;
     }
   }
 
-  Future<Map<String, dynamic>?> fetchById(String table, String id) async {
+  // 📊 DB: Métodos con soporte de esquemas
+  Future<List<Map<String, dynamic>>> fetchAll(String table, {String schema = 'Financiamientos'}) async {
+    _checkInitialized();
+    try {
+      return await client.schema(schema).from(table).select();
+    } catch (e) {
+      print('❌ Error en fetchAll ($schema.$table): $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchById(String table, String id, {String schema = 'Financiamientos'}) async {
     _checkInitialized();
     try {
       return await client
+          .schema(schema)
           .from(table)
           .select()
           .eq('id', id)
           .maybeSingle();
     } catch (e) {
-      print('❌ Error en fetchById: $e');
+      print('❌ Error en fetchById ($schema.$table): $e');
       rethrow;
     }
   }
 
-  Future<Map<String, dynamic>> insert(String table, Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> insert(String table, Map<String, dynamic> data, {String schema = 'Financiamientos'}) async {
     _checkInitialized();
     try {
       return await client
+          .schema(schema)
           .from(table)
           .insert(data)
           .select()
           .single();
     } catch (e) {
-      print('❌ Error en insert: $e');
+      print('❌ Error en insert ($schema.$table): $e');
       rethrow;
     }
   }
 
-  Future<bool> testConnection() async {
-    if (!isInitialized) return false;
+  Future<void> update(String table, String id, Map<String, dynamic> data, {String schema = 'Financiamientos'}) async {
+    _checkInitialized();
     try {
-      await client.from('_test').select('count').limit(1);
-      return true;
+      await client
+          .schema(schema)
+          .from(table)
+          .update(data)
+          .eq('id', id);
     } catch (e) {
-      // Si la tabla no existe, el cliente sigue funcionando
-      return true;
+      print('❌ Error en update ($schema.$table): $e');
+      rethrow;
     }
   }
 

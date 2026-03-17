@@ -1,3 +1,4 @@
+// lib/ui/pages/dashboard_screen.dart
 import 'package:cuot_app/Controller/dashboard_controller.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/ui/credito_page.dart';
@@ -25,168 +26,264 @@ class DashboardScreen extends StatelessWidget {
         canPop: false,
         onPopInvoked: (didPop) {
           if (didPop) return;
-          // Si el Drawer está abierto, ciérralo manualmente
           if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
             _scaffoldKey.currentState?.closeDrawer();
           } else {
-            // Si no hay Drawer abierto, maneja retroceso normal saliendo de la app o pantalla
             Navigator.of(context).pop();
           }
         },
         child: Consumer<DashboardController>(
-            builder: (context, controller, child) {
-              return Scaffold(
-                drawer: CustomDrawer(nombre_usuario: userName ?? "Usuario no encontrado"),
-                //Drawer(child: Center(child: Text(userName ?? "prueba")),),
-                body: RefreshIndicator(
-                  onRefresh: () => controller.refreshData(),
-                  color: AppColors.primaryGreen,
-                  child: CustomScrollView(
-                    slivers: [
-                      // App Bar personalizada
-                      SliverAppBar(
-                        expandedHeight: 120,
-                        floating: true,
-                        pinned: true,
-                        backgroundColor: AppColors.pureWhite,
-                        elevation: 0,
-                        leading: Builder(
-                          builder: (context) => IconButton(
-                            icon: const Icon(Icons.menu),
-                            color: AppColors.primaryGreen,
+          builder: (context, controller, child) {
+            return Scaffold(
+              key: _scaffoldKey,
+              drawer: CustomDrawer(
+                nombre_usuario: userName ?? "Usuario no encontrado", 
+                ventanaActiva: "dashboard"
+              ),
+              body: RefreshIndicator(
+                onRefresh: () => controller.refreshData(),
+                color: AppColors.primaryGreen,
+                child: CustomScrollView(
+                  slivers: [
+                    // App Bar personalizada - VERSIÓN CORREGIDA SIN SUPERPOSICIÓN
+                    SliverAppBar(
+                      expandedHeight: 200,
+                      floating: true,
+                      pinned: true,
+                      backgroundColor: AppColors.primaryGreen,
+                      elevation: 0,
+                      leading: Builder(
+                        builder: (context) => Container(
+                          margin: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.menu, color: Colors.white),
                             onPressed: () => Scaffold.of(context).openDrawer(),
                           ),
                         ),
-                        flexibleSpace: FlexibleSpaceBar(
-                          title: Text(
-                            'Bienvenido ${controller.getName()}',
-                            style: TextStyle(
-                              color: AppColors.darkGrey,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          background: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [AppColors.pureWhite, AppColors.offWhite],
+                      ),
+                      flexibleSpace: FlexibleSpaceBar(
+                        titlePadding: EdgeInsets.zero,
+                        title: Container(
+                          height: 60,
+                          alignment: Alignment.bottomLeft,
+                          padding: const EdgeInsets.only(left: 20, bottom: 16),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8)
+                                
+                  
+                                
                               ),
-                            ),
+                              const SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Hola,',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.8),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  Text(
+                                    controller.getName(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        actions: [
-                          IconButton(
-                            icon: const Icon(Icons.notifications_outlined),
-                            color: AppColors.primaryGreen,
-                            onPressed: () {
-                              // TODO: Navegar a notificaciones
-                            },
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.search),
-                            color: AppColors.primaryGreen,
-                            onPressed: () {
-                              // TODO: Abrir búsqueda
-                            },
-                          ),
-                        ],
-                      ),
-                
-                      // Contenido principal
-                      SliverPadding(
-                        padding: const EdgeInsets.all(16),
-                        sliver: SliverList(
-                          delegate: SliverChildListDelegate([
-                            if (controller.isLoading)
-                              const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(32),
-                                  child: CircularProgressIndicator(),
+                        background: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            // Fondo con gradiente
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    AppColors.primaryGreen,
+                                    AppColors.lightGreen,
+                                  ],
                                 ),
-                              )
-                            else if (controller.errorMessage != null)
-                              Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(32),
-                                  child: Column(
-                                    children: [
-                                      Icon(
+                              ),
+                            ),
+                            // Contenido del fondo
+                            SafeArea(
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 20,
+                                  top: 60,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Panel de Control',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Resumen Financiero',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        shadows: [
+                                          Shadow(
+                                            color: Colors.black.withOpacity(0.2),
+                                            offset: const Offset(0, 2),
+                                            blurRadius: 4,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      actions: const [], // Vacío para eliminar los iconos
+                    ),
+
+                    // Contenido principal
+                    SliverPadding(
+                      padding: const EdgeInsets.all(16),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          if (controller.isLoading)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(32),
+                                child: CircularProgressIndicator(),
+                              ),
+                            )
+                          else if (controller.errorMessage != null)
+                            Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(20),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.error.withOpacity(0.1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
                                         Icons.error_outline,
                                         size: 48,
                                         color: AppColors.error,
                                       ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        controller.errorMessage!,
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                          color: AppColors.error,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      controller.errorMessage!,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: AppColors.error,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: () => controller.refreshData(),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primaryGreen,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
                                         ),
                                       ),
-                                      const SizedBox(height: 16),
-                                      ElevatedButton(
-                                        onPressed: () => controller.refreshData(),
-                                        child: const Text('Reintentar'),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              )
-                            else ...[
-                              // 1-4. Tarjetas de resumen
-                              CreditSummaryCards(
-                                totalCredits: controller.totalCredits,
-                                totalPaid: controller.totalPaid,
-                                pendingWeeklyQuotas:
-                                    controller.pendingWeeklyQuotas,
-                                pendingBalance: controller.pendingBalance,
-                              ),
-                
-                              const SizedBox(height: 20),
-                
-                              // 5. Próximos vencimientos
-                              UpcomingPayments(
-                                payments: controller.upcomingPayments,
-                              ),
-                
-                              const SizedBox(height: 20),
-                
-                              // 6. Cuotas atrasadas
-                              OverduePayments(payments: controller.latePayments),
-                
-                              const SizedBox(height: 20),
-                
-                              // Botón para nuevo crédito
-                              Center(
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (_) => CreditoPage()),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.add),
-                                  label: const Text('Nuevo Crédito'),
-                                  style: ElevatedButton.styleFrom(
-                                    minimumSize: const Size(200, 45),
-                                    backgroundColor: AppColors.primaryGreen,
-                                    foregroundColor: AppColors.pureWhite,
-                                  ),
+                                      child: const Text('Reintentar'),
+                                    ),
+                                  ],
                                 ),
                               ),
-                
-                              const SizedBox(height: 20),
-                            ],
-                          ]),
-                        ),
+                            )
+                          else ...[
+                            // 1-4. Tarjetas de resumen
+                            CreditSummaryCards(
+                              totalCredits: controller.totalCredits,
+                              totalPaid: controller.totalPaid,
+                              pendingWeeklyQuotas: controller.pendingWeeklyQuotas,
+                              pendingBalance: controller.pendingBalance,
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // 5. Próximos vencimientos
+                            UpcomingPayments(
+                              payments: controller.upcomingPayments,
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // 6. Cuotas atrasadas
+                            OverduePayments(payments: controller.latePayments),
+
+                            const SizedBox(height: 24),
+
+                            // Botón para nuevo crédit
+
+                            const SizedBox(height: 20),
+                            
+                            // Espacio adicional al final
+                            const SizedBox(height: 20),
+                          ],
+                          
+                        ]),
+                        
                       ),
-                    ],
+                    ),
+                  ],
+                  
+                ),
+                
+              ),
+              floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+              floatingActionButton: Padding(
+                padding: const EdgeInsets.only(bottom: 16.0, right: 8.0),
+                child: FloatingActionButton.extended(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => CreditoPage(nombreUsuario: userName ?? "Usuario")),
+                    );
+                  },
+                  backgroundColor: AppColors.primaryGreen,
+                  elevation: 6,
+                  icon: const Icon(Icons.add, color: Colors.white),
+                  label: const Text(
+                    '',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

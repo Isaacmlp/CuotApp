@@ -1,19 +1,23 @@
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/ui/credito_page.dart';
 import 'package:cuot_app/ui/pages/cuotapp_login_page.dart';
+import 'package:cuot_app/ui/pages/dashboard_screen.dart';
+import 'package:cuot_app/ui/pages/seguimiento_creditos_page.dart';
+import 'package:cuot_app/ui/pages/settings_screen.dart';
 import 'package:flutter/material.dart';
 
 class CustomDrawer extends StatelessWidget {
-  final String? nombre_usuario; // Callback para navegación segura
+  final String nombre_usuario;
+  final String ventanaActiva; // 👈 Recibe la ventana activa
 
   const CustomDrawer({
     super.key,
     required this.nombre_usuario,
-// Requerido para navegar
+    required this.ventanaActiva, // 👈 Requerido
   });
 
   @override
-    Widget build(BuildContext context) {
+  Widget build(BuildContext context) {
     return Drawer(
       child: Container(
         color: AppColors.pureWhite,
@@ -22,7 +26,13 @@ class CustomDrawer extends StatelessWidget {
           children: [
             // Header del Drawer con gradiente verde
             Container(
-              decoration: BoxDecoration(
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 16, // Espacio para el status bar
+                left: 16,
+                right: 16,
+                bottom: 16,
+              ),
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -32,90 +42,88 @@ class CustomDrawer extends StatelessWidget {
                   ],
                 ),
               ),
-              child: DrawerHeader(
-                margin: EdgeInsets.zero,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: AppColors.pureWhite,
-                      child: Icon(
-                        Icons.person,
-                        size: 40,
-                        color: AppColors.primaryGreen,
-                      ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min, // Que crezca según su contenido
+                children: [
+                  const CircleAvatar(
+                    radius: 30,
+                    backgroundColor: AppColors.pureWhite,
+                    child: Icon(
+                      Icons.person,
+                      size: 40,
+                      color: AppColors.primaryGreen,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      nombre_usuario != null 
-                          ? 'Hola, $nombre_usuario' 
-                          : 'Hola, Usuario',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    nombre_usuario.isNotEmpty 
+                        ? 'Hola, $nombre_usuario' 
+                        : 'Hola, Usuario',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                    Text(
-                      'ver perfil',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 14,
-                      ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'ver perfil',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 14,
                     ),
-                  ],
-                ), 
-                  
-            )
+                  ),
+                ],
+              ),
             ),
 
-            
-            
-            // Items del menú
+            // Items del menú con detección de ventana activa
             _buildDrawerItem(
-              
               icon: Icons.dashboard,
-              label: 'Dashboard',
+              label: 'Menu Principal',
               onTap: () {
-                Navigator.pop(context); // Solo cerrar drawer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => DashboardScreen(correo: '', userName: nombre_usuario,)),
+                );
               },
-              isSelected: true,
+              isSelected: ventanaActiva == 'dashboard', // 👈 Condición
             ),
             
-             _buildDrawerItem(
+            _buildDrawerItem(
               icon: Icons.credit_card,
-              label: 'Financiar',
-              
+              label: 'Cuotas Personales',
               onTap: () {
-                // Usar el callback para navegar de forma segura
-              Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => CreditoPage()),
-            );
+                 Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => SeguimientoCreditosPage(nombreUsuario: nombre_usuario,)),
+                );
               },
+              isSelected: ventanaActiva == 'Cuotas Personales', // 👈 Condición
             ),
             
             _buildDrawerItem(
               icon: Icons.payment,
-              label: 'Pagos',
+              label: 'Cuotas Comunitarias',
               onTap: () {
-                Navigator.pop(context);
+                
+               
                 // TODO: Implementar navegación a pagos
-                // onNavigate(PagosScreen());
               },
+              isSelected: ventanaActiva == 'Cuotas Comunitarias', // 👈 Condición
             ),
             
             _buildDrawerItem(
               icon: Icons.calendar_today,
-              label: 'Calendario de Pagos',
+              label: 'Cuotas Empresariales',
               onTap: () {
                 Navigator.pop(context);
                 // TODO: Implementar navegación a calendario
-                // onNavigate(CalendarioScreen());
               },
+              isSelected: ventanaActiva == 'Cuotas Empresariales', // 👈 Condición
             ),
             
             _buildDrawerItem(
@@ -124,8 +132,8 @@ class CustomDrawer extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 // TODO: Implementar navegación a historial
-                // onNavigate(HistorialScreen());
               },
+              isSelected: ventanaActiva == 'historial', // 👈 Condición
             ),
             
             const Divider(
@@ -141,20 +149,26 @@ class CustomDrawer extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 // TODO: Implementar navegación a notificaciones
-                // onNavigate(NotificacionesScreen());
               },
               showBadge: true,
               badgeCount: 3,
+              isSelected: ventanaActiva == 'notificaciones', // 👈 Condición
             ),
             
             _buildDrawerItem(
               icon: Icons.settings,
               label: 'Configuración',
               onTap: () {
-                Navigator.pop(context);
-                // TODO: Implementar navegación a configuración
-                // onNavigate(ConfiguracionScreen());
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SettingsScreen(
+                      nombreUsuario: nombre_usuario,
+                    ),
+                  ),
+                );
               },
+              isSelected: ventanaActiva == 'Configuración', // 👈 Condición
             ),
             
             _buildDrawerItem(
@@ -163,8 +177,8 @@ class CustomDrawer extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 // TODO: Implementar navegación a ayuda
-                // onNavigate(AyudaScreen());
               },
+              isSelected: ventanaActiva == 'ayuda', // 👈 Condición
             ),
             
             const Divider(
@@ -177,10 +191,14 @@ class CustomDrawer extends StatelessWidget {
             _buildDrawerItem(
               icon: Icons.logout,
               label: 'Cerrar Sesión',
-              onTap: () { Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => CuotAppLoginPage()),
-              (Route<dynamic> route) => false);
+              onTap: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => CuotAppLoginPage()),
+                  (Route<dynamic> route) => false,
+                );
               },
               color: AppColors.error,
+              isSelected: false, // Nunca está seleccionado
             ),
             
             const SizedBox(height: 20),
@@ -211,7 +229,6 @@ class CustomDrawer extends StatelessWidget {
     bool showBadge = false,
     int badgeCount = 0,
   }) {
-    print("Fua los bugs");
     return ListTile(
       leading: Icon(
         icon,
@@ -225,80 +242,29 @@ class CustomDrawer extends StatelessWidget {
         ),
       ),
       trailing: showBadge
-    ? Container(
-        padding: const EdgeInsets.all(4), // El padding da el tamaño natural
-        decoration: const BoxDecoration(
-          color: Colors.red, // Usa AppColors.error
-          shape: BoxShape.circle, // Círculo perfecto sin cálculos raros
-        ),
-        constraints: const BoxConstraints(
-          minWidth: 18,
-          minHeight: 18,
-        ),
-        child: Text(
-          badgeCount.toString(),
-          textAlign: TextAlign.center, // Centrado de texto simple
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      )
-    : null,
+          ? Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 18,
+                minHeight: 18,
+              ),
+              child: Text(
+                badgeCount.toString(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+          : null,
       selected: isSelected,
       onTap: onTap,
-    );
-  }
-
-
-  // Diálogo de cierre de sesión
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text('Cerrar Sesión'),
-          content: const Text('¿Estás seguro que deseas cerrar sesión?'),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
-                'Cancelar',
-                style: TextStyle(color: AppColors.mediumGrey),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // Cerrar diálogo
-                Navigator.pop(dialogContext);
-                // Cerrar drawer
-                Navigator.pop(context);
-                // Navegar a login después de un delay
-                Future.delayed(const Duration(milliseconds: 150), () {
-                  // Usar el callback para navegar al login
-                  // onNavigate(LoginScreen());
-                  // Por ahora solo mostramos un mensaje
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Sesión cerrada'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
-                foregroundColor: AppColors.pureWhite,
-              ),
-              child: const Text('Cerrar Sesión'),
-            ),
-          ],
-        );
-      },
     );
   }
 }

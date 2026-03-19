@@ -409,7 +409,7 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                               _buildInfoCard(
                                 'Restante',
                                 '\$${widget.montoRestante.toStringAsFixed(2)}',
-                                const Color(0xFFD48806),
+                                const Color(0xFFE8573D),
                                 Icons.pending,
                               ),
                           ],

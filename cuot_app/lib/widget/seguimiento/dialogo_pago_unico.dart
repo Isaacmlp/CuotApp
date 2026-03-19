@@ -228,7 +228,7 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                           _buildInfoCard(
                             'Pendiente',
                             '\$${widget.credito.saldoPendiente.toStringAsFixed(2)}',
-                            const Color(0xFFD48806),
+                            const Color(0xFFE8573D),
                           ),
                         ],
                       ),

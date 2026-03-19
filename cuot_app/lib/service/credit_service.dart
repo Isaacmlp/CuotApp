@@ -3,8 +3,38 @@ import 'package:cuot_app/core/supabase/supabase_service.dart';
 class CreditService {
   final SupabaseService _supabase = SupabaseService();
 
-  // 🚀 OPTIMIZADO: Obtener TODO en una sola consulta (Créditos + Clientes + Cuotas + Pagos)
-  Future<List<Map<String, dynamic>>> getFullCreditsData(String usuarioNombre) async {
+  // 🚀 CACHE: Evita consultas repetidas al navegar entre pantallas
+  static List<Map<String, dynamic>>? _cachedData;
+  static String? _cachedUser;
+  static DateTime? _cacheTime;
+  static const Duration _cacheTTL = Duration(seconds: 30);
+
+  /// Invalida el caché (llamar después de guardar pagos o crear créditos)
+  static void invalidateCache() {
+    _cachedData = null;
+    _cachedUser = null;
+    _cacheTime = null;
+  }
+
+  bool get _isCacheValid {
+    return _cachedData != null &&
+        _cacheTime != null &&
+        DateTime.now().difference(_cacheTime!) < _cacheTTL;
+  }
+
+  /// Obtener TODO en una sola consulta (con caché)
+  /// [forceRefresh] = true para ignorar caché (pull-to-refresh)
+  Future<List<Map<String, dynamic>>> getFullCreditsData(
+    String usuarioNombre, {
+    bool forceRefresh = false,
+  }) async {
+    // Retornar caché si es válido y del mismo usuario
+    if (!forceRefresh &&
+        _isCacheValid &&
+        _cachedUser == usuarioNombre) {
+      return _cachedData!;
+    }
+
     try {
       final response = await _supabase.client
           .schema('Financiamientos')
@@ -17,10 +47,21 @@ class CreditService {
           ''')
           .eq('usuario_nombre', usuarioNombre)
           .order('id', ascending: false);
-      
-      return List<Map<String, dynamic>>.from(response);
+
+      final data = List<Map<String, dynamic>>.from(response);
+
+      // Guardar en caché
+      _cachedData = data;
+      _cachedUser = usuarioNombre;
+      _cacheTime = DateTime.now();
+
+      return data;
     } catch (e) {
       print('Error en getFullCreditsData: $e');
+      // Si hay caché viejo, retornarlo como fallback
+      if (_cachedData != null && _cachedUser == usuarioNombre) {
+        return _cachedData!;
+      }
       return [];
     }
   }
@@ -75,6 +116,9 @@ class CreditService {
             .eq('credito_id', creditId)
             .eq('numero_cuota', numeroCuota);
       }
+
+      // Invalidar caché para que la próxima carga traiga datos frescos
+      invalidateCache();
     } catch (e) {
       print('Error al guardar pago: $e');
       rethrow;

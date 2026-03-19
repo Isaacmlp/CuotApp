@@ -23,7 +23,7 @@ class DashboardController extends ChangeNotifier {
   }
 
   // 🔴 MÉTODO PRINCIPAL OPTIMIZADO: Carga todo en una sola consulta
-  Future<void> loadDashboardData() async {
+  Future<void> loadDashboardData({bool forceRefresh = false}) async {
     isLoading = true;
     errorMessage = null;
     notifyListeners();
@@ -31,7 +31,10 @@ class DashboardController extends ChangeNotifier {
     try {
       // 🚀 Una sola consulta para traer todo lo relacionado al usuario
       final creditsData =
-          await _creditService.getFullCreditsData(userName ?? '');
+          await _creditService.getFullCreditsData(
+            userName ?? '',
+            forceRefresh: forceRefresh,
+          );
 
       _processData(creditsData);
     } catch (e) {
@@ -132,9 +135,9 @@ class DashboardController extends ChangeNotifier {
     latePayments.sort((a, b) => a.date.compareTo(b.date));
   }
 
-  // Método para refrescar manualmente
+  // Método para refrescar manualmente (pull-to-refresh)
   Future<void> refreshData() async {
-    await loadDashboardData();
+    await loadDashboardData(forceRefresh: true);
   }
 
   String getName() {

@@ -9,6 +9,7 @@ import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/widget/seguimiento/tarjeta_financiamiento.dart';
 import 'package:cuot_app/service/credit_service.dart';
 import 'package:cuot_app/widget/dashboard/custom_drawer.dart';
+import 'package:cuot_app/ui/pages/dashboard_screen.dart';
 
 class SeguimientoCreditosPage extends StatefulWidget {
   final String nombreUsuario;
@@ -499,7 +500,16 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
           _scaffoldKey.currentState?.closeDrawer();
         } else {
-          Navigator.of(context).pop();
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DashboardScreen(
+                correo: '',
+                userName: widget.nombreUsuario,
+              ),
+            ),
+            (route) => false,
+          );
         }
       },
       child: Scaffold(

@@ -342,8 +342,104 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                           ),
                         ),
                             const SizedBox(height: 20),
+
+                        // 1. Tarjeta de información del cliente
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.info.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: AppColors.info.withOpacity(0.2),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 25,
+                                backgroundColor: AppColors.info.withOpacity(0.1),
+                                child: Text(
+                                  widget.nombreCliente[0].toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.info,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      widget.nombreCliente,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      widget.concepto,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: AppColors.mediumGrey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                         
-                        // 1. Métodos de pago (AHORA PRIMERO)
+                        const SizedBox(height: 12),
+                        
+                        // 2. Grid de información de la cuota
+                        Row(
+                          children: [
+                            _buildInfoCard(
+                              'Monto Total',
+                              '\$${widget.monto.toStringAsFixed(2)}',
+                              AppColors.primaryGreen,
+                              Icons.payments,
+                            ),
+                            const SizedBox(width: 12),
+                              _buildInfoCard(
+                                'Restante',
+                                '\$${widget.montoRestante.toStringAsFixed(2)}',
+                                const Color(0xFFD48806),
+                                Icons.pending,
+                              ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 12),
+                        
+                        Row(
+                          children: [
+                            _buildInfoCard(
+                              'Vencimiento',
+                              DateFormat('dd/MM/yyyy').format(widget.fechaVencimiento),
+                              _diasAtraso > 0 ? AppColors.error : AppColors.info,
+                              Icons.event,
+                            ),
+                            const SizedBox(width: 12),
+                            _buildInfoCard(
+                              'Atraso',
+                              _diasAtraso > 0 
+                                  ? '$_diasAtraso día${_diasAtraso != 1 ? 's' : ''}' 
+                                  : 'Al día',
+                              _diasAtraso > 0 ? AppColors.error : AppColors.success,
+                              Icons.access_time,
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 20),
+                        
+                        // 3. Métodos de pago
                         const Text(
                           'Método de pago',
                           style: TextStyle(
@@ -822,102 +918,6 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                             ),
                           ),
                         ],
-                        
-                        const SizedBox(height: 20),
-                        
-                        // 10. Tarjeta de información del cliente
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.info.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: AppColors.info.withOpacity(0.2),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 25,
-                                backgroundColor: AppColors.info.withOpacity(0.1),
-                                child: Text(
-                                  widget.nombreCliente[0].toUpperCase(),
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.info,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      widget.nombreCliente,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      widget.concepto,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: AppColors.mediumGrey,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 12),
-                        
-                        // 11. Grid de información de la cuota
-                        Row(
-                          children: [
-                            _buildInfoCard(
-                              'Monto Total',
-                              '\$${widget.monto.toStringAsFixed(2)}',
-                              AppColors.primaryGreen,
-                              Icons.payments,
-                            ),
-                            const SizedBox(width: 12),
-                              _buildInfoCard(
-                                'Restante',
-                                '\$${widget.montoRestante.toStringAsFixed(2)}',
-                                const Color(0xFFD48806), // Amarillo oscuro para legibilidad
-                                Icons.pending,
-                              ),
-                          ],
-                        ),
-                        
-                        const SizedBox(height: 12),
-                        
-                        Row(
-                          children: [
-                            _buildInfoCard(
-                              'Vencimiento',
-                              DateFormat('dd/MM/yyyy').format(widget.fechaVencimiento),
-                              _diasAtraso > 0 ? AppColors.error : AppColors.info,
-                              Icons.event,
-                            ),
-                            const SizedBox(width: 12),
-                            _buildInfoCard(
-                              'Atraso',
-                              _diasAtraso > 0 
-                                  ? '$_diasAtraso día${_diasAtraso != 1 ? 's' : ''}' 
-                                  : 'Al día',
-                              _diasAtraso > 0 ? AppColors.error : AppColors.success,
-                              Icons.access_time,
-                            ),
-                          ],
-                        ),
                         
                         const SizedBox(height: 20),
                         

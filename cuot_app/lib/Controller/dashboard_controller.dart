@@ -140,4 +140,9 @@ class DashboardController extends ChangeNotifier {
   String getName() {
     return userName ?? 'Usuario indefinido';
   }
+
+  String getFirstName() {
+    final name = userName ?? 'Usuario';
+    return name.split(' ').first;
+  }
 }

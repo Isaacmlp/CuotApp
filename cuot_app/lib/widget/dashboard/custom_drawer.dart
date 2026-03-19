@@ -59,7 +59,7 @@ class CustomDrawer extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(
                     nombre_usuario.isNotEmpty
-                        ? 'Hola, $nombre_usuario'
+                        ? 'Hola, ${nombre_usuario.split(' ').first}'
                         : 'Hola, Usuario',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,

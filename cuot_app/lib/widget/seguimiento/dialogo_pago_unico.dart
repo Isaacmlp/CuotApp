@@ -177,7 +177,65 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                         ),
                       ),                      const SizedBox(height: 20),
                       
-                      // 1. Métodos de pago (AHORA PRIMERO)
+                      // 1. Resumen Cliente
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryGreen.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.primaryGreen.withOpacity(0.2),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Cliente',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  Text(
+                                    widget.credito.nombreCliente,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 12),
+                      
+                      // 2. Info Cards
+                      Row(
+                        children: [
+                          _buildInfoCard(
+                            'Pagado',
+                            '\$${widget.credito.totalPagado.toStringAsFixed(2)}',
+                            AppColors.success,
+                          ),
+                          const SizedBox(width: 12),
+                          _buildInfoCard(
+                            'Pendiente',
+                            '\$${widget.credito.saldoPendiente.toStringAsFixed(2)}',
+                            const Color(0xFFD48806),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 20),
+                      
+                      // 3. Métodos de pago
                       const Text(
                         'Método de pago',
                         style: TextStyle(
@@ -459,64 +517,6 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                           ],
                         ),
                       ],
-
-                      const SizedBox(height: 24),
-                      
-                      // 8. Resumen Cliente
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryGreen.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: AppColors.primaryGreen.withOpacity(0.2),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Cliente',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                  Text(
-                                    widget.credito.nombreCliente,
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 12),
-                      
-                      // 9. Info Cards
-                      Row(
-                        children: [
-                          _buildInfoCard(
-                            'Pagado',
-                            '\$${widget.credito.totalPagado.toStringAsFixed(2)}',
-                            AppColors.success,
-                          ),
-                          const SizedBox(width: 12),
-                          _buildInfoCard(
-                            'Pendiente',
-                            '\$${widget.credito.saldoPendiente.toStringAsFixed(2)}',
-                            const Color(0xFFD48806),
-                          ),
-                        ],
-                      ),
 
                       const SizedBox(height: 24),
                       

@@ -122,7 +122,7 @@ class DashboardScreen extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    controller.getName(),
+                                    controller.getFirstName(),
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,

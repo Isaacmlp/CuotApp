@@ -85,6 +85,7 @@ class CustomDrawer extends StatelessWidget {
               icon: Icons.dashboard,
               label: 'Menu Principal',
               onTap: () {
+                Navigator.pop(context); // Cerrar el drawer primero
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => DashboardScreen(correo: '', userName: nombre_usuario,)),
@@ -97,7 +98,8 @@ class CustomDrawer extends StatelessWidget {
               icon: Icons.credit_card,
               label: 'Cuotas Personales',
               onTap: () {
-                 Navigator.push(
+                Navigator.pop(context); // Cerrar el drawer primero
+                Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => SeguimientoCreditosPage(nombreUsuario: nombre_usuario,)),
                 );

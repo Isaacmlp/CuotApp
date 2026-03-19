@@ -107,7 +107,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 📌 1. CONCEPTO/PRODUCTO
-            _buildSeccionTitulo('Articulo', Icons.shopping_bag),
+            _buildSeccionTitulo('Concepto', Icons.shopping_bag),
             const SizedBox(height: 8),
             TextFormField(
               controller: _conceptoController,
@@ -905,4 +905,4 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
     _telefonoController.dispose();
     super.dispose();
   }
-}
+}

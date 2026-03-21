@@ -91,7 +91,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Detalle de Crédito'),
+        title: const Text('Detalle de Pago'),
         backgroundColor: AppColors.primaryGreen,
         foregroundColor: Colors.white,
         actions: [
@@ -152,7 +152,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Información del Crédito', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Text('Información', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     const Divider(),
                     const SizedBox(height: 8),
                     _buildInfoRow(Icons.inventory, 'Concepto', _credito!['concepto'] ?? 'Sin concepto'),
@@ -174,7 +174,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
             
             // Historial de Cuotas
             if (rawCuotas.isNotEmpty && _credito!['tipo_credito'] != 'unico') ...[
-              const Text('Cuentas (Cuotas / Pagos Únicos)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text('Cuotas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Card(
                 elevation: 2,

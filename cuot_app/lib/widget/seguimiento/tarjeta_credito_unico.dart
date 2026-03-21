@@ -63,7 +63,8 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
+          color: widget.credito.estaPagado ? Colors.white : null,
+          gradient: widget.credito.estaPagado ? null : LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
@@ -126,6 +127,8 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
                                       ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
@@ -167,84 +170,49 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
                             ],
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: widget.credito.estadoColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: widget.credito.estadoColor.withOpacity(0.3),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _colorDiasRestantes.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.event,
+                                    size: 14,
+                                    color: _colorDiasRestantes,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _textoDiasRestantes,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: _colorDiasRestantes,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                widget.credito.estadoIcon,
-                                size: 14,
-                                color: widget.credito.estadoColor,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                widget.credito.estado,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: widget.credito.estadoColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        if (widget.onEditar != null)
-                          SizedBox(
-                            width: 28,
-                            height: 28,
-                            child: IconButton(
+                            const SizedBox(width: 8),
+                            IconButton(
                               icon: Icon(
-                                Icons.edit,
-                                size: 16,
+                                Icons.visibility_outlined,
                                 color: AppColors.info,
+                                size: 20,
                               ),
-                              onPressed: widget.onEditar,
+                              onPressed: widget.onVerDetalle,
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),
-                              tooltip: 'Editar',
+                              tooltip: 'Ver Detalle',
                             ),
-                          ),
-                        if (widget.onEliminar != null)
-                          SizedBox(
-                            width: 28,
-                            height: 28,
-                            child: IconButton(
-                              icon: Icon(
-                                Icons.delete,
-                                size: 16,
-                                color: AppColors.error,
-                              ),
-                              onPressed: widget.onEliminar,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              tooltip: 'Eliminar',
-                            ),
-                          ),
-                        IconButton(
-                          icon: Icon(
-                            _expandido 
-                                ? Icons.keyboard_arrow_up 
-                                : Icons.keyboard_arrow_down,
-                            color: AppColors.primaryGreen,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _expandido = !_expandido;
-                            });
-                          },
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
+                          ],
                         ),
                       ],
                     ),
@@ -276,34 +244,7 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
                             ],
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _colorDiasRestantes.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.event,
-                                size: 14,
-                                color: _colorDiasRestantes,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _textoDiasRestantes,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: _colorDiasRestantes,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        const SizedBox.shrink(),
                       ],
                     ),
                     
@@ -404,84 +345,7 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
                 color: Colors.grey.shade50,
                 child: Column(
                   children: [
-                    // Historial de pagos
-                    if (widget.credito.pagosRealizados.isNotEmpty) ...[
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.history,
-                            size: 16,
-                            color: AppColors.info,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Historial de pagos',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      ...widget.credito.pagosRealizados.map((pago) {
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 4),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey.shade200),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.check_circle,
-                                size: 14,
-                                color: AppColors.success,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '\$${pago.monto.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '${pago.fechaPagoReal?.day}/${pago.fechaPagoReal?.month}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                              const Spacer(),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.info.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  pago.metodoPago ?? 'Efectivo',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: AppColors.info,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                      const SizedBox(height: 16),
-                    ],
+
                     
                     // Botones de acción
                     Row(

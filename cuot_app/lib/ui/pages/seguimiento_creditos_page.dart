@@ -10,6 +10,7 @@ import 'package:cuot_app/widget/seguimiento/tarjeta_financiamiento.dart';
 import 'package:cuot_app/service/credit_service.dart';
 import 'package:cuot_app/widget/dashboard/custom_drawer.dart';
 import 'package:cuot_app/ui/pages/dashboard_screen.dart';
+import 'package:cuot_app/ui/pages/detalle_credito_page.dart';
 
 class SeguimientoCreditosPage extends StatefulWidget {
   final String nombreUsuario;
@@ -120,7 +121,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
     }
   }
 
-  String _filtroEstado = 'todos';
+  String _filtroEstado = 'al día';
   String _busqueda = '';
   final TextEditingController _searchController = TextEditingController();
 
@@ -620,11 +621,27 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                                     item.nombreCliente,
                                   ),
                                   onVerDetalle: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                            'Ver detalle de ${item.nombreCliente}'),
-                                        backgroundColor: AppColors.info,
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => DetalleCreditoPage(
+                                          creditoId: item.id.toString(),
+                                          onEditar: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => CreditoPage(
+                                                  nombreUsuario: widget.nombreUsuario,
+                                                  creditoIdEditar: item.id.toString(),
+                                                ),
+                                              ),
+                                            ).then((_) => _loadData());
+                                          },
+                                          onEliminar: () => _eliminarCredito(
+                                            item.id,
+                                            item.nombreCliente,
+                                          ),
+                                        ),
                                       ),
                                     );
                                   },
@@ -652,6 +669,31 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                                   cuotasVencidas: cuotasVencidas,
                                   concepto: item['concepto'] ?? 'Sin concepto',
                                   totalCredito: item['totalCredito'] ?? 0.0,
+                                  onVerDetalle: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => DetalleCreditoPage(
+                                          creditoId: item['id'].toString(),
+                                          onEditar: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => CreditoPage(
+                                                  nombreUsuario: widget.nombreUsuario,
+                                                  creditoIdEditar: item['id'].toString(),
+                                                ),
+                                              ),
+                                            ).then((_) => _loadData());
+                                          },
+                                          onEliminar: () => _eliminarCredito(
+                                            item['id'],
+                                            item['nombre'],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                   onEditar: () {
                                     Navigator.push(
                                       context,

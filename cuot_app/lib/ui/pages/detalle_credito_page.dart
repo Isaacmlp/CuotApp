@@ -864,10 +864,11 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                                     ? _formatFecha(condNuevas['fecha_pago_nueva'].toString())
                                     : 'N/A',
                               ),
-                              _buildCondRow(
-                                'Mora',
-                                _formatMonto(condNuevas['monto_mora']),
-                              ),
+                              if (condNuevas['monto_mora'] != null && (num.tryParse(condNuevas['monto_mora'].toString()) ?? 0) > 0)
+                                _buildCondRow(
+                                  'Mora',
+                                  _formatMonto(condNuevas['monto_mora']),
+                                ),
                             ] else ...[
                               if (condNuevas['cuotas_renovadas'] is List &&
                                   (condNuevas['cuotas_renovadas'] as List).isNotEmpty)
@@ -879,23 +880,21 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                                 'Cant. Cuotas Nuevas',
                                 '${condNuevas['plazo'] ?? 'N/A'}',
                               ),
-                              _buildCondRow(
-                                'Mora',
-                                _formatMonto(condNuevas['monto_mora']),
-                              ),
+                              if (condNuevas['monto_mora'] != null && (num.tryParse(condNuevas['monto_mora'].toString()) ?? 0) > 0)
+                                _buildCondRow(
+                                  'Mora',
+                                  _formatMonto(condNuevas['monto_mora']),
+                                ),
                             ],
                             _buildCondRow(
                               'Nuevo Total',
                               _formatMonto(condNuevas['monto_total']),
                             ),
-                            if (condNuevas['abono'] != null) ...[
-                              if (condNuevas['abono'] is num &&
-                                  (condNuevas['abono'] as num) > 0)
-                                _buildCondRow(
-                                  'Abono',
-                                  '\$${(condNuevas[\'abono\'] as num).toStringAsFixed(2)}',
-                                ),
-                            ],
+                            if (condNuevas['abono'] != null && (num.tryParse(condNuevas['abono'].toString()) ?? 0) > 0)
+                              _buildCondRow(
+                                'Abono',
+                                _formatMonto(condNuevas['abono']),
+                              ),
                           ],
                         ),
                       ),

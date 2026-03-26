@@ -296,7 +296,7 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
                           'Pendiente',
                           '\$${widget.credito.saldoPendiente.toStringAsFixed(2)}',
                           widget.credito.saldoPendiente > 0 
-                              ? AppColors.warning 
+                              ? Colors.orange.shade700 
                               : AppColors.success,
                         ),
                       ],

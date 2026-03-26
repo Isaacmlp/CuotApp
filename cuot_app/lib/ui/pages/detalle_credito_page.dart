@@ -405,48 +405,99 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                 child: Center(child: Text('No hay registros vinculados.', style: TextStyle(color: Colors.grey))),
               ),
             ),
-          for (var cuota in rawCuotas)
-            Card(
-              elevation: 2,
-              margin: const EdgeInsets.only(bottom: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: cuota['pagada'] == true ? AppColors.success.withOpacity(0.5) : Colors.transparent,
-                ),
-              ),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: cuota['pagada'] == true ? AppColors.success.withOpacity(0.1) : AppColors.warning.withOpacity(0.1),
-                  child: Icon(
-                    cuota['pagada'] == true ? Icons.check_circle : Icons.schedule,
-                    color: cuota['pagada'] == true ? AppColors.success : AppColors.warning,
-                  ),
-                ),
-                title: Text(
-                    esUnico ? 'Total a Pagar' : 'Cuota ${cuota['numero_cuota'] ?? 'N/A'}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text('Vence: ${_formatFecha(cuota['fecha_pago'])}'),
-                trailing: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '\$${(cuota['monto'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    Text(
-                      cuota['pagada'] == true ? 'Pagada' : 'Pendiente',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: cuota['pagada'] == true ? AppColors.success : AppColors.warning,
+          if (!esUnico && rawCuotas.isNotEmpty)
+            Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                title: Text('Ver Lista de Cuotas (${rawCuotas.length})', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                tilePadding: EdgeInsets.zero,
+                initiallyExpanded: rawCuotas.length <= 5,
+                children: [
+                  for (var cuota in rawCuotas)
+                    Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.only(bottom: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: cuota['pagada'] == true ? AppColors.success.withOpacity(0.5) : Colors.transparent,
+                        ),
+                      ),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: cuota['pagada'] == true ? AppColors.success.withOpacity(0.1) : AppColors.warning.withOpacity(0.1),
+                          child: Icon(
+                            cuota['pagada'] == true ? Icons.check_circle : Icons.schedule,
+                            color: cuota['pagada'] == true ? AppColors.success : AppColors.warning,
+                          ),
+                        ),
+                        title: Text(
+                            'Cuota ${cuota['numero_cuota'] ?? 'N/A'}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text('Vence: ${_formatFecha(cuota['fecha_pago'])}'),
+                        trailing: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '\$${(cuota['monto'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            Text(
+                              cuota['pagada'] == true ? 'Pagada' : 'Pendiente',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: cuota['pagada'] == true ? AppColors.success : AppColors.warning,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ],
+                ],
+              ),
+            )
+          else if (esUnico && rawCuotas.isNotEmpty)
+            for (var cuota in rawCuotas)
+              Card(
+                elevation: 2,
+                margin: const EdgeInsets.only(bottom: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: cuota['pagada'] == true ? AppColors.success.withOpacity(0.5) : Colors.transparent,
+                  ),
+                ),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: cuota['pagada'] == true ? AppColors.success.withOpacity(0.1) : AppColors.warning.withOpacity(0.1),
+                    child: Icon(
+                      cuota['pagada'] == true ? Icons.check_circle : Icons.schedule,
+                      color: cuota['pagada'] == true ? AppColors.success : AppColors.warning,
+                    ),
+                  ),
+                  title: const Text('Total a Pagar', style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text('Vence: ${_formatFecha(cuota['fecha_pago'])}'),
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '\$${(cuota['monto'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      Text(
+                        cuota['pagada'] == true ? 'Pagada' : 'Pendiente',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: cuota['pagada'] == true ? AppColors.success : AppColors.warning,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
           const SizedBox(height: 24),
           const Text('Historial de Pagos',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -542,7 +593,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header: Fecha + Estado
+                  // Header: Estado
                   Row(
                     children: [
                       CircleAvatar(
@@ -559,43 +610,77 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Renovación ${DateFormat('dd/MM/yyyy').format(renovacion.fechaRenovacion)}',
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Text(
-                              estado.capitalize(),
+                            const Text(
+                              'Renovación',
                               style: TextStyle(
-                                fontSize: 13,
-                                color: colorEstado,
-                                fontWeight: FontWeight.w500,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
+                            if (renovacion.observaciones != null && renovacion.observaciones!.isNotEmpty)
+                              Text(
+                                renovacion.observaciones!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                           ],
                         ),
                       ),
-                      const Icon(
-                        Icons.chevron_right,
-                        color: Colors.grey,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: colorEstado.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          estado.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: colorEstado,
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  if (renovacion.observaciones != null &&
-                      renovacion.observaciones!.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      renovacion.observaciones!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
+                  const Divider(height: 20),
+                  // Info comparativa
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMiniInfo(
+                          'Plazo',
+                          _getResumenPlazoLocal(renovacion.fechaRenovacion, renovacion.condicionesNuevas),
+                          Icons.schedule,
+                        ),
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                      Expanded(
+                        child: _buildMiniInfo(
+                          'Mora',
+                          '\$${(renovacion.condicionesNuevas['monto_mora'] as num?)?.toStringAsFixed(0) ?? '0'}',
+                          Icons.warning_amber_rounded,
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildMiniInfo(
+                          'Total',
+                          '\$${(renovacion.condicionesNuevas['monto_total'] as num?)?.toStringAsFixed(0) ?? '0'}',
+                          Icons.payments,
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildMiniInfo(
+                          'Fecha',
+                          DateFormat('dd/MM/yy').format(renovacion.fechaRenovacion),
+                          Icons.event,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -610,6 +695,61 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     if (value == null) return 'N/A';
     final num? n = value is num ? value : num.tryParse(value.toString());
     return n != null ? '\$${n.toStringAsFixed(2)}' : '\$$value';
+  }
+
+  int _calcularDiasSimple(dynamic start, dynamic end) {
+    if (start == null || end == null) return 0;
+    try {
+      final s = DateTime.parse(start.toString());
+      final e = DateTime.parse(end.toString());
+      return e.difference(s).inDays;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  String _getResumenPlazoLocal(DateTime fechaRen, Map<String, dynamic> condNuevas) {
+    final tipo = condNuevas['tipo_credito'] ?? 'cuotas';
+    if (tipo == 'unico') {
+      final fechaNueva = condNuevas['fecha_pago_nueva'];
+      return '${_calcularDiasSimple(fechaRen.toIso8601String(), fechaNueva)} días';
+    } else {
+      final cuotas = condNuevas['cuotas_renovadas'];
+      if (cuotas is List && cuotas.isNotEmpty) {
+        final last = cuotas.last;
+        final e = DateTime.tryParse(last['fecha'].toString());
+        if (e != null) {
+          return '${e.difference(fechaRen).inDays} días';
+        }
+      }
+      return '? días';
+    }
+  }
+
+  Widget _buildMiniInfo(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, size: 16, color: Colors.grey.shade500),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
+    );
   }
 
   // Helper para formatear fechas ISO a dd/MM/yyyy

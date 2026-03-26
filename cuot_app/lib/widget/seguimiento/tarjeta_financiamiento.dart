@@ -479,26 +479,47 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
           child: Column(
             crossAxisAlignment: isProminent ? CrossAxisAlignment.end : CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                valor,
-                style: TextStyle(
-                  fontSize: isProminent ? 14 : 12,
-                  color: isProminent ? color : Colors.grey.shade800,
-                  fontWeight: FontWeight.bold,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: isProminent ? 10 : 10,
-                  color: Colors.grey.shade600,
-                  fontWeight: isProminent ? FontWeight.w500 : FontWeight.normal,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+            children: isProminent 
+              ? [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    valor,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ]
+              : [
+                  Text(
+                    valor,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade800,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.normal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
           ),
         ),
       ],

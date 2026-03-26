@@ -248,6 +248,41 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                 0.0) <=
         0.01;
 
+    bool isAtrasado = false;
+    final List<dynamic> cuotas = _credito?['Cuotas'] ?? [];
+    if (!isPagado) {
+      for (var cuota in cuotas) {
+        if (cuota['pagada'] == false && cuota['fecha_pago'] != null) {
+          final fechaPago = DateTime.tryParse(cuota['fecha_pago'].toString());
+          if (fechaPago != null) {
+            final hoy = DateTime.now();
+            final fechaPagoDate = DateTime(fechaPago.year, fechaPago.month, fechaPago.day);
+            final hoyDate = DateTime(hoy.year, hoy.month, hoy.day);
+            if (fechaPagoDate.isBefore(hoyDate)) {
+              isAtrasado = true;
+              break;
+            }
+          }
+        }
+      }
+      if (cuotas.isEmpty && _credito?['fecha_vencimiento'] != null) {
+        final fechaVen = DateTime.tryParse(_credito!['fecha_vencimiento'].toString());
+        if (fechaVen != null) {
+          final hoy = DateTime.now();
+          final fechaVenDate = DateTime(fechaVen.year, fechaVen.month, fechaVen.day);
+          final hoyDate = DateTime(hoy.year, hoy.month, hoy.day);
+          if (fechaVenDate.isBefore(hoyDate)) {
+            isAtrasado = true;
+          }
+        }
+      }
+    }
+
+    final String textoEstado = isPagado ? 'PAGADO' : (isAtrasado ? 'ATRASADO' : 'AL DÍA');
+    final Color colorEstado = isPagado 
+        ? AppColors.success 
+        : (isAtrasado ? AppColors.error : Colors.blue.shade700);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -282,15 +317,15 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: isPagado ? AppColors.success.withOpacity(0.1) : AppColors.warning.withOpacity(0.1),
+                          color: colorEstado.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          isPagado ? 'PAGADO' : 'ACTIVO',
+                          textoEstado,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: isPagado ? AppColors.success : AppColors.warning,
+                            color: colorEstado,
                           ),
                         ),
                       ),
@@ -319,9 +354,16 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                           : 'N/A'),
                   const SizedBox(height: 12),
                   _buildInfoRow(Icons.calendar_month, 'Fecha límite',
-                      _credito?['fecha_limite'] != null
-                          ? _formatFecha(_credito!['fecha_limite'])
-                          : 'N/A'),
+                      (() {
+                        if (_credito?['fecha_vencimiento'] != null) {
+                          return _formatFecha(_credito!['fecha_vencimiento']);
+                        }
+                        final cuotas = _credito?['Cuotas'] as List<dynamic>? ?? [];
+                        if (cuotas.isNotEmpty) {
+                           return _formatFecha(cuotas.last['fecha_pago']);
+                        }
+                        return 'N/A';
+                      })()),
                   const SizedBox(height: 12),
                   _buildInfoRow(Icons.monetization_on, 'Monto total',
                       '\$${(((_credito?['costo_inversion'] as num?)?.toDouble() ?? 0) + ((_credito?['margen_ganancia'] as num?)?.toDouble() ?? 0)).toStringAsFixed(2)}',

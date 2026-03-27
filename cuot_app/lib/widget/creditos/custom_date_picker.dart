@@ -80,35 +80,43 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
 
     final isInteractive = !widget.readOnly && widget.onDateSelected != null;
 
+    // Colores premium
+    final Color primaryColor = Colors.blue.shade800;
+    final Color iconColor = hasDate ? primaryColor : Colors.grey.shade400;
+    final Color bgColor = widget.readOnly ? Colors.grey.shade50 : Colors.white;
+    final Color borderColor = widget.readOnly ? Colors.grey.shade200 : Colors.blue.shade100.withOpacity(0.5);
+
     if (widget.compact) {
       return InkWell(
         onTap: isInteractive ? _selectDate : null,
         borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-            color: widget.readOnly ? Colors.grey.shade100 : Colors.white,
+            color: bgColor,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: widget.readOnly ? Colors.grey.shade300 : Colors.grey.shade400,
-              width: 1,
+              color: borderColor,
+              width: 0.8,
             ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                Icons.calendar_today_rounded,
+                Icons.calendar_month_rounded,
                 size: 14,
-                color: widget.readOnly ? Colors.grey.shade400 : Colors.blue.shade700,
+                color: iconColor,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Text(
-                formattedDate.substring(0, hasDate ? 8 : formattedDate.length), // dd/mm/yy
+                formattedDate.substring(0, hasDate ? 8 : formattedDate.length), 
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: hasDate ? FontWeight.bold : FontWeight.normal,
-                  color: hasDate ? Colors.black87 : Colors.grey.shade400,
+                  fontWeight: hasDate ? FontWeight.w600 : FontWeight.normal,
+                  color: hasDate ? Colors.black87 : Colors.grey.shade500,
+                  letterSpacing: -0.2,
                 ),
               ),
             ],
@@ -120,30 +128,38 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
     return InkWell(
       onTap: isInteractive ? _selectDate : null,
       borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10), // REDUCIDO padding vertical
         decoration: BoxDecoration(
-          color: widget.readOnly ? Colors.grey.shade100 : Colors.white,
+          color: bgColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: widget.readOnly ? Colors.grey.shade300 : Colors.grey.shade400,
-            width: 1,
+            color: borderColor,
+            width: 0.8, // Borde más fino para un look premium
           ),
           boxShadow: [
             if (isInteractive)
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
-                blurRadius: 4,
+                color: primaryColor.withOpacity(0.04),
+                blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
           ],
         ),
         child: Row(
           children: [
-            Icon(
-              Icons.calendar_today_rounded,
-              size: 20,
-              color: widget.readOnly ? Colors.grey.shade400 : Colors.blue.shade700,
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.calendar_month_rounded,
+                size: 18,
+                color: iconColor,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -152,19 +168,20 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    widget.label,
+                    widget.label.toUpperCase(),
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade600,
+                      fontSize: 9, // Reducido para ahorrar espacio
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey.shade500,
+                      letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 1),
                   Text(
                     formattedDate,
                     style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: hasDate ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 14,
+                      fontWeight: hasDate ? FontWeight.w600 : FontWeight.w500,
                       color: hasDate ? Colors.black87 : Colors.grey.shade400,
                     ),
                   ),
@@ -173,7 +190,8 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
             ),
             if (isInteractive)
               Icon(
-                Icons.arrow_drop_down_rounded,
+                Icons.unfold_more_rounded, // Icono más moderno para "abrir"
+                size: 18,
                 color: Colors.grey.shade400,
               ),
           ],

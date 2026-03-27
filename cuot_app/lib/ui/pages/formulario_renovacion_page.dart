@@ -79,9 +79,11 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
   void _onParametroCambiado() {
     if (_tipoCredito == 'cuotas' && _cuotasEditables.isNotEmpty) {
       _repartirMontoEntreCuotas();
-    } else {
-      setState(() {});
     }
+    // Sincronizar el controlador de mora con el nuevo cálculo sugerido si el usuario no lo ha cambiado manualmente a un valor muy específico
+    // O simplemente actualizarlo siempre que cambie el abono para reflejar la nueva base
+    _moraManualController.text = _moraSugerida.toStringAsFixed(2);
+    setState(() {});
   }
 
   void _repartirMontoEntreCuotas() {
@@ -328,9 +330,17 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
       final fechaIniRenovMidnight = _fechaInicioRenovacion != null 
           ? DateTime(_fechaInicioRenovacion!.year, _fechaInicioRenovacion!.month, _fechaInicioRenovacion!.day)
           : DateTime(fechaOriginal.year, fechaOriginal.month, fechaOriginal.day);
-      
+
       final int diasDiferencia = fechaRenovMidnight.difference(fechaIniRenovMidnight).inDays + 1;
-      return diasDiferencia > 0 ? diasDiferencia * _gananciaDiariaOriginal : 0;
+      
+      // Cálculo proporcional: le restamos el abono al monto base antes de sacar la mora
+      final double baseCalculo = _saldoPendiente - _abono;
+      final double baseProporcional = baseCalculo > 0 ? baseCalculo : 0;
+      
+      // Tasa diaria original basada en el monto total original
+      final double tasaDiaria = _montoOriginal > 0 ? (_gananciaDiariaOriginal / _montoOriginal) : 0;
+      
+      return diasDiferencia > 0 ? (baseProporcional * tasaDiaria * diasDiferencia) : 0;
     } catch (e, stackTrace) {
       debugPrint('Error calculando mora sugerida: $e');
       debugPrint('$stackTrace');

@@ -130,7 +130,7 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
       borderRadius: BorderRadius.circular(10),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // MÁXIMA REDUCCIÓN
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // EL PUNTO MEDIO
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(10),
@@ -164,7 +164,7 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
                     Text(
                       widget.label.toUpperCase(),
                       style: TextStyle(
-                        fontSize: 8, // Aún más pequeño
+                        fontSize: 9, 
                         fontWeight: FontWeight.w800,
                         color: Colors.grey.shade500,
                         letterSpacing: 0.3,
@@ -174,7 +174,7 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
                   Text(
                     formattedDate,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: hasDate ? FontWeight.w600 : FontWeight.w500,
                       color: hasDate ? Colors.black87 : Colors.grey.shade400,
                       height: 1.2,

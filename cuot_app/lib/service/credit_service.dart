@@ -403,9 +403,9 @@ class CreditService {
           .delete()
           .eq('id', creditId);
 
-      // 4. Limpiar cliente huérfano si aplica
+      // 4. Limpiar cliente huérfano si aplica (forzar búsqueda sin caché)
       if (clienteId != null) {
-        final otherCredits = await _supabase.client
+        final List<Map<String, dynamic>> otherCredits = await _supabase.client
             .schema('Financiamientos')
             .from('Creditos')
             .select('id')
@@ -417,6 +417,9 @@ class CreditService {
               .from('Clientes')
               .delete()
               .eq('id', clienteId);
+          print('✅ Cliente $clienteId eliminado por ser huérfano');
+        } else {
+          print('ℹ️ El cliente $clienteId aún tiene ${otherCredits.length} créditos');
         }
       }
 

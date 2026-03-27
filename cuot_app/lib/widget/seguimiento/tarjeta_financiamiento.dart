@@ -77,16 +77,11 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
 
 
   Color get _estadoColor {
-    switch (widget.estado.toLowerCase()) {
-      case 'pagado':
-        return AppColors.success;
-      case 'atrasado':
-        return AppColors.error;
-      case 'al día':
-        return AppColors.primaryGreen;
-      default:
-        return AppColors.warning;
-    }
+    final est = widget.estado.toLowerCase();
+    if (est == 'pagado') return AppColors.success;
+    if (est == 'atrasado' || est == 'vencido') return AppColors.error;
+    if (est == 'al día') return AppColors.primaryGreen;
+    return Colors.orange.shade800; // Pendiente / Otros
   }
 
   IconData get _estadoIcon {
@@ -258,7 +253,7 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
                         _buildMiniEstadistica(
                           'Restantes',
                           '${widget.cuotas.length - _cuotasPagadasCount}',
-                          Colors.amber,
+                          Colors.orange.shade800,
                         ),
                         const Spacer(),
                         _buildMiniEstadistica(
@@ -479,47 +474,27 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
           child: Column(
             crossAxisAlignment: isProminent ? CrossAxisAlignment.end : CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
-            children: isProminent 
-              ? [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    valor,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: color,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ]
-              : [
-                  Text(
-                    valor,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade800,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.normal,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                valor,
+                style: TextStyle(
+                  fontSize: isProminent ? 14 : 12,
+                  color: isProminent ? color : Colors.grey.shade800,
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       ],
@@ -560,14 +535,14 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
     Color getColor() {
       if (pagada) return AppColors.success;
       if (vencida) return AppColors.error;
-      return Colors.amber;
+      return Colors.orange.shade800;
     }
     
     final borderColor = pagada 
         ? AppColors.success.withOpacity(0.3)
         : vencida
             ? AppColors.error.withOpacity(0.3)
-            : Colors.amber.withOpacity(0.5);
+            : Colors.orange.shade800.withOpacity(0.5);
     
     return GestureDetector(
       onTap: pagada ? null : () => widget.onCuotaTap(cuota.numeroCuota),

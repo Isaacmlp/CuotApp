@@ -4,6 +4,7 @@ import 'package:cuot_app/service/renovacion_service.dart';
 import 'package:cuot_app/service/credit_service.dart';
 import 'package:cuot_app/Model/renovacion_model.dart';
 import 'package:intl/intl.dart';
+import 'package:cuot_app/widget/creditos/custom_date_picker.dart';
 
 class FormularioRenovacionPage extends StatefulWidget {
   final String creditoId;
@@ -357,67 +358,7 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
     return _nuevoMontoTotal;
   }
 
-  Future<void> _seleccionarFechaLimite() async {
-    try {
-      Locale pickerLocale;
-      try {
-        pickerLocale = Localizations.localeOf(context);
-      } catch (_) {
-        pickerLocale = const Locale('es', 'ES');
-      }
 
-      final DateTime? picked = await showDatePicker(
-        context: context,
-        initialDate: _fechaLimiteNueva ?? DateTime.now(),
-        firstDate: DateTime(2000), // 👈 CAMBIADO: Permitir fechas pasadas
-        lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
-        locale: pickerLocale,
-      );
-      if (picked != null) {
-        setState(() {
-          _fechaLimiteNueva = picked;
-          _fechaRenovacion = picked;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error en selector de fecha límite: $e');
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Error al seleccionar fecha. Intente de nuevo.'),
-        backgroundColor: Colors.red,
-      ));
-    }
-  }
-
-  Future<void> _seleccionarFechaCuota(int index) async {
-    try {
-      Locale pickerLocale;
-      try {
-        pickerLocale = Localizations.localeOf(context);
-      } catch (_) {
-        pickerLocale = const Locale('es', 'ES');
-      }
-
-      final DateTime? picked = await showDatePicker(
-        context: context,
-        initialDate: _cuotasEditables[index]['fecha'],
-        firstDate: DateTime(2000), // 👈 CAMBIADO: Permitir fechas pasadas
-        lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
-        locale: pickerLocale,
-      );
-      if (picked != null) {
-        setState(() {
-          _cuotasEditables[index]['fecha'] = picked;
-        });
-      }
-    } catch (e, stack) {
-      debugPrint('Error en selector de fecha cuota: $e');
-      debugPrint('$stack');
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Error al seleccionar fecha. Intente de nuevo.'),
-        backgroundColor: Colors.red,
-      ));
-    }
-  }
 
   Future<void> _guardarRenovacion() async {
     if (!_formKey.currentState!.validate()) return;
@@ -575,13 +516,14 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // === DATOS DEL CRÉDITO ORIGINAL (Solo lectura) ===
-              _buildSectionTitle('📋 Crédito Original', AppColors.info),
+              // === DATOS DEL CRÉDITO ORIGINAL (CUADRO ROJO SOLICITADO) ===
+              _buildSectionTitle('📋 Condiciones Originales', AppColors.error),
               const SizedBox(height: 8),
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.error.withOpacity(0.02),
                   borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.error.withOpacity(0.3), width: 1.5),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -593,29 +535,63 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
                       _buildReadOnlyRow(Icons.inventory, 'Producto',
                           _credito!['concepto'] ?? 'N/A'),
                       const SizedBox(height: 8),
-                      _buildReadOnlyRow(Icons.attach_money, 'Monto Original',
-                          '\$${_montoOriginal.toStringAsFixed(2)}'),
+                      _buildReadOnlyRow(Icons.calendar_today, 'Fecha Inicio',
+                          _credito!['fecha_inicio'] != null 
+                              ? DateFormat('dd/MM/yyyy').format(DateTime.parse(_credito!['fecha_inicio']))
+                              : 'N/A'),
                       const SizedBox(height: 8),
-                      _buildReadOnlyRow(Icons.warning_amber, 'Saldo Pendiente',
+                      _buildReadOnlyRow(Icons.event_busy, 'Fecha Vencimiento',
+                          _credito!['fecha_vencimiento'] != null 
+                              ? DateFormat('dd/MM/yyyy').format(DateTime.parse(_credito!['fecha_vencimiento']))
+                              : 'N/A'),
+                      const SizedBox(height: 8),
+                      _buildReadOnlyRow(Icons.attach_money, 'Inversión',
+                          '\$${_costoInversion.toStringAsFixed(2)}'),
+                      const SizedBox(height: 8),
+                      _buildReadOnlyRow(Icons.trending_up, 'Ganancia Pactada',
+                          '\$${(_montoOriginal - _costoInversion).toStringAsFixed(2)}'),
+                      const SizedBox(height: 8),
+                      _buildReadOnlyRow(Icons.payments, 'Monto Total',
+                          '\$${_montoOriginal.toStringAsFixed(2)}', isBold: true),
+                      const Divider(height: 24),
+                      _buildReadOnlyRow(Icons.warning_amber, 'Saldo Pendiente Actual',
                           '\$${_saldoPendiente.toStringAsFixed(2)}',
-                          color: AppColors.warning),
-                      if (_tipoCredito != 'unico') ...[
+                          color: AppColors.error, isBold: true),
+                      
+                      if (_tipoCredito == 'cuotas' && _credito!['Cuotas'] != null) ...[
+                        const SizedBox(height: 12),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text('Cuotas Anteriores:', 
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        ),
                         const SizedBox(height: 8),
-                        _buildReadOnlyRow(Icons.payments, 'Cuota Actual',
-                            '\$${_cuotaActual.toStringAsFixed(2)}'),
-                      ],
-                      const SizedBox(height: 8),
-                      _buildReadOnlyRow(
-                          Icons.calendar_today,
-                          'Plazo Original',
-                          _tipoCredito == 'unico'
-                              ? 'Pago Único'
-                              : '$_plazoOriginal cuotas'),
-                      if (_moraSugerida > 0) ...[
-                        const SizedBox(height: 8),
-                        _buildReadOnlyRow(Icons.report_problem, 'Mora Sugerida',
-                            '\$${_moraSugerida.toStringAsFixed(2)}',
-                            color: AppColors.error),
+                        SizedBox(
+                          height: 60,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: (_credito!['Cuotas'] as List).length,
+                            itemBuilder: (context, i) {
+                              final c = _credito!['Cuotas'][i];
+                              return Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.grey.shade300),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text('#${c['numero_cuota']}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                    Text('\$${(c['monto'] as num).toStringAsFixed(2)}', style: const TextStyle(fontSize: 11)),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       ],
                     ],
                   ),
@@ -640,35 +616,15 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
                     children: [
                       // === SECCIÓN DINÁMICA SEGÚN TIPO ===
                       if (_tipoCredito == 'unico') ...[
-                        const Text('Nueva Fecha de Pago Final',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 14)),
-                        const SizedBox(height: 8),
-                        InkWell(
-                          onTap: _seleccionarFechaLimite,
-                            child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade400),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.calendar_month,
-                                    color: AppColors.primaryGreen, size: 20),
-                                const SizedBox(width: 12),
-                                Text(
-                                  _fechaLimiteNueva != null
-                                      ? DateFormat('dd/MM/yyyy')
-                                          .format(_fechaLimiteNueva!)
-                                      : 'Seleccionar fecha',
-                                  style: const TextStyle(fontSize: 15),
-                                ),
-                              ],
-                            ),
-                          ),
+                        CustomDatePicker(
+                          selectedDate: _fechaLimiteNueva ?? DateTime.now(),
+                          onDateSelected: (picked) {
+                            setState(() {
+                              _fechaLimiteNueva = picked;
+                              _fechaRenovacion = picked;
+                            });
+                          },
+                          label: 'Seleccionar nueva fecha',
                         ),
                       ] else ...[
                         const Text('Editar Cuotas Pendientes',
@@ -740,32 +696,15 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     flex: 4,
-                                    child: InkWell(
-                                      onTap: isLocked
-                                          ? null
-                                          : () => _seleccionarFechaCuota(index),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 8),
-                                        decoration: BoxDecoration(
-                                          border:
-                                              Border.all(color: Colors.grey),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            const Icon(Icons.calendar_today,
-                                                size: 14),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                                DateFormat('dd/MM/yy')
-                                                    .format(cuota['fecha']),
-                                                style: const TextStyle(
-                                                    fontSize: 12)),
-                                          ],
-                                        ),
-                                      ),
+                                    child: CustomDatePicker(
+                                      selectedDate: cuota['fecha'],
+                                      onDateSelected: isLocked ? null : (picked) {
+                                        setState(() {
+                                          _cuotasEditables[index]['fecha'] = picked;
+                                        });
+                                      },
+                                      label: 'Fecha',
+                                      compact: true,
                                     ),
                                   ),
                                 ],
@@ -1210,10 +1149,10 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
   }
 
   Widget _buildReadOnlyRow(IconData icon, String label, String value,
-      {Color? color}) {
+      {Color? color, bool isBold = false}) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: Colors.grey.shade600),
+        Icon(icon, size: 18, color: color ?? Colors.grey.shade600),
         const SizedBox(width: 8),
         Text('$label: ',
             style: const TextStyle(fontSize: 13, color: Colors.grey)),
@@ -1222,7 +1161,7 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
             value,
             style: TextStyle(
               fontSize: 13,
-              fontWeight: FontWeight.w600,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
               color: color ?? Colors.black87,
             ),
             textAlign: TextAlign.end,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cuot_app/utils/scrapper_util.dart'; // 👈 NUEVO: Scrapper
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:intl/intl.dart';
+import 'package:cuot_app/widget/creditos/custom_date_picker.dart';
 
 class DialogoPagoCuotaCompleto extends StatefulWidget {
   final int numeroCuota;
@@ -143,23 +144,7 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
     }
   }
 
-  // Formatear fecha larga
-  String _formatearFechaLarga(DateTime fecha) {
-    final dias = [
-      'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'
-    ];
-    final meses = [
-      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
-    ];
-    
-    final diaSemana = dias[fecha.weekday - 1];
-    final dia = fecha.day;
-    final mes = meses[fecha.month - 1];
-    final ano = fecha.year;
-    
-    return '$diaSemana, $dia de $mes de $ano';
-  }
+
 
   @override
   void initState() {
@@ -539,61 +524,14 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                         const SizedBox(height: 16),
                         
                         // 3. Fecha de pago
-                        InkWell(
-                          onTap: () async {
-                            final date = await showDatePicker(
-                              context: context,
-                              initialDate: _fechaPago,
-                              firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                              lastDate: DateTime.now().add(const Duration(days: 30)),
-                              builder: (context, child) {
-                                return Theme(
-                                  data: ThemeData.light().copyWith(
-                                    primaryColor: AppColors.success,
-                                    colorScheme: const ColorScheme.light(
-                                      primary: AppColors.success,
-                                    ),
-                                  ),
-                                  child: child!,
-                                );
-                              },
-                            );
-                            if (date != null) {
-                              setState(() {
-                                _fechaPago = date;
-                              });
-                            }
+                        CustomDatePicker(
+                          selectedDate: _fechaPago,
+                          onDateSelected: (date) {
+                            setState(() {
+                              _fechaPago = date;
+                            });
                           },
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.calendar_today, color: AppColors.success),
-                                const SizedBox(width: 12),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Fecha de pago',
-                                      style: TextStyle(fontSize: 12, color: AppColors.mediumGrey),
-                                    ),
-                                    Text(
-                                      _formatearFechaLarga(_fechaPago),
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
+                          label: 'Fecha de pago',
                         ),
                         
                         const SizedBox(height: 16),

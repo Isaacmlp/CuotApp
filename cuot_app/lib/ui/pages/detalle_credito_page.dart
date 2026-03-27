@@ -139,105 +139,101 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     rawCuotas.sort((a, b) =>
         (a['numero_cuota'] as int).compareTo(b['numero_cuota'] as int));
 
-    return DefaultTabController(
-        length: 3,
-        child: Scaffold(
-          backgroundColor: Colors.grey.shade50,
-          appBar: AppBar(
-            title: const Text('Detalle de Pago'),
-            backgroundColor: AppColors.primaryGreen,
-            foregroundColor: Colors.white,
-            bottom: const TabBar(
-              tabs: [
-                Tab(text: 'Información'),
-                Tab(text: 'Pagos'),
-                Tab(text: 'Renovaciones'),
-              ],
-              indicatorColor: Colors.white,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white70,
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      appBar: AppBar(
+        title: const Text(
+          'Detalle de Crédito',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: AppColors.primaryGreen,
+        foregroundColor: Colors.white,
+        actions: [
+          if (widget.onEditar != null && !isPagado)
+            IconButton(
+              icon: const Icon(
+                Icons.edit_note_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                widget.onEditar!();
+              },
+              tooltip: 'Editar Crédito',
             ),
-            actions: [
-              if (widget.onEditar != null && !isPagado)
-                IconButton(
-                  icon: const Icon(
-                    Icons.edit_note_rounded,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                  onPressed: () {
-                    // No cerramos el detalle, solo navegamos a editar?
-                    // El código original hacía Navigator.pop(context); widget.onEditar!();
-                    // Eso está bien si queremos volver a la lista y abrir el editor.
-                    Navigator.pop(context);
-                    widget.onEditar!();
-                  },
-                  tooltip: 'Editar Crédito',
-                ),
-              if (widget.nombreUsuario != null && !isPagado)
-                IconButton(
-                  icon: const Icon(
-                    Icons.refresh,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                  onPressed: () {
-                    try {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => FormularioRenovacionPage(
-                            creditoId: widget.creditoId,
-                            nombreUsuario: widget.nombreUsuario!,
-                          ),
-                        ),
-                      ).then((result) {
-                        if (result == true) {
-                          // Recargar datos si se renovó
-                          _loadDetalle();
-                        }
-                      });
-                    } catch (e, stackTrace) {
-                      debugPrint('Error al navegar a renovación: $e');
-                      debugPrint('$stackTrace');
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error al abrir renovación: $e'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
+          if (widget.nombreUsuario != null && !isPagado)
+            IconButton(
+              icon: const Icon(
+                Icons.refresh,
+                color: Colors.white,
+                size: 28,
+              ),
+              onPressed: () {
+                try {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => FormularioRenovacionPage(
+                        creditoId: widget.creditoId,
+                        nombreUsuario: widget.nombreUsuario!,
+                      ),
+                    ),
+                  ).then((result) {
+                    if (result == true) {
+                      _loadDetalle();
                     }
-                  },
-                  tooltip: 'Renovar Crédito',
-                ),
-              if (widget.onEliminar != null)
-                IconButton(
-                  icon: const Icon(
-                    Icons.delete_forever_rounded,
-                    color: AppColors.error, // RED TRASH
-                    size: 26,
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    widget.onEliminar!();
-                  },
-                  tooltip: 'Eliminar Crédito',
-                ),
-            ],
-          ),
-          body: TabBarView(
+                  });
+                } catch (e, stackTrace) {
+                  debugPrint('Error al navegar a renovación: $e');
+                  debugPrint('$stackTrace');
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error al abrir renovación: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              tooltip: 'Renovar Crédito',
+            ),
+          if (widget.onEliminar != null)
+            IconButton(
+              icon: const Icon(
+                Icons.delete_forever_rounded,
+                color: AppColors.error,
+                size: 26,
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                widget.onEliminar!();
+              },
+              tooltip: 'Eliminar Crédito',
+            ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 40),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildInfoTab(),
-              _buildDetallesTab(),
-              _buildHistorialTab(),
+              ..._buildInfoSeccion(),
+              const SizedBox(height: 16),
+              ..._buildDetallesSeccion(),
+              const SizedBox(height: 16),
+              ..._buildHistorialUnificadoSeccion(),
             ],
           ),
-        ));
+        ),
+      ),
+    );
   }
 
-  Widget _buildInfoTab() {
+  List<Widget> _buildInfoSeccion() {
     final cliente = _credito!['Clientes'] ?? {};
     final bool isPagado = (_credito?['costo_inversion'] as num? ?? 0) +
             (_credito?['margen_ganancia'] as num? ?? 0) -
@@ -287,69 +283,319 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
         ? AppColors.success
         : (isAtrasado ? AppColors.error : Colors.blue.shade700);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Card(
-            elevation: 2,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return [
+      Card(
+        elevation: 2,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor:
-                            AppColors.primaryGreen.withOpacity(0.1),
-                        child: const Icon(Icons.person,
-                            color: AppColors.primaryGreen),
+                  CircleAvatar(
+                    backgroundColor:
+                        AppColors.primaryGreen.withOpacity(0.1),
+                    child: const Icon(Icons.person,
+                        color: AppColors.primaryGreen),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(cliente['nombre'] ?? 'N/A',
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text(cliente['telefono'] ?? 'Sin teléfono',
+                            style: TextStyle(
+                                fontSize: 14, color: Colors.grey.shade600)),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: colorEstado.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      textoEstado,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: colorEstado,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(cliente['nombre'] ?? 'N/A',
-                                style: const TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.bold)),
-                            Text(cliente['telefono'] ?? 'Sin teléfono',
-                                style: TextStyle(
-                                    fontSize: 14, color: Colors.grey.shade600)),
-                          ],
-                        ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 16),
+      Card(
+        elevation: 2,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Información',
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const Divider(height: 24),
+              _buildInfoRow(Icons.credit_score, 'Concepto',
+                  _credito?['concepto'] ?? 'N/A'),
+              const SizedBox(height: 12),
+              _buildInfoRow(
+                  Icons.calendar_today,
+                  'Fecha de inicio',
+                  _credito?['fecha_inicio'] != null
+                      ? _formatFecha(_credito!['fecha_inicio'])
+                      : 'N/A'),
+              const SizedBox(height: 12),
+              _buildInfoRow(Icons.calendar_month, 'Fecha límite', (() {
+                if (_credito?['fecha_vencimiento'] != null) {
+                  return _formatFecha(_credito!['fecha_vencimiento']);
+                }
+                final cuotas = _credito?['Cuotas'] as List<dynamic>? ?? [];
+                if (cuotas.isNotEmpty) {
+                  return _formatFecha(cuotas.last['fecha_pago']);
+                }
+                return 'N/A';
+              })()),
+              const SizedBox(height: 12),
+              _buildInfoRow(Icons.monetization_on, 'Monto total',
+                  '\$${(((_credito?['costo_inversion'] as num?)?.toDouble() ?? 0) + ((_credito?['margen_ganancia'] as num?)?.toDouble() ?? 0)).toStringAsFixed(2)}',
+                  isBold: true),
+              const SizedBox(height: 12),
+              _buildInfoRow(Icons.payments, 'Saldo pendiente',
+                  '\$${((_credito?['costo_inversion'] as num? ?? 0).toDouble() + (_credito?['margen_ganancia'] as num? ?? 0).toDouble() - ((_credito?['Pagos'] as List<dynamic>?)?.fold(0.0, (sum, pago) => (sum as double) + (pago['monto'] as num).toDouble()) ?? 0.0)).toStringAsFixed(2)}',
+                  color: AppColors.error, isBold: true),
+            ],
+          ),
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> _buildDetallesSeccion() {
+    final List<dynamic> rawCuotas = _credito?['Cuotas'] ?? [];
+    final String tipoCredito = _credito?['tipo_credito'] ?? 'cuotas';
+    final bool esUnico = tipoCredito == 'unico';
+
+    return [
+      Text(esUnico ? 'Monto a Pagar' : 'Cuotas',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 12),
+      if (rawCuotas.isEmpty)
+        Card(
+          elevation: 1,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
+          child: const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(
+                child: Text('No hay registros vinculados.',
+                    style: TextStyle(color: Colors.grey))),
+          ),
+        ),
+      if (!esUnico && rawCuotas.isNotEmpty)
+        Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            title: Text('Ver Lista de Cuotas (${rawCuotas.length})',
+                style: const TextStyle(
+                    fontWeight: FontWeight.w600, fontSize: 16)),
+            tilePadding: EdgeInsets.zero,
+            initiallyExpanded: rawCuotas.length <= 5,
+            children: [
+              for (var cuota in rawCuotas)
+                Card(
+                  elevation: 2,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: cuota['pagada'] == true
+                          ? AppColors.success.withOpacity(0.5)
+                          : Colors.transparent,
+                    ),
+                  ),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: cuota['pagada'] == true
+                          ? AppColors.success.withOpacity(0.1)
+                          : AppColors.warning.withOpacity(0.1),
+                      child: Icon(
+                        cuota['pagada'] == true
+                            ? Icons.check_circle
+                            : Icons.schedule,
+                        color: cuota['pagada'] == true
+                            ? AppColors.success
+                            : AppColors.warning,
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: colorEstado.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
+                    ),
+                    title: Text(
+                      'Cuota ${cuota['numero_cuota'] ?? 'N/A'}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle:
+                        Text('Vence: ${_formatFecha(cuota['fecha_pago'])}'),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '\$${(cuota['monto'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
                         ),
-                        child: Text(
-                          textoEstado,
+                        Text(
+                          cuota['pagada'] == true ? 'Pagada' : 'Pendiente',
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: colorEstado,
+                            color: cuota['pagada'] == true
+                                ? AppColors.success
+                                : AppColors.warning,
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        )
+      else if (esUnico && rawCuotas.isNotEmpty)
+        for (var cuota in rawCuotas)
+          Card(
+            elevation: 2,
+            margin: const EdgeInsets.only(bottom: 10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: cuota['pagada'] == true
+                    ? AppColors.success.withOpacity(0.5)
+                    : Colors.transparent,
+              ),
+            ),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: cuota['pagada'] == true
+                    ? AppColors.success.withOpacity(0.1)
+                    : AppColors.warning.withOpacity(0.1),
+                child: Icon(
+                  cuota['pagada'] == true
+                      ? Icons.check_circle
+                      : Icons.schedule,
+                  color: cuota['pagada'] == true
+                      ? AppColors.success
+                      : AppColors.warning,
+                ),
+              ),
+              title: const Text('Total a Pagar',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text('Vence: ${_formatFecha(cuota['fecha_pago'])}'),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '\$${(cuota['monto'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  Text(
+                    cuota['pagada'] == true ? 'Pagada' : 'Pendiente',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: cuota['pagada'] == true
+                          ? AppColors.success
+                          : AppColors.warning,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
+    ];
+  }
+
+  List<Widget> _buildHistorialUnificadoSeccion() {
+    final List<dynamic> rawPagos = _credito?['Pagos'] ?? [];
+    final String tipoCredito = _credito?['tipo_credito'] ?? 'cuotas';
+    final bool esUnico = tipoCredito == 'unico';
+
+    final List<Map<String, dynamic>> historialData = [];
+    
+    for (var pago in rawPagos) {
+      historialData.add({
+        'type': 'pago',
+        'date': DateTime.parse(pago['fecha_pago_real']),
+        'data': pago,
+      });
+    }
+    
+    for (var ren in _historialRenovaciones) {
+      historialData.add({
+        'type': 'renovacion',
+        'date': ren.fechaRenovacion,
+        'data': ren,
+      });
+    }
+    
+    historialData.sort((a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime));
+
+    final List<Widget> items = [
+      const Text('Historial General',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 12),
+    ];
+
+    if (_isHistorialLoading) {
+      items.add(const Center(child: CircularProgressIndicator()));
+      return items;
+    }
+
+    if (historialData.isEmpty) {
+      items.add(
+        Card(
+          elevation: 1,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
+          child: const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(
+                child: Text('No hay actividad registrada aún.',
+                    style: TextStyle(color: Colors.grey))),
+          ),
+        ),
+      );
+      return items;
+    }
+
+    for (var item in historialData) {
+      if (item['type'] == 'pago') {
+        final pago = item['data'];
+        items.add(
           Card(
             elevation: 2,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.only(bottom: 10),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -358,464 +604,174 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Información',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                      SizedBox(
-                        width: 125,
-                        height: 35,
-                        child: 
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),  
-                          elevation: 5,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor:
+                                AppColors.primaryGreen.withOpacity(0.1),
+                            radius: 16,
+                            child: const Icon(Icons.attach_money,
+                                size: 18, color: AppColors.primaryGreen),
                           ),
-                        ),
-                        
-                        
-
-                        onPressed: () {
-                            try {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => FormularioRenovacionPage(
-                                    creditoId: widget.creditoId,
-                                    nombreUsuario: widget.nombreUsuario!,
-                                  ),
-                                ),
-                              ).then((result) {
-                                if (result == true) {
-                                  // Recargar datos si se renovó
-                                  _loadDetalle();
-                                }
-                              });
-                            } catch (e, stackTrace) {
-                              debugPrint('Error al navegar a renovación: $e');
-                              debugPrint('$stackTrace');
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content:
-                                        Text('Error al abrir renovación: $e'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                          child: Row(
-                            children: [
-                              Icon(Icons.refresh, color: Colors.white),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Renovación',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ],
-                          )),
-                      )
-                    ],
-                  ),
-                  const Divider(height: 24),
-                  _buildInfoRow(Icons.credit_score, 'Concepto',
-                      _credito?['concepto'] ?? 'N/A'),
-                  const SizedBox(height: 12),
-                  _buildInfoRow(
-                      Icons.calendar_today,
-                      'Fecha de inicio',
-                      _credito?['fecha_inicio'] != null
-                          ? _formatFecha(_credito!['fecha_inicio'])
-                          : 'N/A'),
-                  const SizedBox(height: 12),
-                  _buildInfoRow(Icons.calendar_month, 'Fecha límite', (() {
-                    if (_credito?['fecha_vencimiento'] != null) {
-                      return _formatFecha(_credito!['fecha_vencimiento']);
-                    }
-                    final cuotas = _credito?['Cuotas'] as List<dynamic>? ?? [];
-                    if (cuotas.isNotEmpty) {
-                      return _formatFecha(cuotas.last['fecha_pago']);
-                    }
-                    return 'N/A';
-                  })()),
-                  const SizedBox(height: 12),
-                  _buildInfoRow(Icons.monetization_on, 'Monto total',
-                      '\$${(((_credito?['costo_inversion'] as num?)?.toDouble() ?? 0) + ((_credito?['margen_ganancia'] as num?)?.toDouble() ?? 0)).toStringAsFixed(2)}',
-                      isBold: true),
-                  const SizedBox(height: 12),
-                  _buildInfoRow(Icons.payments, 'Saldo pendiente',
-                      '\$${((_credito?['costo_inversion'] as num? ?? 0).toDouble() + (_credito?['margen_ganancia'] as num? ?? 0).toDouble() - ((_credito?['Pagos'] as List<dynamic>?)?.fold(0.0, (sum, pago) => (sum as double) + (pago['monto'] as num).toDouble()) ?? 0.0)).toStringAsFixed(2)}',
-                      color: AppColors.error, isBold: true),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetallesTab() {
-    final List<dynamic> rawCuotas = _credito?['Cuotas'] ?? [];
-    final List<dynamic> rawPagos = _credito?['Pagos'] ?? [];
-    final String tipoCredito = _credito?['tipo_credito'] ?? 'cuotas';
-    final bool esUnico = tipoCredito == 'unico';
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(esUnico ? 'Monto a Pagar' : 'Cuotas',
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          if (rawCuotas.isEmpty)
-            Card(
-              elevation: 1,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              child: const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(
-                    child: Text('No hay registros vinculados.',
-                        style: TextStyle(color: Colors.grey))),
-              ),
-            ),
-          if (!esUnico && rawCuotas.isNotEmpty)
-            Theme(
-              data:
-                  Theme.of(context).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                title: Text('Ver Lista de Cuotas (${rawCuotas.length})',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 16)),
-                tilePadding: EdgeInsets.zero,
-                initiallyExpanded: rawCuotas.length <= 5,
-                children: [
-                  for (var cuota in rawCuotas)
-                    Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.only(bottom: 10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(
-                          color: cuota['pagada'] == true
-                              ? AppColors.success.withOpacity(0.5)
-                              : Colors.transparent,
-                        ),
-                      ),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: cuota['pagada'] == true
-                              ? AppColors.success.withOpacity(0.1)
-                              : AppColors.warning.withOpacity(0.1),
-                          child: Icon(
-                            cuota['pagada'] == true
-                                ? Icons.check_circle
-                                : Icons.schedule,
-                            color: cuota['pagada'] == true
-                                ? AppColors.success
-                                : AppColors.warning,
+                          const SizedBox(width: 8),
+                          Text(
+                            esUnico ? 'Abono Realizado' : 'Pago de Cuota',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
                           ),
-                        ),
-                        title: Text(
-                          'Cuota ${cuota['numero_cuota'] ?? 'N/A'}',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle:
-                            Text('Vence: ${_formatFecha(cuota['fecha_pago'])}'),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              '\$${(cuota['monto'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16),
-                            ),
-                            Text(
-                              cuota['pagada'] == true ? 'Pagada' : 'Pendiente',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: cuota['pagada'] == true
-                                    ? AppColors.success
-                                    : AppColors.warning,
-                              ),
-                            ),
-                          ],
-                        ),
+                        ],
                       ),
-                    ),
-                ],
-              ),
-            )
-          else if (esUnico && rawCuotas.isNotEmpty)
-            for (var cuota in rawCuotas)
-              Card(
-                elevation: 2,
-                margin: const EdgeInsets.only(bottom: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                    color: cuota['pagada'] == true
-                        ? AppColors.success.withOpacity(0.5)
-                        : Colors.transparent,
-                  ),
-                ),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: cuota['pagada'] == true
-                        ? AppColors.success.withOpacity(0.1)
-                        : AppColors.warning.withOpacity(0.1),
-                    child: Icon(
-                      cuota['pagada'] == true
-                          ? Icons.check_circle
-                          : Icons.schedule,
-                      color: cuota['pagada'] == true
-                          ? AppColors.success
-                          : AppColors.warning,
-                    ),
-                  ),
-                  title: const Text('Total a Pagar',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('Vence: ${_formatFecha(cuota['fecha_pago'])}'),
-                  trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
                       Text(
-                        '\$${(cuota['monto'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                        '\$${(pago['monto'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
                         style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      Text(
-                        cuota['pagada'] == true ? 'Pagada' : 'Pendiente',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: cuota['pagada'] == true
-                              ? AppColors.success
-                              : AppColors.warning,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          const SizedBox(height: 24),
-          const Text('Historial de Pagos',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          if (rawPagos.isEmpty)
-            Card(
-              elevation: 1,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              child: const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(
-                    child: Text('No hay pagos registrados aún.',
-                        style: TextStyle(color: Colors.grey))),
-              ),
-            ),
-          for (var pago in rawPagos)
-            Card(
-              elevation: 2,
-              margin: const EdgeInsets.only(bottom: 10),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              backgroundColor:
-                                  AppColors.primaryGreen.withOpacity(0.1),
-                              radius: 16,
-                              child: const Icon(Icons.attach_money,
-                                  size: 18, color: AppColors.primaryGreen),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              esUnico ? 'Abono' : 'Pago de Cuota',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16),
-                            ),
-                          ],
-                        ),
-                        Text(
-                          '\$${(pago['monto'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: AppColors.primaryGreen),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 20),
-                    _buildDetalleRow(
-                        'Fecha', _formatFechaHora(pago['fecha_pago_real'])),
-                    if (pago['metodo_pago'] != null)
-                      _buildDetalleRow('Forma de Pago',
-                          pago['metodo_pago'].toString().capitalize()),
-                    if (pago['referencia'] != null &&
-                        pago['referencia'].toString().isNotEmpty)
-                      _buildDetalleRow(
-                          'Referencia', pago['referencia'].toString()),
-                    if (pago['observaciones'] != null &&
-                        pago['observaciones'].toString().isNotEmpty)
-                      _buildDetalleRow(
-                          'Descripción', pago['observaciones'].toString()),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHistorialTab() {
-    if (_isHistorialLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_historialRenovaciones.isEmpty) {
-      return const Center(
-          child: Text('No se han registrado renovaciones para este crédito.'));
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _historialRenovaciones.length,
-      itemBuilder: (context, index) {
-        final renovacion = _historialRenovaciones[index];
-        final estado = renovacion.estado ?? 'solicitada';
-        final colorEstado = _getColorEstado(estado);
-
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          elevation: 3,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: InkWell(
-            onTap: () => _mostrarDetalleRenovacion(renovacion),
-            borderRadius: BorderRadius.circular(14),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header: Estado
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: colorEstado.withOpacity(0.1),
-                        radius: 18,
-                        child: Icon(
-                          _getIconEstado(estado),
-                          color: colorEstado,
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Renovación',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (renovacion.observaciones != null &&
-                                renovacion.observaciones!.isNotEmpty)
-                              Text(
-                                renovacion.observaciones!,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: colorEstado.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          estado.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: colorEstado,
-                          ),
-                        ),
+                            fontSize: 16,
+                            color: AppColors.primaryGreen),
                       ),
                     ],
                   ),
                   const Divider(height: 20),
-                  // Info comparativa
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildMiniInfo(
-                          'Plazo',
-                          _getResumenPlazoLocal(renovacion.fechaRenovacion,
-                              renovacion.condicionesNuevas),
-                          Icons.schedule,
-                        ),
-                      ),
-                      Expanded(
-                        child: _buildMiniInfo(
-                          'Mora',
-                          '\$${(renovacion.condicionesNuevas['monto_mora'] as num?)?.toStringAsFixed(0) ?? '0'}',
-                          Icons.warning_amber_rounded,
-                        ),
-                      ),
-                      Expanded(
-                        child: _buildMiniInfo(
-                          'Total',
-                          '\$${(renovacion.condicionesNuevas['monto_total'] as num?)?.toStringAsFixed(0) ?? '0'}',
-                          Icons.payments,
-                        ),
-                      ),
-                      Expanded(
-                        child: _buildMiniInfo(
-                          'Fecha',
-                          DateFormat('dd/MM/yy')
-                              .format(renovacion.fechaRenovacion),
-                          Icons.event,
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildDetalleRow(
+                      'Fecha', _formatFechaHora(pago['fecha_pago_real'])),
+                  if (pago['metodo_pago'] != null)
+                    _buildDetalleRow('Forma de Pago',
+                        pago['metodo_pago'].toString().capitalize()),
+                  if (pago['referencia'] != null &&
+                      pago['referencia'].toString().isNotEmpty)
+                    _buildDetalleRow(
+                        'Referencia', pago['referencia'].toString()),
+                  if (pago['observaciones'] != null &&
+                      pago['observaciones'].toString().isNotEmpty)
+                    _buildDetalleRow(
+                        'Descripción', pago['observaciones'].toString()),
                 ],
               ),
             ),
           ),
         );
-      },
-    );
+      } else if (item['type'] == 'renovacion') {
+        final renovacion = item['data'];
+        final estado = renovacion.estado ?? 'solicitada';
+        final colorEstado = _getColorEstado(estado);
+
+        items.add(
+          Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            elevation: 3,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(color: colorEstado.withOpacity(0.5), width: 1),
+            ),
+            child: InkWell(
+              onTap: () => _mostrarDetalleRenovacion(renovacion),
+              borderRadius: BorderRadius.circular(14),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header: Estado
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: colorEstado.withOpacity(0.1),
+                          radius: 18,
+                          child: Icon(
+                            _getIconEstado(estado),
+                            color: colorEstado,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Renovación de Crédito',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              if (renovacion.observaciones != null &&
+                                  renovacion.observaciones!.isNotEmpty)
+                                Text(
+                                  renovacion.observaciones!,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: colorEstado.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            estado.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: colorEstado,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 20),
+                    // Info comparativa
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildMiniInfo(
+                            'Plazo',
+                            _getResumenPlazoLocal(renovacion.fechaRenovacion,
+                                renovacion.condicionesNuevas),
+                            Icons.schedule,
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildMiniInfo(
+                            'Mora',
+                            '\$${(renovacion.condicionesNuevas['monto_mora'] as num?)?.toStringAsFixed(0) ?? '0'}',
+                            Icons.warning_amber_rounded,
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildMiniInfo(
+                            'Total',
+                            '\$${(renovacion.condicionesNuevas['monto_total'] as num?)?.toStringAsFixed(0) ?? '0'}',
+                            Icons.payments,
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildMiniInfo(
+                            'Fecha',
+                            DateFormat('dd/MM/yy')
+                                .format(renovacion.fechaRenovacion),
+                            Icons.event,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
+    return items;
   }
 
   // Helper para formatear montos de forma segura

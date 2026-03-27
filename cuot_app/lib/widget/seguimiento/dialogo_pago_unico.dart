@@ -4,6 +4,7 @@ import 'package:cuot_app/utils/scrapper_util.dart'; // 👈 NUEVO: Scrapper
 import 'package:cuot_app/Model/credito_unico_model.dart';
 import 'package:cuot_app/Model/pago_model.dart';
 import 'package:cuot_app/theme/app_colors.dart';
+import 'package:cuot_app/widget/creditos/custom_date_picker.dart';
 
 class DialogoPagoUnico extends StatefulWidget {
   final CreditoUnico credito;
@@ -334,57 +335,14 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                       const SizedBox(height: 16),
                       
                       // 3. Fecha de pago
-                      InkWell(
-                        onTap: () async {
-                          final date = await showDatePicker(
-                            context: context,
-                            initialDate: _fechaPago,
-                            firstDate: DateTime.now().subtract(
-                              const Duration(days: 30),
-                            ),
-                            lastDate: DateTime.now().add(
-                              const Duration(days: 30),
-                            ),
-                          );
-                          if (date != null) {
-                            setState(() {
-                              _fechaPago = date;
-                            });
-                          }
+                      CustomDatePicker(
+                        selectedDate: _fechaPago,
+                        onDateSelected: (date) {
+                          setState(() {
+                            _fechaPago = date;
+                          });
                         },
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.calendar_today,
-                                color: AppColors.primaryGreen,
-                              ),
-                              const SizedBox(width: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Fecha de pago',
-                                    style: TextStyle(fontSize: 11),
-                                  ),
-                                  Text(
-                                    '${_fechaPago.day}/${_fechaPago.month}/${_fechaPago.year}',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
+                        label: 'Fecha de pago',
                       ),
                       
                       const SizedBox(height: 16),

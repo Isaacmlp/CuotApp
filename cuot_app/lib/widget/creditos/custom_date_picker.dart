@@ -3,20 +3,23 @@ import 'package:flutter/material.dart';
 
 class CustomDatePicker extends StatefulWidget {
   final DateTime? selectedDate;
-  final Function(DateTime) onDateSelected;
+  final Function(DateTime)? onDateSelected;
   final String label;
   final DateTime? firstDate;
   final DateTime? lastDate;
   final bool readOnly;
+  final bool compact; // 👈 NUEVO: Modo compacto para listas
 
-  const CustomDatePicker(
-      {super.key,
-      required this.selectedDate,
-      required this.onDateSelected,
-      required this.label,
-      this.firstDate,
-      this.lastDate,
-      this.readOnly = false});
+  const CustomDatePicker({
+    super.key,
+    required this.selectedDate,
+    this.onDateSelected,
+    required this.label,
+    this.firstDate,
+    this.lastDate,
+    this.readOnly = false,
+    this.compact = false,
+  });
 
   @override
   State<CustomDatePicker> createState() => _CustomDatePickerState();
@@ -24,89 +27,155 @@ class CustomDatePicker extends StatefulWidget {
 
 class _CustomDatePickerState extends State<CustomDatePicker> {
   Future<void> _selectDate() async {
-    if (widget.readOnly) return;
+    if (widget.readOnly || widget.onDateSelected == null) return;
 
     try {
-      // Usar dateOnly para evitar problemas de comparación por hora/minuto/segundo
-      final DateTime now = DateUtils.dateOnly(DateTime.now());
-      final DateTime effectiveFirstDate = widget.firstDate != null
-          ? DateUtils.dateOnly(widget.firstDate!)
-          : DateTime(2000); // 👈 CAMBIADO: Permitir fechas pasadas por defecto
-      final DateTime effectiveLastDate = widget.lastDate != null
-          ? DateUtils.dateOnly(widget.lastDate!)
-          : now.add(const Duration(days: 365 * 5));
+      final DateTime now = DateTime.now();
+      final DateTime firstDate = widget.firstDate ?? DateTime(2000);
+      final DateTime lastDate = widget.lastDate ?? DateTime(now.year + 10);
 
-      // Clamp initialDate para que siempre esté dentro del rango válido
-      DateTime effectiveInitialDate = widget.selectedDate != null
-          ? DateUtils.dateOnly(widget.selectedDate!)
-          : now;
-      if (effectiveInitialDate.isBefore(effectiveFirstDate)) {
-        effectiveInitialDate = effectiveFirstDate;
-      }
-      if (effectiveInitialDate.isAfter(effectiveLastDate)) {
-        effectiveInitialDate = effectiveLastDate;
-      }
-
-      Locale pickerLocale;
-      try {
-        pickerLocale = Localizations.localeOf(context);
-      } catch (_) {
-        pickerLocale = const Locale('es', 'ES');
-      }
+      DateTime initialDate = widget.selectedDate ?? now;
+      if (initialDate.isBefore(firstDate)) initialDate = firstDate;
+      if (initialDate.isAfter(lastDate)) initialDate = lastDate;
 
       final DateTime? picked = await showDatePicker(
         context: context,
-        initialDate: effectiveInitialDate,
-        firstDate: effectiveFirstDate,
-        lastDate: effectiveLastDate,
-        locale: pickerLocale,
+        initialDate: initialDate,
+        firstDate: firstDate,
+        lastDate: lastDate,
+        locale: const Locale('es', 'ES'),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: ColorScheme.light(
+                primary: Colors.blue.shade700,
+                onPrimary: Colors.white,
+                onSurface: Colors.black87,
+              ),
+              textButtonTheme: TextButtonThemeData(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.blue.shade700,
+                ),
+              ),
+            ),
+            child: child!,
+          );
+        },
       );
 
       if (picked != null && mounted) {
-        widget.onDateSelected(picked);
+        widget.onDateSelected!(picked);
       }
     } catch (e) {
-      debugPrint('❌ Error al abrir el selector de fecha: $e');
+      debugPrint('Error en CustomDatePicker: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _selectDate,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color:
-                widget.readOnly ? Colors.grey.shade300 : Colors.grey.shade400,
+    final bool hasDate = widget.selectedDate != null;
+    final String formattedDate = hasDate
+        ? '${widget.selectedDate!.day.toString().padLeft(2, '0')}/${widget.selectedDate!.month.toString().padLeft(2, '0')}/${widget.selectedDate!.year}'
+        : widget.label;
+
+    final isInteractive = !widget.readOnly && widget.onDateSelected != null;
+
+    if (widget.compact) {
+      return InkWell(
+        onTap: isInteractive ? _selectDate : null,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          decoration: BoxDecoration(
+            color: widget.readOnly ? Colors.grey.shade100 : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: widget.readOnly ? Colors.grey.shade300 : Colors.grey.shade400,
+              width: 1,
+            ),
           ),
-          borderRadius: BorderRadius.circular(8),
-          color: widget.readOnly ? Colors.grey.shade50 : Colors.white,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                widget.selectedDate == null
-                    ? widget.label
-                    : '${widget.selectedDate!.day}/${widget.selectedDate!.month}/${widget.selectedDate!.year}',
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.calendar_today_rounded,
+                size: 14,
+                color: widget.readOnly ? Colors.grey.shade400 : Colors.blue.shade700,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                formattedDate.substring(0, hasDate ? 8 : formattedDate.length), // dd/mm/yy
                 style: TextStyle(
-                  color: widget.readOnly
-                      ? Colors.grey.shade600
-                      : (widget.selectedDate == null
-                          ? Colors.grey
-                          : Colors.black),
-                  fontWeight: FontWeight.normal,
+                  fontSize: 12,
+                  fontWeight: hasDate ? FontWeight.bold : FontWeight.normal,
+                  color: hasDate ? Colors.black87 : Colors.grey.shade400,
                 ),
               ),
-            ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return InkWell(
+      onTap: isInteractive ? _selectDate : null,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: widget.readOnly ? Colors.grey.shade100 : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: widget.readOnly ? Colors.grey.shade300 : Colors.grey.shade400,
+            width: 1,
+          ),
+          boxShadow: [
+            if (isInteractive)
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+          ],
+        ),
+        child: Row(
+          children: [
             Icon(
-              Icons.calendar_today,
-              size: 18,
-              color: widget.readOnly ? Colors.grey.shade400 : Colors.blue,
+              Icons.calendar_today_rounded,
+              size: 20,
+              color: widget.readOnly ? Colors.grey.shade400 : Colors.blue.shade700,
             ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    formattedDate,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: hasDate ? FontWeight.bold : FontWeight.normal,
+                      color: hasDate ? Colors.black87 : Colors.grey.shade400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isInteractive)
+              Icon(
+                Icons.arrow_drop_down_rounded,
+                color: Colors.grey.shade400,
+              ),
           ],
         ),
       ),

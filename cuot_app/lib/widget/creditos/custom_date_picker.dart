@@ -127,62 +127,57 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
 
     return InkWell(
       onTap: isInteractive ? _selectDate : null,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(10),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10), // REDUCIDO padding vertical
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // MÁXIMA REDUCCIÓN
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: borderColor,
-            width: 0.8, // Borde más fino para un look premium
+            width: 0.8,
           ),
           boxShadow: [
             if (isInteractive)
               BoxShadow(
-                color: primaryColor.withOpacity(0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                color: Colors.black.withOpacity(0.01),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
               ),
           ],
         ),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.calendar_month_rounded,
-                size: 18,
-                color: iconColor,
-              ),
+            Icon(
+              Icons.calendar_month_rounded,
+              size: 16,
+              color: iconColor,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    widget.label.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 9, // Reducido para ahorrar espacio
-                      fontWeight: FontWeight.w700,
-                      color: Colors.grey.shade500,
-                      letterSpacing: 0.5,
+                  if (widget.label.isNotEmpty)
+                    Text(
+                      widget.label.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 8, // Aún más pequeño
+                        fontWeight: FontWeight.w800,
+                        color: Colors.grey.shade500,
+                        letterSpacing: 0.3,
+                        height: 1.1,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 1),
                   Text(
                     formattedDate,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: hasDate ? FontWeight.w600 : FontWeight.w500,
                       color: hasDate ? Colors.black87 : Colors.grey.shade400,
+                      height: 1.2,
                     ),
                   ),
                 ],
@@ -190,9 +185,9 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
             ),
             if (isInteractive)
               Icon(
-                Icons.unfold_more_rounded, // Icono más moderno para "abrir"
-                size: 18,
-                color: Colors.grey.shade400,
+                Icons.unfold_more_rounded,
+                size: 14,
+                color: Colors.grey.shade300,
               ),
           ],
         ),

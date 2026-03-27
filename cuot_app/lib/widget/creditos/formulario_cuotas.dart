@@ -288,32 +288,10 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.calendar_today, size: 16, color: Colors.grey.shade600),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _fechaLimiteCalculada != null
-                                      ? DateUt.formatearFecha(_fechaLimiteCalculada!)
-                                      : 'Por calcular',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    color: _fechaLimiteCalculada != null
-                                        ? Colors.black87
-                                        : Colors.grey.shade500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                        CustomDatePicker(
+                          selectedDate: _fechaLimiteCalculada,
+                          label: 'FECHA LÍMITE',
+                          readOnly: true,
                         ),
                       ],
                     ),

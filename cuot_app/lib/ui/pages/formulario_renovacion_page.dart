@@ -632,6 +632,15 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
                           label: 'Seleccionar nueva fecha',
                         ),
                       ] else ...[
+                        // Nueva Fecha Vencimiento (Calculada de la última cuota)
+                        CustomDatePicker(
+                          selectedDate: _cuotasEditables.isEmpty 
+                              ? null 
+                              : (_cuotasEditables.last['fecha'] as DateTime?),
+                          label: 'Nueva Fecha Vencimiento (Automática)',
+                          readOnly: true,
+                        ),
+                        const SizedBox(height: 16),
                         const Text('Editar Cuotas Pendientes',
                             style: TextStyle(
                                 fontWeight: FontWeight.w600, fontSize: 14)),

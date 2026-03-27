@@ -219,7 +219,8 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
         int plazoDias = 30;
         if (data['fecha_inicio'] != null) {
           final start = DateTime.parse(data['fecha_inicio']);
-          plazoDias = fechaOriginal.difference(start).inDays;
+          // Conteo INCLUSIVO (+1) para el plazo original también
+          plazoDias = fechaOriginal.difference(start).inDays + 1;
           if (plazoDias <= 0) plazoDias = 30;
         }
 
@@ -337,8 +338,11 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
       final double baseCalculo = _saldoPendiente - _abono;
       final double baseProporcional = baseCalculo > 0 ? baseCalculo : 0;
       
-      // Tasa diaria original basada en el monto total original
-      final double tasaDiaria = _montoOriginal > 0 ? (_gananciaDiariaOriginal / _montoOriginal) : 0;
+      // Tasa diaria original basada en el Capital (Costo de Inversión)
+      // Ejemplo: (4 profit / 20 capital) / 15 días originales = 1.33% diario
+      final double tasaDiaria = _costoInversion > 0 
+          ? ((_gananciaDiariaOriginal / _costoInversion)) 
+          : 0;
       
       return diasDiferencia > 0 ? (baseProporcional * tasaDiaria * diasDiferencia) : 0;
     } catch (e, stackTrace) {

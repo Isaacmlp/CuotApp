@@ -5,6 +5,7 @@ import 'package:cuot_app/widget/login_form.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:cuot_app/utils/network_utils.dart';
 import 'cuotapp_social_buttons_row.dart';
 
 // Servicio de autenticación biométrica
@@ -125,6 +126,18 @@ class _CuotAppLoginCardState extends State<CuotAppLoginCard> {
       _errorMessage = null;
     });
 
+    // Verificar conexión a internet
+    if (!await NetworkUtils.hasInternetConnection()) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Sin conexión a internet. Por favor verifica tu red.';
+        });
+        _showSnackBar(_errorMessage!, Colors.red);
+      }
+      return;
+    }
+
     try {
       final String correo = email ?? _loginForm.obtenerCorreo();
       final String contrasena = password ?? _loginForm.obtenerContrasena();
@@ -204,14 +217,15 @@ class _CuotAppLoginCardState extends State<CuotAppLoginCard> {
       print('❌ Error en login: $e');
 
       if (mounted) {
+        final friendlyError = NetworkUtils.getFriendlyErrorMessage(e);
         setState(() {
-          _errorMessage = e.toString().replaceAll('Exception:', '');
+          _errorMessage = friendlyError;
           _isLoading = false;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ ${e.toString().replaceAll('Exception:', '')}'),
+            content: Text('❌ $friendlyError'),
             backgroundColor: Colors.red,
           ),
         );

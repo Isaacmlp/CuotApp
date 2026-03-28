@@ -685,6 +685,8 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
       fechaPagoReal: _fechaPago,
       estado: 'pagado',
       metodoPago: _metodoPago,
+      referencia: _referenciaController.text,
+      observaciones: _observacionesController.text,
     );
 
     widget.onPagoRealizado(nuevoPago);

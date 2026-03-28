@@ -60,7 +60,14 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
   double get _ganancia => double.tryParse(_gananciaController.text) ?? 0;
   double get _precioTotal => _inversion + _ganancia;
   int get _numCuotas => int.tryParse(_cuotasController.text) ?? 0;
-  double get _valorCuota => _numCuotas > 0 ? _precioTotal / _numCuotas : 0;
+  double get _numCuotasPagadas => _fechasPersonalizadas?.where((c) => c.pagada).length.toDouble() ?? 0;
+  double get _montoPendienteReal => _precioTotal - widget.totalPagado;
+
+  
+  double get _valorCuotaSugerido {
+    final pendientes = _numCuotas - _numCuotasPagadas.toInt();
+    return pendientes > 0 ? _montoPendienteReal / pendientes : 0;
+  }
 
   @override
   void initState() {
@@ -499,9 +506,9 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
         SelectorFechasCuotasCompacto(
           numeroCuotas: _numCuotas,
           fechaInicio: _fechaInicio,
-          montoPorCuota: _valorCuota,
+          montoPorCuota: _valorCuotaSugerido, // 👈 USAR SUGERIDO (Saldo Real / Cuotas Pendientes)
           precioTotalEsperado: _precioTotal,
-          initialCuotas: _fechasPersonalizadas, // 👈 PASAR LAS PRESERVADAS
+          initialCuotas: _fechasPersonalizadas,
           onFechasSeleccionadas: (fechas) {
             setState(() {
               _fechasPersonalizadas = fechas;
@@ -549,10 +556,12 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
       return;
     }
 
-    final numBloqueadas = _fechasPersonalizadas!.where((c) => c.bloqueada).length;
+    // 1. Identificar cuotas preservadas (pagadas o bloqueadas)
+    final preservadas = _fechasPersonalizadas!.where((c) => c.pagada || c.bloqueada).toList();
+    final numPreservadas = preservadas.length;
     
-    if (numBloqueadas == 0) {
-      // Si no hay bloqueadas, podemos resetear para que se regenere
+    if (numPreservadas == 0) {
+      // Si no hay preservadas, podemos resetear para que se regenere
       setState(() {
         _fechasPersonalizadas = null;
         _configuracionCompletada = false;
@@ -563,33 +572,28 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
       return;
     }
 
-    // SI HAY BLOQUEADAS: Debemos preservarlas y forzar modo personalizado o re-ajuste
+    // SI HAY CUOTAS PRESERVADAS: Debemos mantenerlas y ajustar el resto
     setState(() {
-      // 1. Mantener solo las bloqueadas
-      final preservadas = _fechasPersonalizadas!.where((c) => c.bloqueada).toList();
-      
-      // 2. Si el número de cuotas es menor al de bloqueadas, avisar y corregir
-      if (_numCuotas < numBloqueadas) {
-        _cuotasController.text = numBloqueadas.toString();
+      // 2. Si el número de cuotas es menor al de preservadas, avisar y corregir
+      if (_numCuotas < numPreservadas) {
+        _cuotasController.text = numPreservadas.toString();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('No puedes reducir las cuotas a menos de $numBloqueadas (ya tienen pagos)'),
+            content: Text('No puedes reducir las cuotas a menos de $numPreservadas (tienen pagos o están bloqueadas)'),
             backgroundColor: Colors.orange,
           ),
         );
       }
       
-      // 3. Actualizar lista y re-generar si aplica
+      // 3. Actualizar lista y re-generar el resto si no es modo personalizado
       final List<CuotaPersonalizada> listaActualizada = List.from(preservadas);
       
       if (_modalidadSeleccionada != ModalidadPago.personalizado) {
-        final totalPreservado = CuotaPersonalizada.calcularTotalCuotas(preservadas);
-        final balancePendienteReal = _precioTotal - widget.totalPagado;
-        final montoRestante = balancePendienteReal - totalPreservado;
-        final numRestantes = _numCuotas - preservadas.length;
+        // Al añadir cuotas automáticamente, usamos el saldo pendiente sugerido
+        final numRestantes = _numCuotas - numPreservadas;
 
         if (numRestantes > 0) {
-          final montoPorCuota = montoRestante / numRestantes;
+          final montoPorCuota = _valorCuotaSugerido;
           final ultimaFecha = preservadas.last.fechaPago;
 
           for (int i = 0; i < numRestantes; i++) {
@@ -642,7 +646,10 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
     }
 
     setState(() {
-      // 👇 Generar sugerencias basadas en la modalidad actual
+      // 1. Identificar cuotas ya PAGADAS para preservarlas exactamente igual
+      final List<CuotaPersonalizada> pagadas = _fechasPersonalizadas?.where((c) => c.pagada).toList() ?? [];
+      
+      // 2. Generar sugerencias de fechas para todas las cuotas
       List<DateTime> sugerencias;
       switch (_modalidadSeleccionada) {
         case ModalidadPago.diario:
@@ -661,11 +668,28 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
           sugerencias = DateUt.sugerirFechasMensuales(_fechaInicio, _numCuotas);
       }
 
+      // 3. Re-construir la lista de cuotas
+      // El monto sugerido se calcula sobre el saldo pendiente real
+      final double montoParaRestantes = _valorCuotaSugerido;
+      
       _fechasPersonalizadas = List.generate(_numCuotas, (index) {
+        final numero = index + 1;
+        
+        // Buscar si hay una cuota pagada existente para este número
+        final cuotaPagada = pagadas.cast<CuotaPersonalizada?>().firstWhere(
+          (c) => c?.numeroCuota == numero, 
+          orElse: () => null
+        );
+        
+        if (cuotaPagada != null) {
+          return cuotaPagada; // Preservar monto y estado histórico
+        }
+
+        // Si es una cuota nueva o pendiente, le asignamos el saldo sugerido
         return CuotaPersonalizada(
-          numeroCuota: index + 1,
+          numeroCuota: numero,
           fechaPago: sugerencias[index],
-          monto: _valorCuota,
+          monto: montoParaRestantes,
         );
       });
       _mostrarSelectorPersonalizado = true;
@@ -700,26 +724,45 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
             _buildInfoRow(
               'Precio total:',
               '\$${_precioTotal.toStringAsFixed(2)}',
+              color: Colors.blue.shade900,
             ),
             _buildInfoRow(
               'Duración:',
               DateUt.formatearDuracion(_fechaInicio, _fechaLimiteCalculada ?? _fechaInicio),
             ),
             const Divider(),
+            if (widget.totalPagado > 0) ...[
+              _buildInfoRow(
+                'Pagado actualmente:',
+                '\$${widget.totalPagado.toStringAsFixed(2)}',
+                color: Colors.green,
+                icon: Icons.check_circle_outline,
+              ),
+              _buildInfoRow(
+                'Saldo pendiente total:',
+                '\$${_montoPendienteReal.toStringAsFixed(2)}',
+                color: Colors.orange.shade900,
+                icon: Icons.pending_actions,
+              ),
+              const Divider(),
+            ],
             _buildInfoRow(
-              'Valor por cuota:',
-              '\$${_valorCuota.toStringAsFixed(2)}',
+              'Valor cuotas pendientes:',
+              '\$${_valorCuotaSugerido.toStringAsFixed(2)}',
+              color: Theme.of(context).primaryColor,
+              fontWeight: FontWeight.bold,
             ),
             if (_fechasPersonalizadas != null) ...[
               const Divider(),
               _buildInfoRow(
-                'Total cuotas:',
-                '${_fechasPersonalizadas!.length} configuradas',
+                'Resumen Plan:',
+                '${_fechasPersonalizadas!.length} cuotas '
+                '(${_numCuotasPagadas.toInt()} pagadas)',
               ),
-              // 👇 NUEVO: Mostrar suma total de cuotas
               _buildInfoRow(
-                'Suma cuotas:',
+                'Total configurado:',
                 '\$${totalCuotas.toStringAsFixed(2)}',
+                color: totalValido ? Colors.green : Colors.red,
               ),
               // 👇 NUEVO: Alerta si hay diferencia
               if (!totalValido)
@@ -825,6 +868,15 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
   /// 📌 GUARDAR CRÉDITO (con validaciones MEJORADAS)
   void _guardarCredito() {
     if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    // 👇 NUEVA VALIDACIÓN: El precio total no puede ser menor a lo ya pagado
+    if (_precioTotal < widget.totalPagado) {
+      _mostrarError(
+        'Monto inválido',
+        'El precio total ($${_precioTotal.toStringAsFixed(2)}) no puede ser menor al monto ya pagado ($${widget.totalPagado.toStringAsFixed(2)}).',
+      );
       return;
     }
 
@@ -967,19 +1019,33 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(
+    String label, 
+    String value, {
+    Color? color, 
+    IconData? icon, 
+    FontWeight? fontWeight,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Row(
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 16, color: color?.withOpacity(0.7) ?? Colors.grey.shade600),
+                const SizedBox(width: 8),
+              ],
+              Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+            ],
+          ),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.blue,
+              fontWeight: fontWeight ?? FontWeight.bold,
+              color: color ?? Colors.blue,
             ),
           ),
         ],

@@ -379,10 +379,11 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         creditId: credito.id,
         numeroCuota: 1, // Créditos únicos siempre usan la cuota 1
         montoPagado: pago.monto,
-        fechaPago: pago.fechaPago,
+        fechaPago: pago.fechaPagoReal ?? DateTime.now(), // 👈 CORRECCIÓN: Usar la fecha REAL elegida
         metodoPago: pago.metodoPago ?? 'efectivo',
-        referencia: '',
-        esPagoParcial: pago.monto < credito.montoTotal, // Simplificación
+        referencia: pago.referencia ?? '',
+        observaciones: pago.observaciones ?? '',
+        esPagoParcial: pago.monto < credito.saldoPendiente, // Usar saldoPendiente para comparar
       );
 
       // 2. Refrescar datos

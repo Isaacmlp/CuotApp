@@ -219,8 +219,10 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
         int plazoDias = 30;
         if (data['fecha_inicio'] != null) {
           final start = DateTime.parse(data['fecha_inicio']);
-          // Conteo INCLUSIVO (+1) para el plazo original también
-          plazoDias = fechaOriginal.difference(start).inDays + 1;
+          // Conteo INCLUSIVO (+1) y UTC para el plazo original
+          final startUtc = DateTime.utc(start.year, start.month, start.day);
+          final endUtc = DateTime.utc(fechaOriginal.year, fechaOriginal.month, fechaOriginal.day);
+          plazoDias = endUtc.difference(startUtc).inDays + 1;
           if (plazoDias <= 0) plazoDias = 30;
         }
 
@@ -327,10 +329,10 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
         }
       }
 
-      final fechaRenovMidnight = DateTime(_fechaRenovacion!.year, _fechaRenovacion!.month, _fechaRenovacion!.day);
+      final fechaRenovMidnight = DateTime.utc(_fechaRenovacion!.year, _fechaRenovacion!.month, _fechaRenovacion!.day);
       final fechaIniRenovMidnight = _fechaInicioRenovacion != null 
-          ? DateTime(_fechaInicioRenovacion!.year, _fechaInicioRenovacion!.month, _fechaInicioRenovacion!.day)
-          : DateTime(fechaOriginal.year, fechaOriginal.month, fechaOriginal.day);
+          ? DateTime.utc(_fechaInicioRenovacion!.year, _fechaInicioRenovacion!.month, _fechaInicioRenovacion!.day)
+          : DateTime.utc(fechaOriginal.year, fechaOriginal.month, fechaOriginal.day);
 
       final int diasDiferencia = fechaRenovMidnight.difference(fechaIniRenovMidnight).inDays + 1;
       
@@ -567,6 +569,9 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
                           _credito!['fecha_vencimiento'] != null 
                               ? DateFormat('dd/MM/yyyy').format(DateTime.parse(_credito!['fecha_vencimiento']))
                               : 'N/A'),
+                      const SizedBox(height: 8),
+                      _buildReadOnlyRow(Icons.timer_outlined, 'Plazo Original',
+                          '$_plazoDiasOriginal días'),
                       const SizedBox(height: 8),
                       _buildReadOnlyRow(Icons.attach_money, 'Inversión',
                           '\$${_costoInversion.toStringAsFixed(2)}'),

@@ -7,9 +7,8 @@ class SelectorFechasCuotasCompacto extends StatefulWidget {
   final int numeroCuotas;
   final DateTime fechaInicio;
   final double montoPorCuota;
-  final double precioTotalEsperado; // 👈 precio total esperado
-  final double? saldoPendienteEsperado; // 👈 NUEVO: saldo pendiente real esperado
-  final List<CuotaPersonalizada>? initialCuotas; // 👈 cuotas ya existentes
+  final double precioTotalEsperado;
+  final List<CuotaPersonalizada>? cuotasIniciales;
   final Function(List<CuotaPersonalizada>) onFechasSeleccionadas;
 
   const SelectorFechasCuotasCompacto({
@@ -18,30 +17,27 @@ class SelectorFechasCuotasCompacto extends StatefulWidget {
     required this.fechaInicio,
     required this.montoPorCuota,
     required this.precioTotalEsperado,
-    this.saldoPendienteEsperado,
-    this.initialCuotas,
+    this.cuotasIniciales,
     required this.onFechasSeleccionadas,
   });
 
   @override
-  State<SelectorFechasCuotasCompacto> createState() => _SelectorFechasCuotasCompactoState();
+  State<SelectorFechasCuotasCompacto> createState() =>
+      _SelectorFechasCuotasCompactoState();
 }
 
-class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompacto> {
+class _SelectorFechasCuotasCompactoState
+    extends State<SelectorFechasCuotasCompacto> {
   late List<CuotaPersonalizada> _cuotas;
   late List<bool> _cuotasModificadas;
   final ScrollController _scrollController = ScrollController();
 
   // 👇 NUEVAS PROPIEDADES PARA VALIDACIÓN
-  double get _totalCuotasValidadas => widget.saldoPendienteEsperado != null
-      ? _cuotas.where((c) => !c.pagada && !c.bloqueada).fold(0.0, (sum, c) => sum + c.monto)
-      : CuotaPersonalizada.calcularTotalCuotas(_cuotas);
-
-  double get _targetEsperado => widget.saldoPendienteEsperado ?? widget.precioTotalEsperado;
-
-  double get _diferencia => _totalCuotasValidadas - _targetEsperado;
-
-  bool get _totalValido => (_diferencia).abs() <= 0.01;
+  double get _totalCuotas => CuotaPersonalizada.calcularTotalCuotas(_cuotas);
+  double get _diferencia => CuotaPersonalizada.obtenerDiferenciaTotal(
+      _cuotas, widget.precioTotalEsperado);
+  bool get _totalValido => CuotaPersonalizada.validarTotalCuotas(
+      _cuotas, widget.precioTotalEsperado);
 
   @override
   void initState() {
@@ -50,55 +46,59 @@ class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompa
   }
 
   void _inicializarCuotas() {
-    if (widget.initialCuotas != null && widget.initialCuotas!.isNotEmpty) {
-      // Si recibimos cuotas iniciales, las usamos
-      _cuotas = List.from(widget.initialCuotas!);
-      
-      // Ajustar si el número de cuotas cambió
-      if (_cuotas.length < widget.numeroCuotas) {
-        // Añadir nuevas cuotas al final
-        final diff = widget.numeroCuotas - _cuotas.length;
-        final ultimaFecha = _cuotas.last.fechaPago;
-        
-        for (int i = 0; i < diff; i++) {
-          _cuotas.add(CuotaPersonalizada(
-            numeroCuota: _cuotas.length + 1,
-            fechaPago: ultimaFecha.add(Duration(days: 30 * (i))),
-            monto: widget.montoPorCuota,
-          ));
+    _cuotas = [];
+    _cuotasModificadas = List.generate(widget.numeroCuotas, (index) => false);
+
+    if (widget.cuotasIniciales != null && widget.cuotasIniciales!.isNotEmpty) {
+      if (widget.cuotasIniciales!.length == widget.numeroCuotas) {
+        // Cargar exactamente las iniciales
+        for (var c in widget.cuotasIniciales!) {
+          _cuotas.add(c.copyWith());
         }
-      } else if (_cuotas.length > widget.numeroCuotas) {
-        // Quitar cuotas del final (pero no permitir quitar bloqueadas)
-        final numBloqueadas = _cuotas.where((c) => c.bloqueada).length;
-        final targetCount = widget.numeroCuotas < numBloqueadas ? numBloqueadas : widget.numeroCuotas;
-        _cuotas = _cuotas.take(targetCount).toList();
+      } else {
+        // Cargar pagadas + generar el resto para cuadrar el nuevo número de cuotas
+        final pagadas = widget.cuotasIniciales!.where((c) => c.pagada).toList();
+        final montoPagado = CuotaPersonalizada.calcularTotalCuotas(pagadas);
+        final int cuotasPendientesCount = widget.numeroCuotas - pagadas.length;
+        final double saldoPendiente = widget.precioTotalEsperado - montoPagado;
+        final double montoPendienteAvg = cuotasPendientesCount > 0
+            ? saldoPendiente / cuotasPendientesCount
+            : 0;
+
+        for (int i = 0; i < widget.numeroCuotas; i++) {
+          if (i < pagadas.length) {
+            _cuotas.add(pagadas[i].copyWith(numeroCuota: i + 1));
+          } else {
+            _cuotas.add(CuotaPersonalizada(
+              numeroCuota: i + 1,
+              fechaPago: widget.fechaInicio.add(Duration(days: 30 * (i + 1))),
+              monto: montoPendienteAvg,
+            ));
+          }
+        }
       }
     } else {
-      // Generación por defecto
-      _cuotas = List.generate(widget.numeroCuotas, (index) {
-        return CuotaPersonalizada(
-          numeroCuota: index + 1,
-          fechaPago: widget.fechaInicio.add(Duration(days: 30 * (index))),
+      for (int i = 0; i < widget.numeroCuotas; i++) {
+        _cuotas.add(CuotaPersonalizada(
+          numeroCuota: i + 1,
+          fechaPago: widget.fechaInicio.add(Duration(days: 30 * (i + 1))),
           monto: widget.montoPorCuota,
-        );
-      });
+        ));
+      }
     }
-    _cuotasModificadas = List.generate(_cuotas.length, (index) => false);
   }
 
   void _actualizarCuota(CuotaPersonalizada cuotaEditada) {
     setState(() {
-      final index = _cuotas.indexWhere(
-        (c) => c.numeroCuota == cuotaEditada.numeroCuota
-      );
+      final index =
+          _cuotas.indexWhere((c) => c.numeroCuota == cuotaEditada.numeroCuota);
       if (index != -1) {
         final cuotaOriginal = _cuotas[index];
-        final huboCambio = 
-            cuotaOriginal.fechaPago != cuotaEditada.fechaPago ||
+        final huboCambio = cuotaOriginal.fechaPago != cuotaEditada.fechaPago ||
             (cuotaOriginal.monto - cuotaEditada.monto).abs() > 0.01;
-        
+
         _cuotas[index] = cuotaEditada;
-        
+
         if (huboCambio) {
           _cuotasModificadas[index] = true;
         }
@@ -108,6 +108,7 @@ class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompa
   }
 
   void _resetearCuota(int index) {
+    if (_cuotas[index].pagada) return; // No resetear cuotas pagadas
     setState(() {
       _cuotas[index] = CuotaPersonalizada(
         numeroCuota: index + 1,
@@ -122,35 +123,39 @@ class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompa
   void _resetearTodas() {
     setState(() {
       for (int i = 0; i < _cuotas.length; i++) {
-        _cuotas[i] = CuotaPersonalizada(
-          numeroCuota: i + 1,
-          fechaPago: widget.fechaInicio.add(Duration(days: 30 * (i))),
-          monto: widget.montoPorCuota,
-        );
+        if (!_cuotas[i].pagada) {
+          _cuotas[i] = CuotaPersonalizada(
+            numeroCuota: i + 1,
+            fechaPago: widget.fechaInicio.add(Duration(days: 30 * (i + 1))),
+            monto: widget.montoPorCuota,
+          );
+          _cuotasModificadas[i] = false;
+        }
       }
-      _cuotasModificadas = List.generate(widget.numeroCuotas, (index) => false);
     });
     widget.onFechasSeleccionadas(_cuotas);
   }
 
-  // 👇 NUEVO: Método para distribuir la diferencia automáticamente
+  // 👇 NUEVO: Método para distribuir la diferencia automáticamente respetando las pagadas
   void _distribuirDiferencia() {
     if (_cuotas.isEmpty) return;
-    
+
     setState(() {
       final diferencia = _diferencia;
       if (diferencia.abs() < 0.01) return; // Ya está balanceado
-      
-      // Distribuir la diferencia entre las cuotas editables (no pagadas ni bloqueadas)
-      final editables = _cuotas.where((c) => !c.pagada && !c.bloqueada).toList();
-      if (editables.isEmpty) return;
 
-      final ajustePorCuota = diferencia / editables.length;
-      
+      final cuotasEditables = _cuotas.where((c) => !c.pagada).toList();
+      if (cuotasEditables.isEmpty)
+        return; // No se puede distribuir si no hay editables
+
+      // Distribuir la diferencia solo entre cuotas no pagadas
+      final ajustePorCuota = diferencia / cuotasEditables.length;
+
       for (int i = 0; i < _cuotas.length; i++) {
-        if (!_cuotas[i].pagada && !_cuotas[i].bloqueada) {
+        if (!_cuotas[i].pagada) {
           _cuotas[i] = _cuotas[i].copyWith(
-            monto: _cuotas[i].monto - ajustePorCuota,
+            monto: _cuotas[i].monto -
+                ajustePorCuota, // Restar porque diferencia puede ser positiva o negativa
           );
           _cuotasModificadas[i] = true;
         }
@@ -174,7 +179,7 @@ class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompa
             color: primaryColor.withOpacity(0.05),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: _totalValido 
+              color: _totalValido
                   ? Colors.green.withOpacity(0.3)
                   : Colors.red.withOpacity(0.3),
               width: 1,
@@ -218,7 +223,8 @@ class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompa
               if (!_totalValido)
                 Container(
                   margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.red.shade50,
                     borderRadius: BorderRadius.circular(20),
@@ -229,13 +235,15 @@ class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompa
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: _diferencia > 0 ? Colors.red : Colors.orange.shade800,
+                      color:
+                          _diferencia > 0 ? Colors.red : Colors.orange.shade800,
                     ),
                   ),
                 ),
               if (cuotasModificadasCount > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: primaryColor,
                     borderRadius: BorderRadius.circular(20),
@@ -252,9 +260,9 @@ class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompa
             ],
           ),
         ),
-        
+
         const SizedBox(height: 12),
-        
+
         // Lista horizontal de tarjetas compactas
         SizedBox(
           height: 130,
@@ -272,9 +280,9 @@ class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompa
                     primaryColor: primaryColor,
                     fueModificada: _cuotasModificadas[index],
                   ),
-                  
+
                   // Botón de reset individual
-                  if (_cuotasModificadas[index])
+                  if (_cuotasModificadas[index] && !_cuotas[index].pagada)
                     Positioned(
                       top: -4,
                       right: 4,
@@ -307,7 +315,7 @@ class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompa
             },
           ),
         ),
-        
+
         // Botones de acción rápida
         if (cuotasModificadasCount > 0 || !_totalValido)
           Padding(
@@ -340,11 +348,11 @@ class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompa
                       ),
                     ),
                   ),
-                
+
                 if (!_totalValido && cuotasModificadasCount > 0)
                   const SizedBox(width: 8),
-                
-                // Botón de resetear todas
+
+                // Botón de resetear todas (solo si hay alguna modificada y no pagada)
                 if (cuotasModificadasCount > 0)
                   TextButton.icon(
                     onPressed: _resetearTodas,
@@ -365,7 +373,7 @@ class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompa
               ],
             ),
           ),
-        
+
         const SizedBox(height: 8),
       ],
     );

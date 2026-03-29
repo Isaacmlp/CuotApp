@@ -12,17 +12,15 @@ import 'package:cuot_app/utils/date_utils.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // 👈 NUEVO
 
 class FormularioCuotas extends StatefulWidget {
-  final Credito? creditoInicial;
-  final double totalPagado;
   final Function(Credito) onCreditoActualizado;
   final Function() onGuardar;
+  final Credito? creditoInicial;
 
   const FormularioCuotas({
     super.key,
-    this.creditoInicial,
-    this.totalPagado = 0.0,
     required this.onCreditoActualizado,
     required this.onGuardar,
+    this.creditoInicial,
   });
 
   @override
@@ -48,7 +46,6 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
 
   // 📌 VARIABLES PARA MODO PERSONALIZADO
   List<CuotaPersonalizada>? _fechasPersonalizadas;
-  List<CuotaPersonalizada> _cuotasOcultasPreservadas = [];
   bool _mostrarSelectorPersonalizado = false;
   bool _configuracionCompletada = false;
   bool _mostrarTelefono = false; // 👈 NUEVO: Estado del checkbox
@@ -61,63 +58,66 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
   double get _ganancia => double.tryParse(_gananciaController.text) ?? 0;
   double get _precioTotal => _inversion + _ganancia;
   int get _numCuotas => int.tryParse(_cuotasController.text) ?? 0;
-  double get _numCuotasPagadas => _cuotasOcultasPreservadas.length.toDouble();
-  double get _montoPendienteReal => _precioTotal - widget.totalPagado;
+  double get _valorCuota => _numCuotas > 0 ? _precioTotal / _numCuotas : 0;
 
-  double get _montoPendienteConfiguracion {
-    double sumaPreservadas = CuotaPersonalizada.calcularTotalCuotas(_cuotasOcultasPreservadas);
-    return _precioTotal - sumaPreservadas;
-  }
-
-  double get _valorCuotaSugerido {
-    final pendientes = _numCuotas - _numCuotasPagadas.toInt();
-    if (pendientes <= 0) return 0;
-    
-    return _montoPendienteConfiguracion / pendientes;
-  }
+  // 📌 NUEVO: Propiedades de cuotas pagadas
+  int get _cantidadCuotasPagadas =>
+      _fechasPersonalizadas?.where((c) => c.pagada).length ?? 0;
+  double get _montoPagado => CuotaPersonalizada.calcularTotalCuotas(
+      _fechasPersonalizadas?.where((c) => c.pagada).toList());
 
   @override
   void initState() {
     super.initState();
-    _inicializarDatosEdit();
+
+    if (widget.creditoInicial != null) {
+      final inicial = widget.creditoInicial!;
+      _conceptoController.text = inicial.concepto;
+      _inversionController.text = (inicial.costeInversion % 1 == 0)
+          ? inicial.costeInversion.toInt().toString()
+          : inicial.costeInversion.toString();
+      _gananciaController.text = (inicial.margenGanancia % 1 == 0)
+          ? inicial.margenGanancia.toInt().toString()
+          : inicial.margenGanancia.toString();
+      _cuotasController.text = inicial.numeroCuotas.toString();
+      _clienteController.text = inicial.nombreCliente;
+
+      if (inicial.telefono != null && inicial.telefono!.isNotEmpty) {
+        _mostrarTelefono = true;
+        _telefonoController.text = inicial.telefono!;
+      }
+
+      _fechaInicio = inicial.fechaInicio;
+      _modalidadSeleccionada = inicial.modalidadPago;
+
+      if (inicial.fechasPersonalizadas != null &&
+          inicial.fechasPersonalizadas!.isNotEmpty) {
+        _fechasPersonalizadas = List.from(inicial.fechasPersonalizadas!);
+        // Si hay cuotas pagadas o estamos editando, abrimos el selector en modo personalizado si estaba en ese modo o para revisar las fechas.
+        if (inicial.modalidadPago == ModalidadPago.personalizado ||
+            _cantidadCuotasPagadas > 0) {
+          _mostrarSelectorPersonalizado = true;
+          _configuracionCompletada = true;
+        }
+      }
+
+      if (inicial.facturaPath != null) {
+        _facturaSeleccionada = File(inicial.facturaPath!);
+      }
+    }
+
     _calcularFechaLimite();
   }
 
-  void _inicializarDatosEdit() {
-    if (widget.creditoInicial != null) {
-      final credito = widget.creditoInicial!;
-      _conceptoController.text = credito.concepto;
-      _inversionController.text = credito.costeInversion.toString();
-      _gananciaController.text = credito.margenGanancia.toString();
-      _cuotasController.text = credito.numeroCuotas.toString();
-      _clienteController.text = credito.nombreCliente;
-
-      if (credito.telefono != null && credito.telefono!.isNotEmpty) {
-        _mostrarTelefono = true;
-        _telefonoController.text = credito.telefono!;
+  void _resetConfiguracionPersonalizada() {
+    setState(() {
+      _mostrarSelectorPersonalizado = false;
+      _configuracionCompletada = false;
+      if (_fechasPersonalizadas != null) {
+        final pagadas = _fechasPersonalizadas!.where((c) => c.pagada).toList();
+        _fechasPersonalizadas = pagadas.isNotEmpty ? pagadas : null;
       }
-
-      _fechaInicio = credito.fechaInicio;
-      _modalidadSeleccionada = credito.modalidadPago;
-
-      if (credito.fechasPersonalizadas != null &&
-          credito.fechasPersonalizadas!.isNotEmpty) {
-        
-        // Separar historial intocable de las pendientes configurables
-        _cuotasOcultasPreservadas = credito.fechasPersonalizadas!
-            .where((c) => c.pagada || c.bloqueada)
-            .toList();
-            
-        final pendientes = credito.fechasPersonalizadas!
-            .where((c) => !c.pagada && !c.bloqueada)
-            .toList();
-            
-        _fechasPersonalizadas = pendientes.isNotEmpty ? pendientes : null;
-        
-        _configuracionCompletada = _fechasPersonalizadas != null;
-        _mostrarSelectorPersonalizado = _fechasPersonalizadas != null;
-      }
-    }
+    });
   }
 
   // 📌 Calcular fecha límite
@@ -165,7 +165,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 📌 1. CONCEPTO/PRODUCTO
-            _buildSeccionTitulo('Concepto', Icons.shopping_bag),
+            _buildSeccionTitulo('Articulo', Icons.shopping_bag),
             const SizedBox(height: 8),
             TextFormField(
               controller: _conceptoController,
@@ -213,11 +213,9 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                           prefix: '\$ ',
                         ),
                         keyboardType: TextInputType.number,
-                        validator: (v) => Validators.positiveNumber(
-                            v, 'Ganancia',
-                            allowZero: true),
+                        validator: (v) =>
+                            Validators.positiveNumber(v, 'Ganancia'),
                         onChanged: (value) {
-                          setState(() {});
                           _actualizarCredito();
                         },
                       ),
@@ -242,12 +240,19 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                           icon: Icons.numbers,
                         ),
                         keyboardType: TextInputType.number,
-                        validator: (v) =>
-                            Validators.positiveNumber(v, 'Cuotas'),
+                        validator: (v) {
+                          final count = int.tryParse(v ?? '') ?? 0;
+                          if (count > 0 && count < _cantidadCuotasPagadas) {
+                            return 'Mínimo $_cantidadCuotasPagadas (pagadas)';
+                          }
+                          return Validators.positiveNumber(v, 'Cuotas');
+                        },
                         onChanged: (value) {
-                          setState(() {});
                           _actualizarCredito();
-                          _ajustarPlanPorCambioMetadata();
+                          if (_modalidadSeleccionada ==
+                              ModalidadPago.personalizado) {
+                            _resetConfiguracionPersonalizada();
+                          }
                         },
                       ),
                     ],
@@ -292,7 +297,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                             });
                             _actualizarCredito();
                           },
-                          label: 'Fecha de inicio',
+                          label: 'Seleccionar fecha',
                         ),
                       ],
                     ),
@@ -321,10 +326,35 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        CustomDatePicker(
-                          selectedDate: _fechaLimiteCalculada,
-                          label: 'FECHA LÍMITE',
-                          readOnly: true,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.calendar_today,
+                                  size: 16, color: Colors.grey.shade600),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _fechaLimiteCalculada != null
+                                      ? DateUt.formatearFecha(
+                                          _fechaLimiteCalculada!)
+                                      : 'Por calcular',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    color: _fechaLimiteCalculada != null
+                                        ? Colors.black87
+                                        : Colors.grey.shade500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -359,8 +389,8 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
               onChanged: (modalidad) {
                 setState(() {
                   _modalidadSeleccionada = modalidad!;
-                  _ajustarPlanPorCambioMetadata();
                 });
+                _resetConfiguracionPersonalizada();
                 _actualizarCredito();
               },
             ),
@@ -526,12 +556,11 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
     return Column(
       children: [
         SelectorFechasCuotasCompacto(
-          numeroCuotas: _numCuotas - _cuotasOcultasPreservadas.length,
+          numeroCuotas: _numCuotas,
           fechaInicio: _fechaInicio,
-          montoPorCuota: _valorCuotaSugerido,
+          montoPorCuota: _valorCuota,
           precioTotalEsperado: _precioTotal,
-          saldoPendienteEsperado: _montoPendienteConfiguracion,
-          initialCuotas: _fechasPersonalizadas,
+          cuotasIniciales: _fechasPersonalizadas,
           onFechasSeleccionadas: (fechas) {
             setState(() {
               _fechasPersonalizadas = fechas;
@@ -568,84 +597,6 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
     );
   }
 
-  void _ajustarPlanPorCambioMetadata() {
-    final numPreservadas = _cuotasOcultasPreservadas.length;
-
-    if (_numCuotas < numPreservadas) {
-      _cuotasController.text = numPreservadas.toString();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('No puedes reducir las cuotas a menos de $numPreservadas (ya están pagadas o bloqueadas)'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-    }
-
-    if (_modalidadSeleccionada == ModalidadPago.personalizado) {
-      if (_fechasPersonalizadas == null || _fechasPersonalizadas!.isEmpty) {
-        setState(() {
-          _mostrarSelectorPersonalizado = false;
-          _configuracionCompletada = false;
-        });
-      } else {
-        setState(() {
-          _configuracionCompletada = false;
-          _mostrarSelectorPersonalizado = true;
-        });
-      }
-      return;
-    }
-
-    final numRestantes = _numCuotas - _cuotasOcultasPreservadas.length;
-    
-    if (numRestantes <= 0) {
-      setState(() {
-        _fechasPersonalizadas = null;
-        _configuracionCompletada = true;
-      });
-      return;
-    }
-
-    // Re-generar las pendientes
-    final montoPorCuota = _valorCuotaSugerido;
-    DateTime ultimaFecha = _cuotasOcultasPreservadas.isNotEmpty 
-        ? _cuotasOcultasPreservadas.last.fechaPago 
-        : _fechaInicio;
-        
-    List<CuotaPersonalizada> nuevasPendientes = [];
-
-    for (int i = 0; i < numRestantes; i++) {
-      DateTime nuevaFecha;
-      switch (_modalidadSeleccionada) {
-        case ModalidadPago.diario:
-          nuevaFecha = ultimaFecha.add(Duration(days: i + 1));
-          break;
-        case ModalidadPago.semanal:
-          nuevaFecha = ultimaFecha.add(Duration(days: (i + 1) * 7));
-          break;
-        case ModalidadPago.quincenal:
-          nuevaFecha = ultimaFecha.add(Duration(days: (i + 1) * 15));
-          break;
-        case ModalidadPago.mensual:
-          nuevaFecha = DateTime(ultimaFecha.year, ultimaFecha.month + (i + 1), ultimaFecha.day);
-          break;
-        default:
-          nuevaFecha = ultimaFecha.add(Duration(days: (i + 1) * 30));
-      }
-      nuevasPendientes.add(CuotaPersonalizada(
-        numeroCuota: _cuotasOcultasPreservadas.length + i + 1,
-        fechaPago: nuevaFecha,
-        monto: montoPorCuota,
-      ));
-    }
-    
-    setState(() {
-      _fechasPersonalizadas = nuevasPendientes;
-      _configuracionCompletada = true;
-      _mostrarSelectorPersonalizado = true;
-    });
-  }
-
   /// 📌 INICIAR CONFIGURACIÓN PERSONALIZADA
   void _iniciarConfiguracionPersonalizada() {
     if (_precioTotal <= 0) {
@@ -659,55 +610,6 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
     }
 
     setState(() {
-      // 1. Identificar cuotas ya PAGADAS/BLOQUEADAS para preservarlas y AJUSTARLAS al total pagado
-      final List<CuotaPersonalizada> preservadasOriginales =
-          _fechasPersonalizadas?.where((c) => c.pagada || c.bloqueada).toList() ?? [];
-      final List<CuotaPersonalizada> preservadas = _obtenerCuotasPreservadasAjustadas(preservadasOriginales);
-
-      // 2. Generar sugerencias de fechas para todas las cuotas
-      List<DateTime> sugerencias;
-      switch (_modalidadSeleccionada) {
-        case ModalidadPago.diario:
-          sugerencias = DateUt.sugerirFechasDiarias(_fechaInicio, _numCuotas);
-          break;
-        case ModalidadPago.semanal:
-          sugerencias = DateUt.sugerirFechasSemanales(_fechaInicio, _numCuotas);
-          break;
-        case ModalidadPago.quincenal:
-          sugerencias =
-              DateUt.sugerirFechasQuincenales(_fechaInicio, _numCuotas);
-          break;
-        case ModalidadPago.mensual:
-          sugerencias = DateUt.sugerirFechasMensuales(_fechaInicio, _numCuotas);
-          break;
-        default:
-          sugerencias = DateUt.sugerirFechasMensuales(_fechaInicio, _numCuotas);
-      }
-
-      // 3. Re-construir la lista de cuotas
-      // El monto sugerido se calcula sobre el saldo pendiente real
-      final double montoParaRestantes = _valorCuotaSugerido;
-
-      _fechasPersonalizadas = List.generate(_numCuotas, (index) {
-        final numero = index + 1;
-
-        // Buscar si hay una cuota preservada ajustada para este número
-        final cuotaPreservada = preservadas.cast<CuotaPersonalizada?>().firstWhere(
-          (c) => c?.numeroCuota == numero, 
-          orElse: () => null
-        );
-        
-        if (cuotaPreservada != null) {
-          return cuotaPreservada; // Preservar monto ajustado y estado histórico
-        }
-
-        // Si es una cuota nueva o pendiente, le asignamos el saldo sugerido
-        return CuotaPersonalizada(
-          numeroCuota: numero,
-          fechaPago: sugerencias[index],
-          monto: montoParaRestantes,
-        );
-      });
       _mostrarSelectorPersonalizado = true;
     });
   }
@@ -741,7 +643,6 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
             _buildInfoRow(
               'Precio total:',
               '\$${_precioTotal.toStringAsFixed(2)}',
-              color: Colors.blue.shade900,
             ),
             _buildInfoRow(
               'Duración:',
@@ -749,39 +650,26 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                   _fechaInicio, _fechaLimiteCalculada ?? _fechaInicio),
             ),
             const Divider(),
-            if (widget.totalPagado > 0) ...[
-              _buildInfoRow(
-                'Pagado actualmente:',
-                '\$${widget.totalPagado.toStringAsFixed(2)}',
-                color: Colors.green,
-                icon: Icons.check_circle_outline,
-              ),
-              _buildInfoRow(
-                'Saldo pendiente total:',
-                '\$${_montoPendienteReal.toStringAsFixed(2)}',
-                color: Colors.orange.shade900,
-                icon: Icons.pending_actions,
-              ),
-              const Divider(),
-            ],
             _buildInfoRow(
-              'Valor cuotas pendientes:',
-              '\$${_valorCuotaSugerido.toStringAsFixed(2)}',
-              color: Theme.of(context).primaryColor,
-              fontWeight: FontWeight.bold,
+              'Valor por cuota:',
+              '\$${_valorCuota.toStringAsFixed(2)}',
             ),
             if (_fechasPersonalizadas != null) ...[
               const Divider(),
               _buildInfoRow(
-                'Resumen Plan:',
-                '${_fechasPersonalizadas!.length} cuotas '
-                    '(${_numCuotasPagadas.toInt()} pagadas)',
+                'Total cuotas:',
+                '${_fechasPersonalizadas!.length} configuradas',
               ),
+              // 👇 NUEVO: Mostrar suma total de cuotas
               _buildInfoRow(
-                'Total configurado:',
+                'Suma cuotas:',
                 '\$${totalCuotas.toStringAsFixed(2)}',
-                color: totalValido ? Colors.green : Colors.red,
               ),
+              if (_cantidadCuotasPagadas > 0)
+                _buildInfoRow(
+                  'Monto ya pagado:',
+                  '\$${_montoPagado.toStringAsFixed(2)}',
+                ),
               // 👇 NUEVO: Alerta si hay diferencia
               if (!totalValido)
                 Padding(
@@ -800,10 +688,10 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            '${diferencia > 0 ? "Sobran" : "Faltan"}: \$${diferencia.abs().toStringAsFixed(2)}',
+                            'Diferencia: \$${diferencia.toStringAsFixed(2)}',
                             style: TextStyle(
                               color: Colors.red.shade700,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w500,
                               fontSize: 12,
                             ),
                           ),
@@ -863,15 +751,10 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
   }
 
   /// 📌 ACTUALIZAR CRÉDITO (callback)
-  void _actualizarCredito([dynamic _]) {
+  void _actualizarCredito([_]) {
     _calcularFechaLimite();
 
     if (_formKey.currentState?.validate() ?? false) {
-      final List<CuotaPersonalizada> historicoYPendientes = [
-        ..._cuotasOcultasPreservadas,
-        ...?_fechasPersonalizadas,
-      ];
-
       final credito = Credito(
         concepto: _conceptoController.text,
         costeInversion: _inversion,
@@ -879,11 +762,12 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
         fechaInicio: _fechaInicio,
         modalidadPago: _modalidadSeleccionada,
         nombreCliente: _clienteController.text,
-        telefono: _mostrarTelefono ? _telefonoController.text : '',
+        telefono:
+            _mostrarTelefono ? _telefonoController.text : '', // 👈 Condicional
         numeroCuotas: _numCuotas,
         facturaPath: _facturaSeleccionada?.path,
         nombreFactura: _facturaSeleccionada?.path.split('/').last,
-        fechasPersonalizadas: historicoYPendientes.isNotEmpty ? historicoYPendientes : null,
+        fechasPersonalizadas: _fechasPersonalizadas,
       );
       widget.onCreditoActualizado(credito);
     }
@@ -892,15 +776,6 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
   /// 📌 GUARDAR CRÉDITO (con validaciones MEJORADAS)
   void _guardarCredito() {
     if (!(_formKey.currentState?.validate() ?? false)) {
-      return;
-    }
-
-    // 👇 NUEVA VALIDACIÓN: El precio total no puede ser menor a lo ya pagado
-    if (_precioTotal < widget.totalPagado) {
-      _mostrarError(
-        'Monto inválido',
-        'El precio total (${_precioTotal.toStringAsFixed(2)}) no puede ser menor al monto ya pagado (${widget.totalPagado.toStringAsFixed(2)}).',
-      );
       return;
     }
 
@@ -913,18 +788,16 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
         return;
       }
 
-      // 👇 NUEVA VALIDACIÓN: Verificar que el saldo de las cuotas nuevas coincida con el saldo pendiente
-      final double totalEditables = _fechasPersonalizadas!
-          .where((c) => !c.pagada && !c.bloqueada)
-          .fold(0.0, (sum, c) => sum + c.monto);
-      
-      final diferencia = (totalEditables - _montoPendienteConfiguracion).abs();
+      // 👇 NUEVA VALIDACIÓN: Verificar que el total de cuotas coincida con el precio total
+      final totalCuotas =
+          CuotaPersonalizada.calcularTotalCuotas(_fechasPersonalizadas);
+      final diferencia = (totalCuotas - _precioTotal).abs();
 
       if (diferencia > 0.01) {
         _mostrarError(
-          'Configuración de cuotas incorrecta',
-          'La suma de las cuotas pendientes (\$${totalEditables.toStringAsFixed(2)}) '
-              'no coincide con el saldo restante a configurar (\$${_montoPendienteConfiguracion.toStringAsFixed(2)}).\n\n'
+          'Total de cuotas incorrecto',
+          'La suma de todas las cuotas (\$${totalCuotas.toStringAsFixed(2)}) '
+              'no coincide con el precio total (\$${_precioTotal.toStringAsFixed(2)}).\n\n'
               'Diferencia: \$${diferencia.toStringAsFixed(2)}',
         );
         return;
@@ -939,8 +812,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
       }
     }
 
-    if (_facturaSeleccionada == null &&
-        widget.creditoInicial?.facturaPath == null) {
+    if (_facturaSeleccionada == null) {
       _mostrarDialogoFacturaOpcional();
     } else {
       widget.onGuardar();
@@ -961,12 +833,8 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
       }
     }
 
-    final inicioSinHora =
-        DateTime(_fechaInicio.year, _fechaInicio.month, _fechaInicio.day);
-
     for (var fecha in fechas) {
-      final fechaSinHora = DateTime(fecha.year, fecha.month, fecha.day);
-      if (fechaSinHora.isBefore(inicioSinHora)) {
+      if (fecha.isBefore(_fechaInicio)) {
         return false;
       }
     }
@@ -1019,13 +887,6 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
   }
 
   /// 📌 MÉTODOS DE UTILIDAD
-  
-  /// Retorna las cuotas ya pagadas/bloqueadas (ya no se usa en el UI, se preservan acá por completitud)
-  List<CuotaPersonalizada> _obtenerCuotasPreservadasAjustadas(List<CuotaPersonalizada> originales) {
-    if (originales.isEmpty) return [];
-    return List.from(originales);
-  }
-
   Widget _buildSeccionTitulo(String titulo, IconData icono) {
     return Row(
       children: [
@@ -1056,35 +917,19 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
     );
   }
 
-  Widget _buildInfoRow(
-    String label,
-    String value, {
-    Color? color,
-    IconData? icon,
-    FontWeight? fontWeight,
-  }) {
+  Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              if (icon != null) ...[
-                Icon(icon,
-                    size: 16,
-                    color: color?.withOpacity(0.7) ?? Colors.grey.shade600),
-                const SizedBox(width: 8),
-              ],
-              Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-            ],
-          ),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
           Text(
             value,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
-              fontWeight: fontWeight ?? FontWeight.bold,
-              color: color ?? Colors.blue,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
             ),
           ),
         ],

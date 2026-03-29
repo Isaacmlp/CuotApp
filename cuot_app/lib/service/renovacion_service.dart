@@ -17,12 +17,28 @@ class RenovacionService {
 
       final nuevaRenovacion = Renovacion.fromJson(data);
 
-      // 2. Si está aprobada, actualizar el crédito original
+      // 2. Si hay un abono registrado al momento de la renovación, inyectarlo en Pagos para mantener el historial
+      if (renovacion.montoAbono > 0) {
+        await _supabase.client
+            .schema('Financiamientos')
+            .from('Pagos')
+            .insert({
+              'credito_id': renovacion.creditoOriginalId,
+              'numero_cuota': 1, // Se aloja genéricamente acá
+              'monto': renovacion.montoAbono,
+              'fecha_pago_real': DateTime.now().toUtc().toIso8601String(),
+              'metodo_pago': 'efectivo',
+              'referencia': 'Abono en Renovación',
+              'observaciones': 'Abono inyectado y cobrado durante procedimiento de Renovación',
+            });
+      }
+
+      // 3. Si está aprobada, actualizar el crédito original
       if (renovacion.estado == 'aprobada') {
         await _aplicarRenovacionAlCredito(renovacion);
       }
 
-      // 3. Registrar en historial
+      // 4. Registrar en historial
       await _supabase.client
           .schema('Financiamientos')
           .from('Historial_Renovaciones')
@@ -41,17 +57,27 @@ class RenovacionService {
     }
   }
 
-  /// Aplica los cambios de la renovación al crédito original
   Future<void> _aplicarRenovacionAlCredito(Renovacion renovacion) async {
     final condicionesNuevas = renovacion.condicionesNuevas;
     final tipoCredito = condicionesNuevas['tipo_credito'] ?? 'cuotas';
-    final double nuevoMontoTotal = (condicionesNuevas['monto_total'] as num).toDouble();
     
-    // 1. Actualizar el crédito principal
-    // Para simplificar, ajustamos el margen_ganancia para que la suma cuadre con el nuevo total
-    // Asumiendo que costo_inversion se mantiene (o podrías ajustarlo también)
+    // EL MONTO "TOTAL" QUE LLEGA DESDE EL FORMULARIO ES REALMENTE EL "SALDO PENDIENTE DESEADO" (EJ: $36)
+    final double nuevoSaldoPendienteDeseado = (condicionesNuevas['monto_total'] as num).toDouble();
+    
+    final double saldoPendienteOriginal = (renovacion.condicionesAnteriores['saldo_pendiente'] ?? 0).toDouble();
+    final double montoTotalOriginal = (renovacion.condicionesAnteriores['monto_total'] ?? 0).toDouble();
+    final double abonoEnRenovacion = (condicionesNuevas['abono'] ?? 0).toDouble();
+    
+    // Extraemos qué cantidad de dinero había ingresado antes de esta renovación en este mismo crédito.
+    final double totalPagadoHistorico = montoTotalOriginal - saldoPendienteOriginal;
+    
+    // 1. Calcular el Verdadero Gross Total
+    // El Precio Etiqueta (Gross Contract Sum) de la Base de Datos debe ser el Saldo Deseado + Todo lo ya pagado + lo pagado ahora.
+    // Esto asegura que Seguimiento (Total - Sum(Pagos)) siga igual al saldo deseado.
+    final double verdaderoGrossTotal = nuevoSaldoPendienteDeseado + totalPagadoHistorico + abonoEnRenovacion;
+
     final double costoInversionOriginal = (renovacion.condicionesAnteriores['costo_inversion'] ?? 0).toDouble();
-    final double nuevoMargen = nuevoMontoTotal - costoInversionOriginal;
+    final double nuevoMargen = verdaderoGrossTotal - costoInversionOriginal;
 
     Map<String, dynamic> updateData = {
       'margen_ganancia': nuevoMargen,
@@ -76,7 +102,7 @@ class RenovacionService {
           .schema('Financiamientos')
           .from('Cuotas')
           .update({
-            'monto': nuevoMontoTotal,
+            'monto': nuevoSaldoPendienteDeseado,
             'pagada': false,
             if (condicionesNuevas['fecha_pago_nueva'] != null) 
               'fecha_pago': condicionesNuevas['fecha_pago_nueva'],

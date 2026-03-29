@@ -61,27 +61,27 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
   double get _valorCuota => _numCuotas > 0 ? _precioTotal / _numCuotas : 0;
 
   // 📌 NUEVO: Propiedades de cuotas pagadas
-  int get _cantidadCuotasPagadas => _fechasPersonalizadas?.where((c) => c.pagada).length ?? 0;
+  int get _cantidadCuotasPagadas =>
+      _fechasPersonalizadas?.where((c) => c.pagada).length ?? 0;
   double get _montoPagado => CuotaPersonalizada.calcularTotalCuotas(
-      _fechasPersonalizadas?.where((c) => c.pagada).toList()
-  );
+      _fechasPersonalizadas?.where((c) => c.pagada).toList());
 
   @override
   void initState() {
     super.initState();
-    
+
     if (widget.creditoInicial != null) {
       final inicial = widget.creditoInicial!;
       _conceptoController.text = inicial.concepto;
-      _inversionController.text = (inicial.costeInversion % 1 == 0) 
-        ? inicial.costeInversion.toInt().toString() 
-        : inicial.costeInversion.toString();
-      _gananciaController.text = (inicial.margenGanancia % 1 == 0) 
-        ? inicial.margenGanancia.toInt().toString() 
-        : inicial.margenGanancia.toString();
+      _inversionController.text = (inicial.costeInversion % 1 == 0)
+          ? inicial.costeInversion.toInt().toString()
+          : inicial.costeInversion.toString();
+      _gananciaController.text = (inicial.margenGanancia % 1 == 0)
+          ? inicial.margenGanancia.toInt().toString()
+          : inicial.margenGanancia.toString();
       _cuotasController.text = inicial.numeroCuotas.toString();
       _clienteController.text = inicial.nombreCliente;
-      
+
       if (inicial.telefono != null && inicial.telefono!.isNotEmpty) {
         _mostrarTelefono = true;
         _telefonoController.text = inicial.telefono!;
@@ -89,16 +89,18 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
 
       _fechaInicio = inicial.fechaInicio;
       _modalidadSeleccionada = inicial.modalidadPago;
-      
-      if (inicial.fechasPersonalizadas != null && inicial.fechasPersonalizadas!.isNotEmpty) {
+
+      if (inicial.fechasPersonalizadas != null &&
+          inicial.fechasPersonalizadas!.isNotEmpty) {
         _fechasPersonalizadas = List.from(inicial.fechasPersonalizadas!);
         // Si hay cuotas pagadas o estamos editando, abrimos el selector en modo personalizado si estaba en ese modo o para revisar las fechas.
-        if (inicial.modalidadPago == ModalidadPago.personalizado || _cantidadCuotasPagadas > 0) {
+        if (inicial.modalidadPago == ModalidadPago.personalizado ||
+            _cantidadCuotasPagadas > 0) {
           _mostrarSelectorPersonalizado = true;
           _configuracionCompletada = true;
         }
       }
-      
+
       if (inicial.facturaPath != null) {
         _facturaSeleccionada = File(inicial.facturaPath!);
       }
@@ -128,10 +130,12 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
           _fechaLimiteCalculada = _fechaInicio.add(Duration(days: _numCuotas));
           break;
         case ModalidadPago.semanal:
-          _fechaLimiteCalculada = _fechaInicio.add(Duration(days: _numCuotas * 7));
+          _fechaLimiteCalculada =
+              _fechaInicio.add(Duration(days: _numCuotas * 7));
           break;
         case ModalidadPago.quincenal:
-          _fechaLimiteCalculada = _fechaInicio.add(Duration(days: _numCuotas * 15));
+          _fechaLimiteCalculada =
+              _fechaInicio.add(Duration(days: _numCuotas * 15));
           break;
         case ModalidadPago.mensual:
           _fechaLimiteCalculada = DateTime(
@@ -147,7 +151,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
     } else {
       _fechaLimiteCalculada = null;
     }
-    
+
     if (mounted) setState(() {});
   }
 
@@ -278,7 +282,8 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.play_circle, color: Colors.green, size: 20),
+                            Icon(Icons.play_circle,
+                                color: Colors.green, size: 20),
                             const SizedBox(width: 8),
                             const Text('Fecha de inicio:'),
                           ],
@@ -298,9 +303,9 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(width: 12),
-                
+
                 // Fecha límite (solo informativa)
                 Expanded(
                   child: Container(
@@ -314,14 +319,16 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.stop_circle, color: Colors.red, size: 20),
+                            Icon(Icons.stop_circle,
+                                color: Colors.red, size: 20),
                             const SizedBox(width: 8),
                             const Text('Fecha límite:'),
                           ],
                         ),
                         const SizedBox(height: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 16),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(8),
@@ -329,12 +336,14 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.calendar_today, size: 16, color: Colors.grey.shade600),
+                              Icon(Icons.calendar_today,
+                                  size: 16, color: Colors.grey.shade600),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   _fechaLimiteCalculada != null
-                                      ? DateUt.formatearFecha(_fechaLimiteCalculada!)
+                                      ? DateUt.formatearFecha(
+                                          _fechaLimiteCalculada!)
                                       : 'Por calcular',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w500,
@@ -409,7 +418,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
               onChanged: _actualizarCredito,
             ),
             const SizedBox(height: 20),
-            
+
             // 📌 7.5 TELEFONO OPCIONAL
             CheckboxListTile(
               title: const Text('Agregar número de teléfono'),
@@ -446,7 +455,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
               ),
             ],
             const SizedBox(height: 20),
-            
+
             // 📌 8. FACTURA (OPCIONAL)
             _buildSeccionTitulo('Factura (Opcional)', Icons.receipt),
             const SizedBox(height: 8),
@@ -460,7 +469,6 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
             ),
 
             // 📌 9. CLIENTE
-            
 
             // 📌 10. INDICADOR DE FACTURA (si hay)
             if (_facturaSeleccionada != null) _buildFacturaIndicator(),
@@ -491,7 +499,6 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
-                      
                     ),
                   ],
                 ),
@@ -610,10 +617,11 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
   /// 📌 TARJETA DE RESUMEN (MODIFICADA con validación de total)
   Widget _buildResumenCard() {
     // 👇 NUEVO: Calcular total de cuotas y validar
-    final totalCuotas = CuotaPersonalizada.calcularTotalCuotas(_fechasPersonalizadas);
+    final totalCuotas =
+        CuotaPersonalizada.calcularTotalCuotas(_fechasPersonalizadas);
     final diferencia = totalCuotas - _precioTotal;
     final totalValido = (diferencia).abs() <= 0.01;
-    
+
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -638,7 +646,8 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
             ),
             _buildInfoRow(
               'Duración:',
-              DateUt.formatearDuracion(_fechaInicio, _fechaLimiteCalculada ?? _fechaInicio),
+              DateUt.formatearDuracion(
+                  _fechaInicio, _fechaLimiteCalculada ?? _fechaInicio),
             ),
             const Divider(),
             _buildInfoRow(
@@ -674,7 +683,8 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.warning, color: Colors.red.shade700, size: 16),
+                        Icon(Icons.warning,
+                            color: Colors.red.shade700, size: 16),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -743,7 +753,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
   /// 📌 ACTUALIZAR CRÉDITO (callback)
   void _actualizarCredito([_]) {
     _calcularFechaLimite();
-    
+
     if (_formKey.currentState?.validate() ?? false) {
       final credito = Credito(
         concepto: _conceptoController.text,
@@ -752,7 +762,8 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
         fechaInicio: _fechaInicio,
         modalidadPago: _modalidadSeleccionada,
         nombreCliente: _clienteController.text,
-        telefono: _mostrarTelefono ? _telefonoController.text : '', // 👈 Condicional
+        telefono:
+            _mostrarTelefono ? _telefonoController.text : '', // 👈 Condicional
         numeroCuotas: _numCuotas,
         facturaPath: _facturaSeleccionada?.path,
         nombreFactura: _facturaSeleccionada?.path.split('/').last,
@@ -778,15 +789,16 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
       }
 
       // 👇 NUEVA VALIDACIÓN: Verificar que el total de cuotas coincida con el precio total
-      final totalCuotas = CuotaPersonalizada.calcularTotalCuotas(_fechasPersonalizadas);
+      final totalCuotas =
+          CuotaPersonalizada.calcularTotalCuotas(_fechasPersonalizadas);
       final diferencia = (totalCuotas - _precioTotal).abs();
-      
+
       if (diferencia > 0.01) {
         _mostrarError(
           'Total de cuotas incorrecto',
           'La suma de todas las cuotas (\$${totalCuotas.toStringAsFixed(2)}) '
-          'no coincide con el precio total (\$${_precioTotal.toStringAsFixed(2)}).\n\n'
-          'Diferencia: \$${diferencia.toStringAsFixed(2)}',
+              'no coincide con el precio total (\$${_precioTotal.toStringAsFixed(2)}).\n\n'
+              'Diferencia: \$${diferencia.toStringAsFixed(2)}',
         );
         return;
       }
@@ -864,8 +876,8 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
           TextButton(
             onPressed: () {
               Navigator.pop(context); // Cierra el diálogo
-              _actualizarCredito();   // 👈 Asegura guardar estado
-              widget.onGuardar();     // Guarda y navega
+              _actualizarCredito(); // 👈 Asegura guardar estado
+              widget.onGuardar(); // Guarda y navega
             },
             child: const Text('CONTINUAR'),
           ),
@@ -887,6 +899,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
       ],
     );
   }
+
   InputDecoration _buildInputDecoration({
     required String label,
     IconData? icon,
@@ -964,4 +977,4 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
     _telefonoController.dispose();
     super.dispose();
   }
-}
+}

@@ -57,19 +57,21 @@ class _TarjetaCuotaCompactaState extends State<TarjetaCuotaCompacta> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
-        onTap: widget.cuota.pagada ? null : () async {
-          final cuotaEditada = await showDialog<CuotaPersonalizada>(
-            context: context,
-            builder: (context) => DialogoEditarCuota(
-              cuota: widget.cuota,
-              primaryColor: widget.primaryColor,
-            ),
-          );
-          
-          if (cuotaEditada != null) {
-            widget.onCuotaEditada(cuotaEditada);
-          }
-        },
+        onTap: widget.cuota.pagada
+            ? null
+            : () async {
+                final cuotaEditada = await showDialog<CuotaPersonalizada>(
+                  context: context,
+                  builder: (context) => DialogoEditarCuota(
+                    cuota: widget.cuota,
+                    primaryColor: widget.primaryColor,
+                  ),
+                );
+
+                if (cuotaEditada != null) {
+                  widget.onCuotaEditada(cuotaEditada);
+                }
+              },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           width: 100,
@@ -79,9 +81,7 @@ class _TarjetaCuotaCompactaState extends State<TarjetaCuotaCompacta> {
             color: backgroundColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: _isHovered 
-                  ? widget.primaryColor 
-                  : borderColor,
+              color: _isHovered ? widget.primaryColor : borderColor,
               width: _isHovered ? 2 : 1.5,
             ),
             boxShadow: [
@@ -117,28 +117,34 @@ class _TarjetaCuotaCompactaState extends State<TarjetaCuotaCompacta> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
-                      color: widget.fueModificada 
-                          ? Colors.white 
+                      color: widget.fueModificada
+                          ? Colors.white
                           : widget.primaryColor,
                     ),
                   ),
                   const SizedBox(width: 4),
                   Icon(
-                    widget.cuota.pagada ? Icons.check_circle : (widget.fueModificada ? Icons.edit : Icons.edit_outlined),
+                    widget.cuota.pagada
+                        ? Icons.check_circle
+                        : (widget.fueModificada
+                            ? Icons.edit
+                            : Icons.edit_outlined),
                     size: 11,
-                    color: widget.cuota.pagada 
-                        ? Colors.green 
-                        : (widget.fueModificada ? Colors.white70 : Colors.grey.shade600),
+                    color: widget.cuota.pagada
+                        ? Colors.green
+                        : (widget.fueModificada
+                            ? Colors.white70
+                            : Colors.grey.shade600),
                   ),
                 ],
               ),
               const SizedBox(height: 6),
-              
+
               // Icono de calendario con indicador de modificada
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: widget.fueModificada 
+                  color: widget.fueModificada
                       ? Colors.white.withOpacity(0.2)
                       : Colors.transparent,
                   shape: BoxShape.circle,
@@ -146,39 +152,39 @@ class _TarjetaCuotaCompactaState extends State<TarjetaCuotaCompacta> {
                 child: Icon(
                   Icons.calendar_today,
                   size: 14,
-                  color: widget.fueModificada 
-                      ? Colors.white70 
+                  color: widget.fueModificada
+                      ? Colors.white70
                       : Colors.grey.shade600,
                 ),
               ),
               const SizedBox(height: 2),
-              
+
               // Fecha
               Text(
                 '${widget.cuota.fechaPago.day.toString().padLeft(2, '0')}/'
                 '${widget.cuota.fechaPago.month.toString().padLeft(2, '0')}',
                 style: TextStyle(
                   fontSize: 10,
-                  fontWeight: widget.fueModificada 
-                      ? FontWeight.w600 
+                  fontWeight: widget.fueModificada
+                      ? FontWeight.w600
                       : FontWeight.normal,
-                  color: widget.fueModificada 
-                      ? Colors.white 
+                  color: widget.fueModificada
+                      ? Colors.white
                       : Colors.grey.shade700,
                 ),
               ),
               const SizedBox(height: 4),
-              
+
               // Monto con estilo mejorado
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: BoxDecoration(
-                  color: widget.fueModificada 
+                  color: widget.fueModificada
                       ? Colors.white
                       : Colors.white.withOpacity(0.9),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: widget.fueModificada 
+                    color: widget.fueModificada
                         ? Colors.transparent
                         : widget.primaryColor.withOpacity(0.2),
                     width: 0.5,
@@ -189,7 +195,7 @@ class _TarjetaCuotaCompactaState extends State<TarjetaCuotaCompacta> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: widget.fueModificada 
+                    color: widget.fueModificada
                         ? widget.primaryColor
                         : widget.primaryColor.withOpacity(0.8),
                   ),

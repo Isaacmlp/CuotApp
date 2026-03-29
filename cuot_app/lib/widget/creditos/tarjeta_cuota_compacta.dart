@@ -25,6 +25,9 @@ class _TarjetaCuotaCompactaState extends State<TarjetaCuotaCompacta> {
   bool _isHovered = false; // Para efecto hover (web/desktop)
 
   Color _getBackgroundColor() {
+    if (widget.cuota.pagada) {
+      return Colors.green.withOpacity(0.15);
+    }
     if (widget.fueModificada) {
       // Si fue modificada: color más oscuro y sólido
       return widget.primaryColor.withOpacity(0.3);
@@ -35,6 +38,9 @@ class _TarjetaCuotaCompactaState extends State<TarjetaCuotaCompacta> {
   }
 
   Color _getBorderColor() {
+    if (widget.cuota.pagada) {
+      return Colors.green.withOpacity(0.8);
+    }
     if (widget.fueModificada) {
       return widget.primaryColor.withOpacity(0.8);
     } else {
@@ -51,7 +57,7 @@ class _TarjetaCuotaCompactaState extends State<TarjetaCuotaCompacta> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
-        onTap: () async {
+        onTap: widget.cuota.pagada ? null : () async {
           final cuotaEditada = await showDialog<CuotaPersonalizada>(
             context: context,
             builder: (context) => DialogoEditarCuota(
@@ -118,11 +124,11 @@ class _TarjetaCuotaCompactaState extends State<TarjetaCuotaCompacta> {
                   ),
                   const SizedBox(width: 4),
                   Icon(
-                    widget.fueModificada ? Icons.edit : Icons.edit_outlined,
+                    widget.cuota.pagada ? Icons.check_circle : (widget.fueModificada ? Icons.edit : Icons.edit_outlined),
                     size: 11,
-                    color: widget.fueModificada 
-                        ? Colors.white70 
-                        : Colors.grey.shade600,
+                    color: widget.cuota.pagada 
+                        ? Colors.green 
+                        : (widget.fueModificada ? Colors.white70 : Colors.grey.shade600),
                   ),
                 ],
               ),

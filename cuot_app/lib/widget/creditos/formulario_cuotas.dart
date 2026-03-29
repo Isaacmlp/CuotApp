@@ -14,11 +14,13 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // 👈 NUEVO
 class FormularioCuotas extends StatefulWidget {
   final Function(Credito) onCreditoActualizado;
   final Function() onGuardar;
+  final Credito? creditoInicial;
 
   const FormularioCuotas({
     super.key,
     required this.onCreditoActualizado,
     required this.onGuardar,
+    this.creditoInicial,
   });
 
   @override
@@ -58,10 +60,62 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
   int get _numCuotas => int.tryParse(_cuotasController.text) ?? 0;
   double get _valorCuota => _numCuotas > 0 ? _precioTotal / _numCuotas : 0;
 
+  // 📌 NUEVO: Propiedades de cuotas pagadas
+  int get _cantidadCuotasPagadas => _fechasPersonalizadas?.where((c) => c.pagada).length ?? 0;
+  double get _montoPagado => CuotaPersonalizada.calcularTotalCuotas(
+      _fechasPersonalizadas?.where((c) => c.pagada).toList()
+  );
+
   @override
   void initState() {
     super.initState();
+    
+    if (widget.creditoInicial != null) {
+      final inicial = widget.creditoInicial!;
+      _conceptoController.text = inicial.concepto;
+      _inversionController.text = (inicial.costeInversion % 1 == 0) 
+        ? inicial.costeInversion.toInt().toString() 
+        : inicial.costeInversion.toString();
+      _gananciaController.text = (inicial.margenGanancia % 1 == 0) 
+        ? inicial.margenGanancia.toInt().toString() 
+        : inicial.margenGanancia.toString();
+      _cuotasController.text = inicial.numeroCuotas.toString();
+      _clienteController.text = inicial.nombreCliente;
+      
+      if (inicial.telefono != null && inicial.telefono!.isNotEmpty) {
+        _mostrarTelefono = true;
+        _telefonoController.text = inicial.telefono!;
+      }
+
+      _fechaInicio = inicial.fechaInicio;
+      _modalidadSeleccionada = inicial.modalidadPago;
+      
+      if (inicial.fechasPersonalizadas != null && inicial.fechasPersonalizadas!.isNotEmpty) {
+        _fechasPersonalizadas = List.from(inicial.fechasPersonalizadas!);
+        // Si hay cuotas pagadas o estamos editando, abrimos el selector en modo personalizado si estaba en ese modo o para revisar las fechas.
+        if (inicial.modalidadPago == ModalidadPago.personalizado || _cantidadCuotasPagadas > 0) {
+          _mostrarSelectorPersonalizado = true;
+          _configuracionCompletada = true;
+        }
+      }
+      
+      if (inicial.facturaPath != null) {
+        _facturaSeleccionada = File(inicial.facturaPath!);
+      }
+    }
+
     _calcularFechaLimite();
+  }
+
+  void _resetConfiguracionPersonalizada() {
+    setState(() {
+      _mostrarSelectorPersonalizado = false;
+      _configuracionCompletada = false;
+      if (_fechasPersonalizadas != null) {
+        final pagadas = _fechasPersonalizadas!.where((c) => c.pagada).toList();
+        _fechasPersonalizadas = pagadas.isNotEmpty ? pagadas : null;
+      }
+    });
   }
 
   // 📌 Calcular fecha límite
@@ -182,17 +236,18 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                           icon: Icons.numbers,
                         ),
                         keyboardType: TextInputType.number,
-                        validator: (v) =>
-                            Validators.positiveNumber(v, 'Cuotas'),
+                        validator: (v) {
+                          final count = int.tryParse(v ?? '') ?? 0;
+                          if (count > 0 && count < _cantidadCuotasPagadas) {
+                            return 'Mínimo $_cantidadCuotasPagadas (pagadas)';
+                          }
+                          return Validators.positiveNumber(v, 'Cuotas');
+                        },
                         onChanged: (value) {
                           _actualizarCredito();
                           if (_modalidadSeleccionada ==
                               ModalidadPago.personalizado) {
-                            setState(() {
-                              _mostrarSelectorPersonalizado = false;
-                              _configuracionCompletada = false;
-                              _fechasPersonalizadas = null;
-                            });
+                            _resetConfiguracionPersonalizada();
                           }
                         },
                       ),
@@ -325,10 +380,8 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
               onChanged: (modalidad) {
                 setState(() {
                   _modalidadSeleccionada = modalidad!;
-                  _mostrarSelectorPersonalizado = false;
-                  _configuracionCompletada = false;
-                  _fechasPersonalizadas = null;
                 });
+                _resetConfiguracionPersonalizada();
                 _actualizarCredito();
               },
             ),
@@ -499,7 +552,8 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
           numeroCuotas: _numCuotas,
           fechaInicio: _fechaInicio,
           montoPorCuota: _valorCuota,
-          precioTotalEsperado: _precioTotal, // 👈 NUEVO: pasar precio total
+          precioTotalEsperado: _precioTotal,
+          cuotasIniciales: _fechasPersonalizadas,
           onFechasSeleccionadas: (fechas) {
             setState(() {
               _fechasPersonalizadas = fechas;
@@ -602,6 +656,11 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                 'Suma cuotas:',
                 '\$${totalCuotas.toStringAsFixed(2)}',
               ),
+              if (_cantidadCuotasPagadas > 0)
+                _buildInfoRow(
+                  'Monto ya pagado:',
+                  '\$${_montoPagado.toStringAsFixed(2)}',
+                ),
               // 👇 NUEVO: Alerta si hay diferencia
               if (!totalValido)
                 Padding(

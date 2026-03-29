@@ -7,7 +7,8 @@ class SelectorFechasCuotasCompacto extends StatefulWidget {
   final int numeroCuotas;
   final DateTime fechaInicio;
   final double montoPorCuota;
-  final double precioTotalEsperado; // 👈 NUEVO: precio total esperado
+  final double precioTotalEsperado; 
+  final List<CuotaPersonalizada>? cuotasIniciales;
   final Function(List<CuotaPersonalizada>) onFechasSeleccionadas;
 
   const SelectorFechasCuotasCompacto({
@@ -15,7 +16,8 @@ class SelectorFechasCuotasCompacto extends StatefulWidget {
     required this.numeroCuotas,
     required this.fechaInicio,
     required this.montoPorCuota,
-    required this.precioTotalEsperado, // 👈 NUEVO
+    required this.precioTotalEsperado, 
+    this.cuotasIniciales,
     required this.onFechasSeleccionadas,
   });
 
@@ -46,14 +48,44 @@ class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompa
   }
 
   void _inicializarCuotas() {
-    _cuotas = List.generate(widget.numeroCuotas, (index) {
-      return CuotaPersonalizada(
-        numeroCuota: index + 1,
-        fechaPago: widget.fechaInicio.add(Duration(days: 30 * (index + 1))),
-        monto: widget.montoPorCuota,
-      );
-    });
+    _cuotas = [];
     _cuotasModificadas = List.generate(widget.numeroCuotas, (index) => false);
+
+    if (widget.cuotasIniciales != null && widget.cuotasIniciales!.isNotEmpty) {
+      if (widget.cuotasIniciales!.length == widget.numeroCuotas) {
+        // Cargar exactamente las iniciales
+        for (var c in widget.cuotasIniciales!) {
+          _cuotas.add(c.copyWith());
+        }
+      } else {
+        // Cargar pagadas + generar el resto para cuadrar el nuevo número de cuotas
+        final pagadas = widget.cuotasIniciales!.where((c) => c.pagada).toList();
+        final montoPagado = CuotaPersonalizada.calcularTotalCuotas(pagadas);
+        final int cuotasPendientesCount = widget.numeroCuotas - pagadas.length;
+        final double saldoPendiente = widget.precioTotalEsperado - montoPagado;
+        final double montoPendienteAvg = cuotasPendientesCount > 0 ? saldoPendiente / cuotasPendientesCount : 0;
+
+        for (int i = 0; i < widget.numeroCuotas; i++) {
+          if (i < pagadas.length) {
+            _cuotas.add(pagadas[i].copyWith(numeroCuota: i + 1));
+          } else {
+            _cuotas.add(CuotaPersonalizada(
+              numeroCuota: i + 1,
+              fechaPago: widget.fechaInicio.add(Duration(days: 30 * (i + 1))),
+              monto: montoPendienteAvg,
+            ));
+          }
+        }
+      }
+    } else {
+      for (int i = 0; i < widget.numeroCuotas; i++) {
+        _cuotas.add(CuotaPersonalizada(
+          numeroCuota: i + 1,
+          fechaPago: widget.fechaInicio.add(Duration(days: 30 * (i + 1))),
+          monto: widget.montoPorCuota,
+        ));
+      }
+    }
   }
 
   void _actualizarCuota(CuotaPersonalizada cuotaEditada) {
@@ -78,6 +110,7 @@ class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompa
   }
 
   void _resetearCuota(int index) {
+    if (_cuotas[index].pagada) return; // No resetear cuotas pagadas
     setState(() {
       _cuotas[index] = CuotaPersonalizada(
         numeroCuota: index + 1,
@@ -92,18 +125,20 @@ class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompa
   void _resetearTodas() {
     setState(() {
       for (int i = 0; i < _cuotas.length; i++) {
-        _cuotas[i] = CuotaPersonalizada(
-          numeroCuota: i + 1,
-          fechaPago: widget.fechaInicio.add(Duration(days: 30 * (i + 1))),
-          monto: widget.montoPorCuota,
-        );
+        if (!_cuotas[i].pagada) {
+          _cuotas[i] = CuotaPersonalizada(
+            numeroCuota: i + 1,
+            fechaPago: widget.fechaInicio.add(Duration(days: 30 * (i + 1))),
+            monto: widget.montoPorCuota,
+          );
+          _cuotasModificadas[i] = false;
+        }
       }
-      _cuotasModificadas = List.generate(widget.numeroCuotas, (index) => false);
     });
     widget.onFechasSeleccionadas(_cuotas);
   }
 
-  // 👇 NUEVO: Método para distribuir la diferencia automáticamente
+  // 👇 NUEVO: Método para distribuir la diferencia automáticamente respetando las pagadas
   void _distribuirDiferencia() {
     if (_cuotas.isEmpty) return;
     
@@ -111,14 +146,19 @@ class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompa
       final diferencia = _diferencia;
       if (diferencia.abs() < 0.01) return; // Ya está balanceado
       
-      // Distribuir la diferencia entre todas las cuotas
-      final ajustePorCuota = diferencia / _cuotas.length;
+      final cuotasEditables = _cuotas.where((c) => !c.pagada).toList();
+      if (cuotasEditables.isEmpty) return; // No se puede distribuir si no hay editables
+      
+      // Distribuir la diferencia solo entre cuotas no pagadas
+      final ajustePorCuota = diferencia / cuotasEditables.length;
       
       for (int i = 0; i < _cuotas.length; i++) {
-        _cuotas[i] = _cuotas[i].copyWith(
-          monto: _cuotas[i].monto - ajustePorCuota, // Restar porque diferencia puede ser positiva o negativa
-        );
-        _cuotasModificadas[i] = true;
+        if (!_cuotas[i].pagada) {
+          _cuotas[i] = _cuotas[i].copyWith(
+            monto: _cuotas[i].monto - ajustePorCuota, // Restar porque diferencia puede ser positiva o negativa
+          );
+          _cuotasModificadas[i] = true;
+        }
       }
     });
     widget.onFechasSeleccionadas(_cuotas);
@@ -236,7 +276,7 @@ class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompa
                   ),
                   
                   // Botón de reset individual
-                  if (_cuotasModificadas[index])
+                  if (_cuotasModificadas[index] && !_cuotas[index].pagada)
                     Positioned(
                       top: -4,
                       right: 4,
@@ -306,7 +346,7 @@ class _SelectorFechasCuotasCompactoState extends State<SelectorFechasCuotasCompa
                 if (!_totalValido && cuotasModificadasCount > 0)
                   const SizedBox(width: 8),
                 
-                // Botón de resetear todas
+                // Botón de resetear todas (solo si hay alguna modificada y no pagada)
                 if (cuotasModificadasCount > 0)
                   TextButton.icon(
                     onPressed: _resetearTodas,

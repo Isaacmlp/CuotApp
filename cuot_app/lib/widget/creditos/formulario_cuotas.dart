@@ -20,7 +20,7 @@ class FormularioCuotas extends StatefulWidget {
     super.key,
     required this.onCreditoActualizado,
     required this.onGuardar,
-    this.creditoInicial, required double totalPagado,
+    this.creditoInicial,
   });
 
   @override

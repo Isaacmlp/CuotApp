@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cuot_app/Controller/credito_controller.dart';
 import 'package:cuot_app/Model/credito_model.dart';
 import 'package:cuot_app/widget/creditos/formulario_cuotas.dart';
@@ -71,13 +70,11 @@ class _CreditoPageState extends State<CreditoPage> {
             return controller.tipoCreditoSeleccionado == TipoCredito.cuotas
                 ? FormularioCuotas(
                     creditoInicial: controller.creditoEnProceso,
-                    totalPagado: controller.totalPagado,
                     onCreditoActualizado: controller.actualizarCreditoParcial,
                     onGuardar: () => _guardarCredito(context, controller),
                   )
                 : FormularioPagounico(
                     creditoInicial: controller.creditoEnProceso,
-                    totalPagado: controller.totalPagado,
                     onCreditoActualizado: controller.actualizarCreditoParcial,
                     onGuardar: () => _guardarCredito(context, controller),
                   );

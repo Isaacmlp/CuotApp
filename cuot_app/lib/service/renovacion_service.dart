@@ -17,21 +17,9 @@ class RenovacionService {
 
       final nuevaRenovacion = Renovacion.fromJson(data);
 
-      // 2. Si hay un abono registrado al momento de la renovación, inyectarlo en Pagos para mantener el historial
-      if (renovacion.montoAbono > 0) {
-        await _supabase.client
-            .schema('Financiamientos')
-            .from('Pagos')
-            .insert({
-              'credito_id': renovacion.creditoOriginalId,
-              'numero_cuota': 1, // Se aloja genéricamente acá
-              'monto': renovacion.montoAbono,
-              'fecha_pago_real': DateTime.now().toUtc().toIso8601String(),
-              'metodo_pago': 'efectivo',
-              'referencia': 'Abono en Renovación',
-              'observaciones': 'Abono inyectado y cobrado durante procedimiento de Renovación',
-            });
-      }
+      // NOTA: El abono ya está incorporado en el cálculo de verdaderoGrossTotal
+      // dentro de _aplicarRenovacionAlCredito, por lo que NO se inserta en Pagos
+      // para evitar doble descuento del abono al calcular el saldo pendiente.
 
       // 3. Si está aprobada, actualizar el crédito original
       if (renovacion.estado == 'aprobada') {

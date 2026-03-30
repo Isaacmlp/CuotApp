@@ -206,10 +206,7 @@ class _SelectorFechasCuotasCompactoState
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      widget.saldoPendienteEsperado != null
-                        ? 'Pendiente config: \$${_totalCuotasValidadas.toStringAsFixed(2)} / '
-                          '\$${widget.saldoPendienteEsperado!.toStringAsFixed(2)}'
-                        : 'Total: \$${_totalCuotasValidadas.toStringAsFixed(2)} / '
+                      'Total: \$${_totalCuotas.toStringAsFixed(2)} / '
                           '\$${widget.precioTotalEsperado.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 11,

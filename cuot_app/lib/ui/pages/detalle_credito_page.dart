@@ -127,7 +127,11 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
 
     double totalPagado = 0;
     for (var pago in rawPagos) {
-      totalPagado += (pago['monto'] as num).toDouble();
+      // Excluir abonos de renovación del cálculo (ya están contabilizados en margen_ganancia)
+      final referencia = pago['referencia']?.toString() ?? '';
+      if (referencia != 'Abono en Renovación') {
+        totalPagado += (pago['monto'] as num).toDouble();
+      }
     }
     double saldoPendiente = totalCredito - totalPagado;
     final bool isPagado = saldoPendiente <= 0.01;
@@ -239,8 +243,12 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
             (_credito?['margen_ganancia'] as num? ?? 0) -
             ((_credito?['Pagos'] as List<dynamic>?)?.fold(
                     0.0,
-                    (sum, pago) =>
-                        (sum as double) + (pago['monto'] as num).toDouble()) ??
+                    (sum, pago) {
+                      // Excluir abonos de renovación del cálculo
+                      final ref = pago['referencia']?.toString() ?? '';
+                      if (ref == 'Abono en Renovación') return sum as double;
+                      return (sum as double) + (pago['monto'] as num).toDouble();
+                    }) ??
                 0.0) <=
         0.01;
 
@@ -421,7 +429,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
               const SizedBox(height: 12),
               const SizedBox(height: 12),
               _buildInfoRow(Icons.payments, 'Saldo pendiente',
-                  '\$${((_credito?['costo_inversion'] as num? ?? 0).toDouble() + (_credito?['margen_ganancia'] as num? ?? 0).toDouble() - ((_credito?['Pagos'] as List<dynamic>?)?.fold(0.0, (sum, pago) => (sum as double) + (pago['monto'] as num).toDouble()) ?? 0.0)).toStringAsFixed(2)}',
+                  '\$${((_credito?['costo_inversion'] as num? ?? 0).toDouble() + (_credito?['margen_ganancia'] as num? ?? 0).toDouble() - ((_credito?['Pagos'] as List<dynamic>?)?.fold(0.0, (sum, pago) { final ref = pago['referencia']?.toString() ?? ''; if (ref == 'Abono en Renovación') return sum as double; return (sum as double) + (pago['monto'] as num).toDouble(); }) ?? 0.0)).toStringAsFixed(2)}',
                   color: AppColors.error, isBold: true),
             ],
           ),
@@ -580,7 +588,14 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
 
     final List<Map<String, dynamic>> historialData = [];
     
-    for (var pago in rawPagos) {
+    // Filtrar pagos de renovación: los abonos registrados durante una renovación
+    // se muestran solo dentro del historial de la renovación, no en el historial general.
+    final List<dynamic> pagosGenerales = rawPagos.where((pago) {
+      final referencia = pago['referencia']?.toString() ?? '';
+      return referencia != 'Abono en Renovación';
+    }).toList();
+
+    for (var pago in pagosGenerales) {
       historialData.add({
         'type': 'pago',
         'date': DateTime.parse(pago['fecha_pago_real']),

@@ -67,14 +67,29 @@ class CreditoController extends ChangeNotifier {
       
       cuotasParsed = cuotasData.map((c) {
         final int numCuota = c['numero_cuota'];
-        // Una cuota está bloqueada si está pagada O si tiene algún pago asociado (abono)
-        final bool tienePagos = pagosData.any((p) => p['numero_cuota'] == numCuota);
         final bool isPagada = c['pagada'] ?? false;
+        final bool tienePagos = pagosData.any((p) => p['numero_cuota'] == numCuota);
+        
+        // Cuando una cuota está pagada, su monto en Cuotas es el monto restante a pagar (ej. 0 si está totalmente pagada).
+        // El monto original (que es el que necesita la UI para calcular los totales)
+        // se obtiene sumando el monto restante (c['monto']) más todos los Pagos registrados de esa cuota.
+        double montoReal = (c['monto'] as num).toDouble();
+        if (isPagada || tienePagos) {
+          // Filtrar también los abonos de renovación si es necesario, pero como estos suelen 
+          // tener una referencia explícita, los ignoramos mediante la referencia para no afectar el monto original
+          final double montoPagadoEnCuota = pagosData
+              .where((p) => p['numero_cuota'] == numCuota && p['referencia']?.toString() != 'Abono en Renovación')
+              .fold(0.0, (sum, p) => sum + (p['monto'] as num).toDouble());
+          
+          if (montoPagadoEnCuota > 0) {
+            montoReal = montoReal + montoPagadoEnCuota;
+          }
+        }
         
         return CuotaPersonalizada(
           numeroCuota: numCuota,
           fechaPago: DateTime.parse(c['fecha_pago']),
-          monto: (c['monto'] as num).toDouble(),
+          monto: montoReal,
           pagada: isPagada,
           bloqueada: isPagada || tienePagos,
         );

@@ -43,7 +43,8 @@ class CreditService {
             *,
             Clientes(*),
             Cuotas(*),
-            Pagos(*)
+            Pagos(*),
+            Renovaciones(fecha_renovacion)
           ''')
           .eq('usuario_nombre', usuarioNombre)
           .order('id', ascending: false);

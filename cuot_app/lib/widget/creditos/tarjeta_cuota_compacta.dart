@@ -28,11 +28,12 @@ class _TarjetaCuotaCompactaState extends State<TarjetaCuotaCompacta> {
     if (widget.cuota.pagada) {
       return Colors.green.withOpacity(0.15);
     }
+    if (widget.cuota.bloqueada) {
+      return Colors.blueGrey.withOpacity(0.15);
+    }
     if (widget.fueModificada) {
-      // Si fue modificada: color más oscuro y sólido
       return widget.primaryColor.withOpacity(0.3);
     } else {
-      // Si no fue modificada: color suave y degradado
       return widget.primaryColor.withOpacity(0.1);
     }
   }
@@ -40,6 +41,9 @@ class _TarjetaCuotaCompactaState extends State<TarjetaCuotaCompacta> {
   Color _getBorderColor() {
     if (widget.cuota.pagada) {
       return Colors.green.withOpacity(0.8);
+    }
+    if (widget.cuota.bloqueada) {
+      return Colors.blueGrey.withOpacity(0.8);
     }
     if (widget.fueModificada) {
       return widget.primaryColor.withOpacity(0.8);
@@ -57,7 +61,7 @@ class _TarjetaCuotaCompactaState extends State<TarjetaCuotaCompacta> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
-        onTap: widget.cuota.pagada
+        onTap: widget.cuota.bloqueada
             ? null
             : () async {
                 final cuotaEditada = await showDialog<CuotaPersonalizada>(
@@ -126,15 +130,19 @@ class _TarjetaCuotaCompactaState extends State<TarjetaCuotaCompacta> {
                   Icon(
                     widget.cuota.pagada
                         ? Icons.check_circle
-                        : (widget.fueModificada
-                            ? Icons.edit
-                            : Icons.edit_outlined),
+                        : (widget.cuota.bloqueada
+                            ? Icons.lock
+                            : (widget.fueModificada
+                                ? Icons.edit
+                                : Icons.edit_outlined)),
                     size: 11,
                     color: widget.cuota.pagada
                         ? Colors.green
-                        : (widget.fueModificada
-                            ? Colors.white70
-                            : Colors.grey.shade600),
+                        : (widget.cuota.bloqueada
+                            ? Colors.blueGrey
+                            : (widget.fueModificada
+                                ? Colors.white70
+                                : Colors.grey.shade600)),
                   ),
                 ],
               ),

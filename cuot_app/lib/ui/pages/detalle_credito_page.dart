@@ -239,18 +239,40 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
 
   List<Widget> _buildInfoSeccion() {
     final cliente = _credito!['Clientes'] ?? {};
-    final bool isPagado = (_credito?['costo_inversion'] as num? ?? 0) +
-            (_credito?['margen_ganancia'] as num? ?? 0) -
-            ((_credito?['Pagos'] as List<dynamic>?)?.fold(
-                    0.0,
-                    (sum, pago) {
-                      // Excluir abonos de renovación del cálculo
-                      final ref = pago['referencia']?.toString() ?? '';
-                      if (ref == 'Abono en Renovación') return sum as double;
-                      return (sum as double) + (pago['monto'] as num).toDouble();
-                    }) ??
-                0.0) <=
-        0.01;
+    
+    // Identificar última renovación para excluir pagos pasados de la matemática
+    final List<dynamic> renovaciones = _credito?['Renovaciones'] ?? [];
+    DateTime? ultimaRenovacion;
+    if (renovaciones.isNotEmpty) {
+      final sortedRenov = List<dynamic>.from(renovaciones);
+      sortedRenov.sort((a, b) => DateTime.parse(b['fecha_renovacion'])
+          .compareTo(DateTime.parse(a['fecha_renovacion'])));
+      ultimaRenovacion = DateTime.parse(sortedRenov.first['fecha_renovacion']);
+    }
+
+    double pagosExcluidosDeUI = 0.0;
+    double pagosValidosEnUI = 0.0;
+    
+    final List<dynamic> todosLosPagos = _credito?['Pagos'] ?? [];
+    for (var pago in todosLosPagos) {
+      final ref = pago['referencia']?.toString() ?? '';
+      final fechaStr = pago['fecha_pago_real'] ?? pago['fecha_pago'];
+      final fechaPago = fechaStr != null ? DateTime.parse(fechaStr.toString()) : DateTime.now();
+      
+      if (ref == 'Abono en Renovación') {
+        pagosExcluidosDeUI += (pago['monto'] as num).toDouble();
+      } else if (ultimaRenovacion != null && fechaPago.isBefore(ultimaRenovacion)) {
+        pagosExcluidosDeUI += (pago['monto'] as num).toDouble();
+      } else {
+        pagosValidosEnUI += (pago['monto'] as num).toDouble();
+      }
+    }
+
+    final double rawTotalDB = ((_credito?['costo_inversion'] as num?)?.toDouble() ?? 0) + ((_credito?['margen_ganancia'] as num?)?.toDouble() ?? 0);
+    final double uiTotal = rawTotalDB - pagosExcluidosDeUI;
+    final double saldoPendiente = uiTotal - pagosValidosEnUI;
+    
+    final bool isPagado = saldoPendiente <= 0.01;
 
     bool isAtrasado = false;
     final List<dynamic> cuotas = _credito?['Cuotas'] ?? [];
@@ -424,12 +446,15 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
               })()),
               const SizedBox(height: 12),
               _buildInfoRow(Icons.monetization_on, 'Monto total',
-                  '\$${(((_credito?['costo_inversion'] as num?)?.toDouble() ?? 0) + ((_credito?['margen_ganancia'] as num?)?.toDouble() ?? 0)).toStringAsFixed(2)}',
+                  '\$${uiTotal.toStringAsFixed(2)}',
                   isBold: true),
               const SizedBox(height: 12),
+              _buildInfoRow(Icons.payments, 'Total pagado',
+                  '\$${pagosValidosEnUI.toStringAsFixed(2)}',
+                  color: AppColors.success, isBold: true),
               const SizedBox(height: 12),
-              _buildInfoRow(Icons.payments, 'Saldo pendiente',
-                  '\$${((_credito?['costo_inversion'] as num? ?? 0).toDouble() + (_credito?['margen_ganancia'] as num? ?? 0).toDouble() - ((_credito?['Pagos'] as List<dynamic>?)?.fold(0.0, (sum, pago) { final ref = pago['referencia']?.toString() ?? ''; if (ref == 'Abono en Renovación') return sum as double; return (sum as double) + (pago['monto'] as num).toDouble(); }) ?? 0.0)).toStringAsFixed(2)}',
+              _buildInfoRow(Icons.account_balance_wallet, 'Saldo pendiente',
+                  '\$${saldoPendiente.toStringAsFixed(2)}',
                   color: AppColors.error, isBold: true),
             ],
           ),

@@ -61,9 +61,20 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                 ))
             .toList();
 
+        // Identificar la última renovación para saber si hay historial viejo que ocultar
+        final List<dynamic> renovaciones = c['Renovaciones'] ?? [];
+        DateTime? ultimaRenovacion;
+        if (renovaciones.isNotEmpty) {
+          final sortedRenov = List<dynamic>.from(renovaciones);
+          sortedRenov.sort((a, b) => DateTime.parse(b['fecha_renovacion'])
+              .compareTo(DateTime.parse(a['fecha_renovacion'])));
+          ultimaRenovacion = DateTime.parse(sortedRenov.first['fecha_renovacion']);
+        }
+
         // Ordenar cuotas por número (menor a mayor)
         cuotas.sort((a, b) => a.numeroCuota.compareTo(b.numeroCuota));
 
+        double pagosExcluidosDeUI = 0.0;
         final List<Pago> pagos = rawPagos
             .map((p) => Pago(
                   id: p['id'].toString(),
@@ -74,12 +85,30 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                   fechaPagoReal: DateTime.parse(p['fecha_pago_real']),
                   estado: 'pagado',
                   metodoPago: p['metodo_pago'] ?? 'efectivo',
+                  referencia: p['referencia'] ?? '',
+                  observaciones: p['observaciones'] ?? '',
                 ))
+            .where((p) {
+              // Excluir de la suma principal los abonos que ocurrieron DURANTE una renovación
+              if (p.referencia == 'Abono en Renovación') {
+                pagosExcluidosDeUI += p.monto;
+                return false;
+              }
+              // Excluir pagos ANTERIORES a la última renovación
+              if (ultimaRenovacion != null && p.fechaPago.isBefore(ultimaRenovacion)) {
+                pagosExcluidosDeUI += p.monto;
+                return false;
+              }
+              return true;
+            })
             .toList();
 
         // Ordenar pagos por fecha de pago real
         pagos.sort((a, b) => (a.fechaPagoReal ?? a.fechaPago)
             .compareTo(b.fechaPagoReal ?? b.fechaPago));
+
+        final double dbTotal = (c['costo_inversion'] + c['margen_ganancia']).toDouble();
+        final double uiTotal = dbTotal - pagosExcluidosDeUI;
 
         if (esPagoUnico) {
           processedCredits.add(CreditoUnico(
@@ -87,8 +116,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             nombreCliente: cliente['nombre'],
             telefono: cliente['telefono'] ?? '',
             concepto: c['concepto'],
-            montoTotal:
-                (c['costo_inversion'] + c['margen_ganancia']).toDouble(),
+            montoTotal: uiTotal,
             fechaLimite:
                 DateTime.parse(c['fecha_vencimiento'] ?? c['fecha_inicio']),
             fechaInicio: c['fecha_inicio'] != null ? DateTime.parse(c['fecha_inicio']) : null,
@@ -103,8 +131,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             'telefono': cliente['telefono'] ?? '',
             'montoCuota': cuotas.isNotEmpty ? cuotas[0].monto : 0.0,
             'totalPagado': pagos.fold<double>(0, (sum, p) => sum + p.monto),
-            'totalCredito':
-                (c['costo_inversion'] + c['margen_ganancia']).toDouble(),
+            'totalCredito': uiTotal,
             'concepto': c['concepto'],
             'tipo': 'cuotas',
             'cuotas': cuotas,

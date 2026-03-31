@@ -63,8 +63,12 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
   // 📌 NUEVO: Propiedades de cuotas pagadas
   int get _cantidadCuotasPagadas =>
       _fechasPersonalizadas?.where((c) => c.pagada).length ?? 0;
+  
+  bool get _tienePagosAsociados =>
+      _fechasPersonalizadas?.any((c) => c.bloqueada) ?? false;
+
   double get _montoPagado => CuotaPersonalizada.calcularTotalCuotas(
-      _fechasPersonalizadas?.where((c) => c.pagada).toList());
+      _fechasPersonalizadas?.where((c) => c.pagada || c.bloqueada).toList());
 
   @override
   void initState() {
@@ -235,9 +239,13 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _cuotasController,
+                        readOnly: _tienePagosAsociados,
                         decoration: _buildInputDecoration(
                           label: 'Cantidad',
                           icon: Icons.numbers,
+                          suffixIcon: _tienePagosAsociados
+                              ? const Icon(Icons.lock, color: Colors.grey, size: 16)
+                              : null,
                         ),
                         keyboardType: TextInputType.number,
                         validator: (v) {
@@ -369,24 +377,46 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
             const SizedBox(height: 8),
             DropdownButtonFormField<ModalidadPago>(
               value: _modalidadSeleccionada,
-              decoration: _buildInputDecoration(label: 'Seleccionar'),
-              items: ModalidadPago.values.map((modalidad) {
-                return DropdownMenuItem(
-                  value: modalidad,
-                  child: Row(
-                    children: [
-                      Icon(
-                        _getModalidadIcon(modalidad),
-                        size: 18,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(_getModalidadText(modalidad)),
-                    ],
-                  ),
-                );
-              }).toList(),
-              onChanged: (modalidad) {
+              decoration: _buildInputDecoration(
+                label: 'Seleccionar',
+                suffixIcon: _tienePagosAsociados
+                    ? const Icon(Icons.lock, color: Colors.grey, size: 16)
+                    : null,
+              ),
+              items: _tienePagosAsociados 
+                  ? [
+                      DropdownMenuItem(
+                        value: _modalidadSeleccionada,
+                        child: Row(
+                          children: [
+                            Icon(
+                              _getModalidadIcon(_modalidadSeleccionada),
+                              size: 18,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(_getModalidadText(_modalidadSeleccionada), style: const TextStyle(color: Colors.grey)),
+                          ],
+                        ),
+                      )
+                    ]
+                  : ModalidadPago.values.map((modalidad) {
+                      return DropdownMenuItem(
+                        value: modalidad,
+                        child: Row(
+                          children: [
+                            Icon(
+                              _getModalidadIcon(modalidad),
+                              size: 18,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(_getModalidadText(modalidad)),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+              onChanged: _tienePagosAsociados ? null : (modalidad) {
                 setState(() {
                   _modalidadSeleccionada = modalidad!;
                 });

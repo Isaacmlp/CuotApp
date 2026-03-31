@@ -75,6 +75,7 @@ class _CreditoPageState extends State<CreditoPage> {
                   )
                 : FormularioPagounico(
                     creditoInicial: controller.creditoEnProceso,
+                    totalPagado: controller.totalPagado,
                     onCreditoActualizado: controller.actualizarCreditoParcial,
                     onGuardar: () => _guardarCredito(context, controller),
                   );

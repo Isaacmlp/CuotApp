@@ -406,10 +406,17 @@ class _HistorialRenovacionesPageState extends State<HistorialRenovacionesPage> {
   int _calcularDiasSimple(dynamic start, dynamic end) {
     if (start == null || end == null) return 0;
     try {
-      final s = DateTime.parse(start.toString());
-      final e = DateTime.parse(end.toString());
+      // Extraemos solo la parte YYYY-MM-DD para evitar que las horas/zonas horarias
+      // desplacen el día al parsear.
+      String sStr = start.toString().split(' ')[0].split('T')[0];
+      String eStr = end.toString().split(' ')[0].split('T')[0];
+      
+      final s = DateTime.parse(sStr);
+      final e = DateTime.parse(eStr);
+      
       final sUtc = DateTime.utc(s.year, s.month, s.day);
       final eUtc = DateTime.utc(e.year, e.month, e.day);
+      
       return eUtc.difference(sUtc).inDays + 1;
     } catch (e) {
       return 0;

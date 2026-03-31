@@ -261,11 +261,9 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
       if (ref == 'Abono en Renovación') {
         pagosExcluidosDeUI += (pago['monto'] as num).toDouble();
       } else if (ultimaRenovacion != null) {
-        // Comparar solo por día para evitar problemas con fechas DATE (medianoche) vs TIMESTAMP
-        final renovDay = DateTime(
-            ultimaRenovacion.year, ultimaRenovacion.month, ultimaRenovacion.day);
-        final pagoDay = DateTime(fechaPago.year, fechaPago.month, fechaPago.day);
-        if (!pagoDay.isAfter(renovDay)) {
+        // Comparación por momento exacto: Un pago es histórico si ocurrió antes de la renovación.
+        // Esto evita que abonos previos a la renovación en el mismo día se cuenten en el nuevo ciclo.
+        if (fechaPago.isBefore(ultimaRenovacion)) {
           pagosExcluidosDeUI += (pago['monto'] as num).toDouble();
         } else {
           pagosValidosEnUI += (pago['monto'] as num).toDouble();

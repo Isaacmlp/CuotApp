@@ -223,13 +223,9 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
                 ? DateTime.tryParse(fechaStr.toString())
                 : null;
             if (fechaPago != null) {
-              // Comparar solo por día para evitar error con fechas DATE vs TIMESTAMP.
-              // Un pago del DÍA de la renovación o anterior es histórico.
-              final renovDay = DateTime(ultimaRenovacionFecha.year,
-                  ultimaRenovacionFecha.month, ultimaRenovacionFecha.day);
-              final pagoDay = DateTime(
-                  fechaPago.year, fechaPago.month, fechaPago.day);
-              if (!pagoDay.isAfter(renovDay)) continue; // Pago histórico — no contar
+              // Comparación por momento exacto: Un pago es histórico si ocurrió antes de la renovación.
+              // Esto permite abonos el mismo día post-renovación, pero ignora abonos previos a la renovación.
+              if (fechaPago.isBefore(ultimaRenovacionFecha)) continue;
             }
           }
           totalPagado += (pago['monto'] as num).toDouble();

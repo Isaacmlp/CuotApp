@@ -99,12 +99,9 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
               // un campo DATE en Supabase que se parsea como medianoche, y un pago
               // hecho a las 15:00 del mismo día no satisfaría isBefore(00:00).
               if (ultimaRenovacion != null) {
-                final renovDay = DateTime(
-                    ultimaRenovacion.year, ultimaRenovacion.month, ultimaRenovacion.day);
-                final pagoDay = DateTime(
-                    p.fechaPago.year, p.fechaPago.month, p.fechaPago.day);
-                if (!pagoDay.isAfter(renovDay)) {
-                  // Pago del día de la renovación o anterior → histórico
+                // Comparación por momento exacto: Un pago es histórico si ocurrió antes de la renovación.
+                // Esto permite abonos el mismo día post-renovación, pero ignora abonos previos a la renovación.
+                if (p.fechaPago.isBefore(ultimaRenovacion)) {
                   pagosExcluidosDeUI += p.monto;
                   return false;
                 }

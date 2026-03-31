@@ -89,15 +89,25 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                   observaciones: p['observaciones'] ?? '',
                 ))
             .where((p) {
-              // Excluir de la suma principal los abonos que ocurrieron DURANTE una renovación
+              // Excluir abonos de renovación (ya incorporados en el gross de la renovación)
               if (p.referencia == 'Abono en Renovación') {
                 pagosExcluidosDeUI += p.monto;
                 return false;
               }
-              // Excluir pagos ANTERIORES a la última renovación
-              if (ultimaRenovacion != null && p.fechaPago.isBefore(ultimaRenovacion)) {
-                pagosExcluidosDeUI += p.monto;
-                return false;
+              // Excluir pagos del DÍA de la renovación o anteriores.
+              // Se compara solo la fecha (sin hora) porque fecha_renovacion puede ser
+              // un campo DATE en Supabase que se parsea como medianoche, y un pago
+              // hecho a las 15:00 del mismo día no satisfaría isBefore(00:00).
+              if (ultimaRenovacion != null) {
+                final renovDay = DateTime(
+                    ultimaRenovacion.year, ultimaRenovacion.month, ultimaRenovacion.day);
+                final pagoDay = DateTime(
+                    p.fechaPago.year, p.fechaPago.month, p.fechaPago.day);
+                if (!pagoDay.isAfter(renovDay)) {
+                  // Pago del día de la renovación o anterior → histórico
+                  pagosExcluidosDeUI += p.monto;
+                  return false;
+                }
               }
               return true;
             })

@@ -197,8 +197,41 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
         final double totalCredito = costoInversion + margenGanancia;
 
         final List<dynamic> rawPagos = data['Pagos'] ?? [];
+
+        // Determinar la fecha de la última renovación para excluir pagos históricos.
+        // Tras una renovación el gross en DB es el nuevo saldo limpio, por lo que
+        // solo los pagos POSTERIORES a la renovación deben contarse.
+        final List<dynamic> rawRenovaciones = data['Renovaciones'] ?? [];
+        DateTime? ultimaRenovacionFecha;
+        if (rawRenovaciones.isNotEmpty) {
+          final sorted = List<dynamic>.from(rawRenovaciones)
+            ..sort((a, b) => DateTime.parse(b['fecha_renovacion'])
+                .compareTo(DateTime.parse(a['fecha_renovacion'])));
+          ultimaRenovacionFecha =
+              DateTime.parse(sorted.first['fecha_renovacion']);
+        }
+
         double totalPagado = 0;
         for (var pago in rawPagos) {
+          final ref = pago['referencia']?.toString() ?? '';
+          // Excluir abonos de renovación (ya están en el gross) y pagos anteriores
+          if (ref == 'Abono en Renovación') continue;
+          if (ultimaRenovacionFecha != null) {
+            final fechaStr =
+                pago['fecha_pago_real'] ?? pago['fecha_pago'];
+            final fechaPago = fechaStr != null
+                ? DateTime.tryParse(fechaStr.toString())
+                : null;
+            if (fechaPago != null) {
+              // Comparar solo por día para evitar error con fechas DATE vs TIMESTAMP.
+              // Un pago del DÍA de la renovación o anterior es histórico.
+              final renovDay = DateTime(ultimaRenovacionFecha.year,
+                  ultimaRenovacionFecha.month, ultimaRenovacionFecha.day);
+              final pagoDay = DateTime(
+                  fechaPago.year, fechaPago.month, fechaPago.day);
+              if (!pagoDay.isAfter(renovDay)) continue; // Pago histórico — no contar
+            }
+          }
           totalPagado += (pago['monto'] as num).toDouble();
         }
 

@@ -127,11 +127,10 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
 
     double totalPagado = 0;
     for (var pago in rawPagos) {
-      // Excluir abonos de renovación del cálculo (ya están contabilizados en margen_ganancia)
+      // Excluir abonos registrados durante la renovación
       final referencia = pago['referencia']?.toString() ?? '';
-      if (referencia != 'Abono en Renovación') {
-        totalPagado += (pago['monto'] as num).toDouble();
-      }
+      if (referencia == 'Abono en Renovación') continue;
+      totalPagado += (pago['monto'] as num).toDouble();
     }
     double saldoPendiente = totalCredito - totalPagado;
     final bool isPagado = saldoPendiente <= 0.01;
@@ -261,8 +260,16 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
       
       if (ref == 'Abono en Renovación') {
         pagosExcluidosDeUI += (pago['monto'] as num).toDouble();
-      } else if (ultimaRenovacion != null && fechaPago.isBefore(ultimaRenovacion)) {
-        pagosExcluidosDeUI += (pago['monto'] as num).toDouble();
+      } else if (ultimaRenovacion != null) {
+        // Comparar solo por día para evitar problemas con fechas DATE (medianoche) vs TIMESTAMP
+        final renovDay = DateTime(
+            ultimaRenovacion.year, ultimaRenovacion.month, ultimaRenovacion.day);
+        final pagoDay = DateTime(fechaPago.year, fechaPago.month, fechaPago.day);
+        if (!pagoDay.isAfter(renovDay)) {
+          pagosExcluidosDeUI += (pago['monto'] as num).toDouble();
+        } else {
+          pagosValidosEnUI += (pago['monto'] as num).toDouble();
+        }
       } else {
         pagosValidosEnUI += (pago['monto'] as num).toDouble();
       }
@@ -638,9 +645,9 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     }
     
     historialData.sort((a, b) {
-      final dateA = a['date'] as DateTime;
-      final dateB = b['date'] as DateTime;
-      return dateB.compareTo(dateA); // Decendente: Más nuevo primero
+      final dateA = (a['date'] as DateTime?) ?? DateTime(1970);
+      final dateB = (b['date'] as DateTime?) ?? DateTime(1970);
+      return dateB.compareTo(dateA); // Descendente: más reciente primero
     });
 
     final List<Widget> items = [

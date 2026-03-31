@@ -46,7 +46,7 @@ class CreditService {
             Pagos(*)
           ''')
           .eq('usuario_nombre', usuarioNombre)
-          .order('id', ascending: false);
+          .order('fecha_inicio', ascending: false, nullsFirst: false);
 
       final data = List<Map<String, dynamic>>.from(response);
 

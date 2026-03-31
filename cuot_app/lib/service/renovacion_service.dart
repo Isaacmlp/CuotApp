@@ -48,21 +48,17 @@ class RenovacionService {
   Future<void> _aplicarRenovacionAlCredito(Renovacion renovacion) async {
     final condicionesNuevas = renovacion.condicionesNuevas;
     final tipoCredito = condicionesNuevas['tipo_credito'] ?? 'cuotas';
-    
-    // EL MONTO "TOTAL" QUE LLEGA DESDE EL FORMULARIO ES REALMENTE EL "SALDO PENDIENTE DESEADO" (EJ: $36)
-    final double nuevoSaldoPendienteDeseado = (condicionesNuevas['monto_total'] as num).toDouble();
-    
-    final double saldoPendienteOriginal = (renovacion.condicionesAnteriores['saldo_pendiente'] ?? 0).toDouble();
-    final double montoTotalOriginal = (renovacion.condicionesAnteriores['monto_total'] ?? 0).toDouble();
-    final double abonoEnRenovacion = (condicionesNuevas['abono'] ?? 0).toDouble();
-    
-    // Extraemos qué cantidad de dinero había ingresado antes de esta renovación en este mismo crédito.
-    final double totalPagadoHistorico = montoTotalOriginal - saldoPendienteOriginal;
-    
-    // 1. Calcular el Verdadero Gross Total
-    // El Precio Etiqueta (Gross Contract Sum) de la Base de Datos debe ser el Saldo Deseado + Todo lo ya pagado + lo pagado ahora.
-    // Esto asegura que Seguimiento (Total - Sum(Pagos)) siga igual al saldo deseado.
-    final double verdaderoGrossTotal = nuevoSaldoPendienteDeseado + totalPagadoHistorico + abonoEnRenovacion;
+
+    // El formulario envía en 'monto_total' el nuevo saldo pendiente DESEADO
+    // (ya con el abono descontado: saldoPendiente + mora - abono).
+    final double nuevoSaldoPendienteDeseado =
+        (condicionesNuevas['monto_total'] as num).toDouble();
+
+    // PIZARRA LIMPIA: El gross en DB es exactamente el nuevo saldo deseado.
+    // La UI (detalle_credito_page) excluye los pagos anteriores a la renovación,
+    // por lo que el usuario verá: Total = nuevo saldo, Abonado = 0, Pendiente = nuevo saldo.
+    // No se suman pagos históricos ni el abono aquí — hacerlo inflaría el Total visible.
+    final double verdaderoGrossTotal = nuevoSaldoPendienteDeseado;
 
     final double costoInversionOriginal = (renovacion.condicionesAnteriores['costo_inversion'] ?? 0).toDouble();
     final double nuevoMargen = verdaderoGrossTotal - costoInversionOriginal;

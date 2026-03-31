@@ -408,9 +408,9 @@ class _HistorialRenovacionesPageState extends State<HistorialRenovacionesPage> {
     try {
       final s = DateTime.parse(start.toString());
       final e = DateTime.parse(end.toString());
-      final sMid = DateTime(s.year, s.month, s.day);
-      final eMid = DateTime(e.year, e.month, e.day);
-      return eMid.difference(sMid).inDays + 1;
+      final sUtc = DateTime.utc(s.year, s.month, s.day);
+      final eUtc = DateTime.utc(e.year, e.month, e.day);
+      return eUtc.difference(sUtc).inDays + 1;
     } catch (e) {
       return 0;
     }

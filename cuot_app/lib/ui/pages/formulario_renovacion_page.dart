@@ -490,7 +490,9 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
             'fecha_inicio_nueva': _fechaInicioRenovacion?.toIso8601String(),
             'fecha_pago_nueva': _fechaLimiteNueva?.toIso8601String(),
             'plazo_dias_nuevo': _fechaInicioRenovacion != null && _fechaLimiteNueva != null 
-                ? _fechaLimiteNueva!.difference(DateTime(_fechaInicioRenovacion!.year, _fechaInicioRenovacion!.month, _fechaInicioRenovacion!.day)).inDays + 1 
+                ? DateTime.utc(_fechaLimiteNueva!.year, _fechaLimiteNueva!.month, _fechaLimiteNueva!.day)
+                    .difference(DateTime.utc(_fechaInicioRenovacion!.year, _fechaInicioRenovacion!.month, _fechaInicioRenovacion!.day))
+                    .inDays + 1 
                 : 1,
           },
           if (_tipoCredito == 'cuotas') ...{
@@ -753,7 +755,7 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
                                   ),
                                   child: Text(
                                     _fechaInicioRenovacion != null && _fechaLimiteNueva != null
-                                        ? '${_fechaLimiteNueva!.difference(DateTime(_fechaInicioRenovacion!.year, _fechaInicioRenovacion!.month, _fechaInicioRenovacion!.day)).inDays + 1} días'
+                                        ? '${DateTime.utc(_fechaLimiteNueva!.year, _fechaLimiteNueva!.month, _fechaLimiteNueva!.day).difference(DateTime.utc(_fechaInicioRenovacion!.year, _fechaInicioRenovacion!.month, _fechaInicioRenovacion!.day)).inDays + 1} días'
                                         : '-',
                                     style: const TextStyle(fontSize: 12, color: AppColors.primaryGreen, fontWeight: FontWeight.bold),
                                   ),

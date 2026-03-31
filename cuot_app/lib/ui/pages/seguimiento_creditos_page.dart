@@ -66,9 +66,14 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         DateTime? ultimaRenovacion;
         if (renovaciones.isNotEmpty) {
           final sortedRenov = List<dynamic>.from(renovaciones);
-          sortedRenov.sort((a, b) => DateTime.parse(b['fecha_renovacion'])
-              .compareTo(DateTime.parse(a['fecha_renovacion'])));
-          ultimaRenovacion = DateTime.parse(sortedRenov.first['fecha_renovacion']);
+          // Usar created_at para máxima precisión en el aislamiento cronológico
+          sortedRenov.sort((a, b) {
+            final dateA = DateTime.parse(a['created_at'] ?? a['fecha_renovacion']);
+            final dateB = DateTime.parse(b['created_at'] ?? b['fecha_renovacion']);
+            return dateB.compareTo(dateA);
+          });
+          final last = sortedRenov.first;
+          ultimaRenovacion = DateTime.parse(last['created_at'] ?? last['fecha_renovacion']);
         }
 
         // Ordenar cuotas por número (menor a mayor)

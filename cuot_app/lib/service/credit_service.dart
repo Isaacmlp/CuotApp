@@ -55,7 +55,7 @@ class CreditService {
         final renovacionesRes = await _supabase.client
             .schema('Financiamientos')
             .from('Renovaciones')
-            .select('credito_original_id, fecha_renovacion');
+            .select('*'); // Seleccionar todo para tener created_at y otras metas para el aislamiento exacto.
             
         final renovacionesList = List<Map<String, dynamic>>.from(renovacionesRes);
         
@@ -183,7 +183,7 @@ class CreditService {
         final renovacionesRes = await _supabase.client
             .schema('Financiamientos')
             .from('Renovaciones')
-            .select('credito_original_id, fecha_renovacion')
+            .select('*') // Selección completa para aislamiento por marca de tiempo (created_at).
             .eq('credito_original_id', id);
             
         final renovList = List<Map<String, dynamic>>.from(renovacionesRes);

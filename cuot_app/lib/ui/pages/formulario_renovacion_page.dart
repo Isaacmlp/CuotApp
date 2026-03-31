@@ -205,10 +205,14 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
         DateTime? ultimaRenovacionFecha;
         if (rawRenovaciones.isNotEmpty) {
           final sorted = List<dynamic>.from(rawRenovaciones)
-            ..sort((a, b) => DateTime.parse(b['fecha_renovacion'])
-                .compareTo(DateTime.parse(a['fecha_renovacion'])));
+            ..sort((a, b) {
+              final dateA = DateTime.parse(a['created_at'] ?? a['fecha_renovacion']);
+              final dateB = DateTime.parse(b['created_at'] ?? b['fecha_renovacion']);
+              return dateB.compareTo(dateA);
+            });
+          final last = sorted.first;
           ultimaRenovacionFecha =
-              DateTime.parse(sorted.first['fecha_renovacion']);
+              DateTime.parse(last['created_at'] ?? last['fecha_renovacion']);
         }
 
         double totalPagado = 0;

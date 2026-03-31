@@ -32,12 +32,22 @@ class _SelectorFechasCuotasCompactoState
   late List<bool> _cuotasModificadas;
   final ScrollController _scrollController = ScrollController();
 
-  // 👇 NUEVAS PROPIEDADES PARA VALIDACIÓN
+  // Propiedades para validación: solo cuotas pendientes vs saldo pendiente
   double get _totalCuotas => CuotaPersonalizada.calcularTotalCuotas(_cuotas);
-  double get _diferencia => CuotaPersonalizada.obtenerDiferenciaTotal(
-      _cuotas, widget.precioTotalEsperado);
-  bool get _totalValido => CuotaPersonalizada.validarTotalCuotas(
-      _cuotas, widget.precioTotalEsperado);
+  double get _totalCuotasPendientes => CuotaPersonalizada.calcularTotalCuotas(
+      _cuotas.where((c) => !c.pagada).toList());
+  double get _montoPagado => CuotaPersonalizada.calcularTotalCuotas(
+      _cuotas.where((c) => c.pagada).toList());
+  bool get _hayPagadas => _cuotas.any((c) => c.pagada);
+  // Si hay cuotas pagadas, el objetivo es solo el saldo pendiente
+  double get _montoObjetivo => _hayPagadas
+      ? widget.precioTotalEsperado - _montoPagado
+      : widget.precioTotalEsperado;
+  double get _diferencia => _hayPagadas
+      ? _totalCuotasPendientes - _montoObjetivo
+      : CuotaPersonalizada.obtenerDiferenciaTotal(
+          _cuotas, widget.precioTotalEsperado);
+  bool get _totalValido => _diferencia.abs() <= 0.01;
 
   @override
   void initState() {
@@ -206,7 +216,10 @@ class _SelectorFechasCuotasCompactoState
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Total: \$${_totalCuotas.toStringAsFixed(2)} / '
+                      _hayPagadas
+                        ? 'Pendientes: \$${_totalCuotasPendientes.toStringAsFixed(2)} / '
+                          '\$${_montoObjetivo.toStringAsFixed(2)} (saldo)'
+                        : 'Total: \$${_totalCuotas.toStringAsFixed(2)} / '
                           '\$${widget.precioTotalEsperado.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 11,
@@ -330,7 +343,7 @@ class _SelectorFechasCuotasCompactoState
                       color: primaryColor,
                     ),
                     label: Text(
-                      'Distribuir \$${_diferencia.toStringAsFixed(2)}',
+                      'Distribuir \$${_diferencia.abs().toStringAsFixed(2)}',
                       style: TextStyle(fontSize: 11, color: primaryColor),
                     ),
                     style: TextButton.styleFrom(

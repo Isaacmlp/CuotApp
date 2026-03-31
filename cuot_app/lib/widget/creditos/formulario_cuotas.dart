@@ -616,11 +616,19 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
 
   /// 📌 TARJETA DE RESUMEN (MODIFICADA con validación de total)
   Widget _buildResumenCard() {
-    // 👇 NUEVO: Calcular total de cuotas y validar
+    // Cuando hay cuotas pagadas, solo validamos el saldo pendiente vs cuotas pendientes
+    final saldoPendiente = _precioTotal - _montoPagado;
+    final totalCuotasPendientes = CuotaPersonalizada.calcularTotalCuotas(
+        _fechasPersonalizadas?.where((c) => !c.pagada).toList());
     final totalCuotas =
         CuotaPersonalizada.calcularTotalCuotas(_fechasPersonalizadas);
-    final diferencia = totalCuotas - _precioTotal;
-    final totalValido = (diferencia).abs() <= 0.01;
+
+    // Si hay pagadas, comparar cuotas pendientes vs saldo pendiente
+    // Si no hay pagadas, comparar total cuotas vs precio total
+    final double montoReferencia = _cantidadCuotasPagadas > 0 ? saldoPendiente : _precioTotal;
+    final double totalAComparar = _cantidadCuotasPagadas > 0 ? totalCuotasPendientes : totalCuotas;
+    final diferencia = totalAComparar - montoReferencia;
+    final totalValido = diferencia.abs() <= 0.01;
 
     return Card(
       elevation: 3,
@@ -660,17 +668,25 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                 'Total cuotas:',
                 '${_fechasPersonalizadas!.length} configuradas',
               ),
-              // 👇 NUEVO: Mostrar suma total de cuotas
               _buildInfoRow(
                 'Suma cuotas:',
                 '\$${totalCuotas.toStringAsFixed(2)}',
               ),
-              if (_cantidadCuotasPagadas > 0)
+              if (_cantidadCuotasPagadas > 0) ...[
                 _buildInfoRow(
                   'Monto ya pagado:',
                   '\$${_montoPagado.toStringAsFixed(2)}',
                 ),
-              // 👇 NUEVO: Alerta si hay diferencia
+                _buildInfoRow(
+                  'Saldo pendiente:',
+                  '\$${saldoPendiente.toStringAsFixed(2)}',
+                ),
+                _buildInfoRow(
+                  'Cuotas pendientes:',
+                  '\$${totalCuotasPendientes.toStringAsFixed(2)}',
+                ),
+              ],
+              // Alerta si hay diferencia
               if (!totalValido)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
@@ -688,7 +704,9 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Diferencia: \$${diferencia.toStringAsFixed(2)}',
+                            _cantidadCuotasPagadas > 0
+                              ? 'Cuotas pendientes (\$${totalCuotasPendientes.toStringAsFixed(2)}) no coinciden con saldo pendiente (\$${saldoPendiente.toStringAsFixed(2)})'
+                              : 'Diferencia: \$${diferencia.toStringAsFixed(2)}',
                             style: TextStyle(
                               color: Colors.red.shade700,
                               fontWeight: FontWeight.w500,
@@ -788,17 +806,24 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
         return;
       }
 
-      // 👇 NUEVA VALIDACIÓN: Verificar que el total de cuotas coincida con el precio total
-      final totalCuotas =
-          CuotaPersonalizada.calcularTotalCuotas(_fechasPersonalizadas);
-      final diferencia = (totalCuotas - _precioTotal).abs();
+      // Validación de total: cuando hay cuotas pagadas, solo comparamos las
+      // cuotas PENDIENTES contra el SALDO pendiente (precioTotal - montoPagado).
+      final totalCuotasPendientes = CuotaPersonalizada.calcularTotalCuotas(
+          _fechasPersonalizadas!.where((c) => !c.pagada).toList());
+      final saldoPendiente = _precioTotal - _montoPagado;
+      final montoReferencia = _cantidadCuotasPagadas > 0 ? saldoPendiente : _precioTotal;
+      final diferencia = (totalCuotasPendientes - montoReferencia).abs();
 
       if (diferencia > 0.01) {
         _mostrarError(
           'Total de cuotas incorrecto',
-          'La suma de todas las cuotas (\$${totalCuotas.toStringAsFixed(2)}) '
-              'no coincide con el precio total (\$${_precioTotal.toStringAsFixed(2)}).\n\n'
-              'Diferencia: \$${diferencia.toStringAsFixed(2)}',
+          _cantidadCuotasPagadas > 0
+              ? 'La suma de las cuotas pendientes (\$${totalCuotasPendientes.toStringAsFixed(2)}) '
+                'no coincide con el saldo pendiente (\$${montoReferencia.toStringAsFixed(2)}).\n\n'
+                'Diferencia: \$${diferencia.toStringAsFixed(2)}'
+              : 'La suma de todas las cuotas (\$${totalCuotasPendientes.toStringAsFixed(2)}) '
+                'no coincide con el precio total (\$${_precioTotal.toStringAsFixed(2)}).\n\n'
+                'Diferencia: \$${diferencia.toStringAsFixed(2)}',
         );
         return;
       }

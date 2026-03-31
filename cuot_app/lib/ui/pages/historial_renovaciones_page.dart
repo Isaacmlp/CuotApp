@@ -303,7 +303,9 @@ class _HistorialRenovacionesPageState extends State<HistorialRenovacionesPage> {
                           children: [
                             if (tipoCredito == 'unico') ...[
                               _buildCondRow('Nuevo Plazo',
-                                  _formatPlazoDias(_calcularDiasSimple(renovacion['fecha_renovacion'], condNuevas['fecha_pago_nueva']))),
+                                  condNuevas['plazo_dias_nuevo'] != null
+                                      ? '${condNuevas['plazo_dias_nuevo']} días'
+                                      : _formatPlazoDias(_calcularDiasSimple(condNuevas['fecha_inicio_nueva'] ?? renovacion['fecha_renovacion'], condNuevas['fecha_pago_nueva']))),
                               _buildCondRow('Mora',
                                   '\$${(condNuevas['monto_mora'] as num?)?.toStringAsFixed(2) ?? '0.00'}'),
                             ] else ...[
@@ -406,7 +408,9 @@ class _HistorialRenovacionesPageState extends State<HistorialRenovacionesPage> {
     try {
       final s = DateTime.parse(start.toString());
       final e = DateTime.parse(end.toString());
-      return e.difference(s).inDays;
+      final sMid = DateTime(s.year, s.month, s.day);
+      final eMid = DateTime(e.year, e.month, e.day);
+      return eMid.difference(sMid).inDays + 1;
     } catch (e) {
       return 0;
     }
@@ -415,17 +419,19 @@ class _HistorialRenovacionesPageState extends State<HistorialRenovacionesPage> {
   String _getResumenPlazo(Map<String, dynamic> renovacion, Map<String, dynamic> condNuevas) {
     final tipo = condNuevas['tipo_credito'] ?? 'cuotas';
     final fechaRen = renovacion['fecha_renovacion'];
+    final fechaInicio = condNuevas['fecha_inicio_nueva'] ?? fechaRen;
     
     if (tipo == 'unico') {
+      if (condNuevas['plazo_dias_nuevo'] != null) {
+        return '${condNuevas['plazo_dias_nuevo']} días';
+      }
       final fechaNueva = condNuevas['fecha_pago_nueva'];
-      return '${_calcularDiasSimple(fechaRen, fechaNueva)} días';
+      return '${_calcularDiasSimple(fechaInicio, fechaNueva)} días';
     } else {
       final cuotas = condNuevas['cuotas_renovadas'];
       if (cuotas is List && cuotas.isNotEmpty) {
         final last = cuotas.last;
-        final s = DateTime.parse(fechaRen.toString());
-        final e = DateTime.parse(last['fecha'].toString());
-        return '${e.difference(s).inDays} días';
+        return '${_calcularDiasSimple(fechaInicio, last['fecha'])} días';
       }
       return '? días';
     }

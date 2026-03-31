@@ -486,9 +486,17 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
           'incluye_mora': _incluirMora,
           'monto_mora': _incluirMora ? _montoMora : 0,
           'fecha_renovacion': DateTime.now().toIso8601String(),
-          if (_tipoCredito == 'unico')
+          if (_tipoCredito == 'unico') ...{
+            'fecha_inicio_nueva': _fechaInicioRenovacion?.toIso8601String(),
             'fecha_pago_nueva': _fechaLimiteNueva?.toIso8601String(),
-          if (_tipoCredito == 'cuotas') 'cuotas_renovadas': cuotasParaGuardar,
+            'plazo_dias_nuevo': _fechaInicioRenovacion != null && _fechaLimiteNueva != null 
+                ? _fechaLimiteNueva!.difference(DateTime(_fechaInicioRenovacion!.year, _fechaInicioRenovacion!.month, _fechaInicioRenovacion!.day)).inDays + 1 
+                : 1,
+          },
+          if (_tipoCredito == 'cuotas') ...{
+            'fecha_inicio_nueva': _fechaInicioRenovacion?.toIso8601String(),
+            'cuotas_renovadas': cuotasParaGuardar,
+          }
         },
         nuevoPlazo: _tipoCredito == 'unico' ? 1 : _cuotasEditables.length,
         unidadPlazo: _tipoCredito == 'unico' ? 'pago_unico' : 'cuotas',

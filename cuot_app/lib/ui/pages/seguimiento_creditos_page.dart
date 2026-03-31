@@ -108,7 +108,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             .compareTo(b.fechaPagoReal ?? b.fechaPago));
 
         final double dbTotal = (c['costo_inversion'] + c['margen_ganancia']).toDouble();
-        final double uiTotal = dbTotal - pagosExcluidosDeUI;
+        final double uiTotal = dbTotal;
 
         if (esPagoUnico) {
           processedCredits.add(CreditoUnico(

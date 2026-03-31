@@ -269,7 +269,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     }
 
     final double rawTotalDB = ((_credito?['costo_inversion'] as num?)?.toDouble() ?? 0) + ((_credito?['margen_ganancia'] as num?)?.toDouble() ?? 0);
-    final double uiTotal = rawTotalDB - pagosExcluidosDeUI;
+    final double uiTotal = rawTotalDB;
     final double saldoPendiente = uiTotal - pagosValidosEnUI;
     
     final bool isPagado = saldoPendiente <= 0.01;
@@ -621,9 +621,10 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     }).toList();
 
     for (var pago in pagosGenerales) {
+      final fs = pago['fecha_pago_real'] ?? pago['fecha_pago'] ?? DateTime.now().toIso8601String();
       historialData.add({
         'type': 'pago',
-        'date': DateTime.parse(pago['fecha_pago_real']),
+        'date': DateTime.tryParse(fs.toString()) ?? DateTime.now(),
         'data': pago,
       });
     }
@@ -636,7 +637,11 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
       });
     }
     
-    historialData.sort((a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime));
+    historialData.sort((a, b) {
+      final dateA = a['date'] as DateTime;
+      final dateB = b['date'] as DateTime;
+      return dateB.compareTo(dateA); // Decendente: Más nuevo primero
+    });
 
     final List<Widget> items = [
       const Text('Historial General',

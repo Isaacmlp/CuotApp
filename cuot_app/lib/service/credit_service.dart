@@ -178,6 +178,20 @@ class CreditService {
           ''')
           .eq('id', id)
           .single();
+
+      try {
+        final renovacionesRes = await _supabase.client
+            .schema('Financiamientos')
+            .from('Renovaciones')
+            .select('credito_original_id, fecha_renovacion')
+            .eq('credito_original_id', id);
+            
+        final renovList = List<Map<String, dynamic>>.from(renovacionesRes);
+        response['Renovaciones'] = renovList;
+      } catch (e) {
+        print('Error obteniendo renovaciones on single credit: $e');
+      }
+
       return response;
     } catch (e) {
       print('Error en getCreditById: $e');

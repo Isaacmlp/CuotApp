@@ -43,13 +43,32 @@ class CreditService {
             *,
             Clientes(*),
             Cuotas(*),
-            Pagos(*),
-            Renovaciones(fecha_renovacion)
+            Pagos(*)
           ''')
           .eq('usuario_nombre', usuarioNombre)
           .order('id', ascending: false);
 
       final data = List<Map<String, dynamic>>.from(response);
+
+      try {
+        // Consultar renovaciones aparte para evitar el error de ambigüedad (múltiples foreign keys)
+        final renovacionesRes = await _supabase.client
+            .schema('Financiamientos')
+            .from('Renovaciones')
+            .select('credito_original_id, fecha_renovacion');
+            
+        final renovacionesList = List<Map<String, dynamic>>.from(renovacionesRes);
+        
+        for (var credito in data) {
+          final creditoId = credito['id'].toString();
+          credito['Renovaciones'] = renovacionesList
+              .where((r) => r['credito_original_id'].toString() == creditoId)
+              .toList();
+        }
+      } catch (e) {
+        print('Error consultando renovaciones hijas: $e');
+        // Ignorar si falla, solo no tendrán fechas de renovación
+      }
 
       // Guardar en caché
       _cachedData = data;

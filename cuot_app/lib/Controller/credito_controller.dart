@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:cuot_app/Model/credito_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cuot_app/core/supabase/supabase_service.dart';
 import 'package:cuot_app/utils/date_utils.dart';
 import 'package:cuot_app/Model/cuota_personalizada.dart';
@@ -114,6 +115,8 @@ class CreditoController extends ChangeNotifier {
       fechasPersonalizadas: cuotasParsed,
       fechaLimite: data['fecha_vencimiento'] != null ? DateTime.parse(data['fecha_vencimiento']) : null,
       facturaPath: data['factura_url'],
+      notas: data['notas'],
+      numeroCredito: data['numero_credito'],
     );
 
     notifyListeners();
@@ -170,6 +173,7 @@ class CreditoController extends ChangeNotifier {
           'margen_ganancia': credito.margenGanancia,
           'numero_cuotas': credito.numeroCuotas,
           'cliente_id': clienteId,
+          'notas': credito.notas,
           if (esPagoUnico && credito.fechaLimite != null)
             'fecha_vencimiento': credito.fechaLimite!.toIso8601String(),
         };
@@ -235,6 +239,16 @@ class CreditoController extends ChangeNotifier {
 
       } else {
         // [CÓDIGO ORIGINAL PARA INSERTAR UN NUEVO CRÉDITO...]
+        
+        // Calcular número de crédito secuencial por usuario
+        final countResponse = await _supabaseService.client
+            .schema('Financiamientos')
+            .from('Creditos')
+            .select('id')
+            .eq('usuario_nombre', usuarioNombre);
+        
+        final int nextNumber = countResponse.length;
+
         final dataCredito = {
         'cliente_id': clienteId,
         'concepto': credito.concepto,
@@ -247,6 +261,8 @@ class CreditoController extends ChangeNotifier {
         'factura_url': facturaUrl,
         'usuario_nombre': usuarioNombre,
         'estado': 'Pendiente',
+        'notas': credito.notas,
+        'numero_credito': nextNumber,
         if (esPagoUnico && credito.fechaLimite != null)
           'fecha_vencimiento': credito.fechaLimite!.toIso8601String(),
       };

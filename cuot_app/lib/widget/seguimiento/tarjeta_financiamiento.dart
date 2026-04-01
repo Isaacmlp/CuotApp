@@ -25,6 +25,8 @@ class TarjetaFinanciamiento extends StatefulWidget {
   final VoidCallback? onEditar;
   final VoidCallback? onEliminar;
   final VoidCallback onVerDetalle;
+  final int? numeroCredito;
+  final String? notas;
 
   const TarjetaFinanciamiento({
     super.key,
@@ -46,6 +48,8 @@ class TarjetaFinanciamiento extends StatefulWidget {
     required this.onVerDetalle,
     this.onEditar,
     this.onEliminar,
+    this.numeroCredito,
+    this.notas,
   });
 
   @override
@@ -68,6 +72,8 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
       cuotasPagadas: widget.cuotas.where((c) => c.pagada).length,
       cuotasVencidas: widget.cuotasVencidas,
       montoCuota: widget.montoCuota,
+      numeroCredito: widget.numeroCredito,
+      notas: widget.notas,
     );
     WhatsappService.abrirWhatsApp(
       telefono: widget.telefono,
@@ -215,24 +221,40 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
                             color: _estadoColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              Icon(_estadoIcon, size: 14, color: _estadoColor),
-                              const SizedBox(width: 4),
-                              Text(
-                                widget.estado,
-                                style: TextStyle(
-                                  color: _estadoColor,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(_estadoIcon, size: 14, color: _estadoColor),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    widget.estado,
+                                    style: TextStyle(
+                                      color: _estadoColor,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
+                              if (widget.numeroCredito != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Crédito #${widget.numeroCredito}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey.shade700,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
                       ],
                     ),
-                    
                     const SizedBox(height: 12),
                     
                     // Mini resumen de cuotas - ACTUALIZADO con Vencidas

@@ -19,6 +19,8 @@ class Credito {
   final String? nombreFactura;
   final String? telefono;
   final DateTime? fechaLimite; // Solo para pago único
+  final String? notas;
+  final int? numeroCredito;
 
   String? id;
   List<Cuota>? cuotasPersonalizadas;
@@ -46,6 +48,8 @@ class Credito {
     this.nombreFactura,
     this.fechasPersonalizadas,
     this.fechaLimite,
+    this.notas,
+    this.numeroCredito,
   });
 
   /// Propiedades calculadas
@@ -92,6 +96,8 @@ class Credito {
     'nombreFactura': nombreFactura,
     'fechaLimite': fechaLimite?.toIso8601String(),
     'fechasPersonalizadas': fechasPersonalizadas?.map((c) => c.toJson()).toList(),
+    'notas': notas,
+    'numeroCredito': numeroCredito,
   };
 
   /// Crea desde JSON
@@ -113,6 +119,8 @@ class Credito {
               .map((c) => CuotaPersonalizada.fromJson(c))
               .toList()
           : null,
+      notas: json['notas'],
+      numeroCredito: json['numeroCredito'],
     );
   }
 

@@ -35,6 +35,7 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
   final _gananciaController = TextEditingController();
   final _clienteController = TextEditingController();
   final _telefonoController = TextEditingController();
+  final _notasController = TextEditingController();
   
   // Variables de estado
   DateTime _fechaInicio = DateTime.now();
@@ -64,6 +65,10 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
       if (credito.telefono != null && credito.telefono!.isNotEmpty) {
         _mostrarTelefono = true;
         _telefonoController.text = credito.telefono!;
+      }
+      
+      if (credito.notas != null) {
+        _notasController.text = credito.notas!;
       }
 
       _fechaInicio = credito.fechaInicio;
@@ -313,16 +318,54 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
 
              const SizedBox(height: 20),
             
-            // 📌 5. FACTURA (OPCIONAL)
-            _buildSeccionTitulo('Factura (Opcional)', Icons.receipt),
-            const SizedBox(height: 8),
-            FacturaUploader(
-              onFacturaSeleccionada: (File? archivo) {
-                setState(() {
-                  _facturaSeleccionada = archivo;
-                });
-                _actualizarCredito();
-              },
+            // 📌 8. NOTAS Y FACTURA (EN FILA)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Notas (Lado izquierdo)
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSeccionTitulo('Notas', Icons.note_alt_outlined),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _notasController,
+                        maxLines: 3,
+                        decoration: _buildInputDecoration(
+                          label: 'Observaciones...',
+                          icon: Icons.edit_note,
+                        ),
+                        onChanged: (v) {
+                          setState(() {});
+                          _actualizarCredito();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Factura (Lado derecho)
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSeccionTitulo('Factura', Icons.receipt),
+                      const SizedBox(height: 8),
+                      FacturaUploader(
+                        onFacturaSeleccionada: (File? archivo) {
+                          setState(() {
+                            _facturaSeleccionada = archivo;
+                          });
+                          _actualizarCredito();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
 
@@ -477,6 +520,7 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
         facturaPath: _facturaSeleccionada?.path,
         nombreFactura: _facturaSeleccionada?.path.split('/').last,
         fechaLimite: _fechaLimite, // 👈 Pasar fecha límite para pago único
+        notas: _notasController.text,
       );
       widget.onCreditoActualizado(credito);
     }
@@ -622,6 +666,7 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
     _gananciaController.dispose();
     _clienteController.dispose();
     _telefonoController.dispose();
+    _notasController.dispose();
     super.dispose();
   }
 }

@@ -135,6 +135,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             tipoPago: TipoPagoUnico.unico,
             descripcion: c['concepto'],
             pagosRealizados: pagos,
+            notas: c['notas'],
+            numeroCredito: c['numero_credito'],
           ));
         } else {
           processedCredits.add({
@@ -150,6 +152,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             'pagos': pagos,
             'pagosParciales': <int, double>{},
             'modalidadPago': _getModalidadName(c['modalidad_pago']),
+            'numeroCredito': c['numero_credito'],
+            'notas': c['notas'],
           });
         }
       }
@@ -742,6 +746,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                                   cuotasVencidas: cuotasVencidas,
                                   concepto: item['concepto'] ?? 'Sin concepto',
                                   totalCredito: item['totalCredito'] ?? 0.0,
+                                  numeroCredito: item['numeroCredito'],
+                                  notas: item['notas'],
                                   onVerDetalle: () {
                                     Navigator.push(
                                       context,

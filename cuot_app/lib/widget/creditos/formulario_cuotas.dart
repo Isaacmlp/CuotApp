@@ -38,6 +38,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
   final _cuotasController = TextEditingController();
   final _clienteController = TextEditingController();
   final _telefonoController = TextEditingController();
+  final _notasController = TextEditingController();
 
   // 📌 VARIABLES DE ESTADO
   DateTime _fechaInicio = DateTime.now();
@@ -89,6 +90,10 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
       if (inicial.telefono != null && inicial.telefono!.isNotEmpty) {
         _mostrarTelefono = true;
         _telefonoController.text = inicial.telefono!;
+      }
+      
+      if (inicial.notas != null) {
+        _notasController.text = inicial.notas!;
       }
 
       _fechaInicio = inicial.fechaInicio;
@@ -486,16 +491,51 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
             ],
             const SizedBox(height: 20),
 
-            // 📌 8. FACTURA (OPCIONAL)
-            _buildSeccionTitulo('Factura (Opcional)', Icons.receipt),
-            const SizedBox(height: 8),
-            FacturaUploader(
-              onFacturaSeleccionada: (File? archivo) {
-                setState(() {
-                  _facturaSeleccionada = archivo;
-                });
-                _actualizarCredito();
-              },
+            // 📌 8. NOTAS Y FACTURA (EN FILA)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Notas (Lado izquierdo)
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSeccionTitulo('Notas', Icons.note_alt_outlined),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _notasController,
+                        maxLines: 3,
+                        decoration: _buildInputDecoration(
+                          label: 'Observaciones...',
+                          icon: Icons.edit_note,
+                        ),
+                        onChanged: _actualizarCredito,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Factura (Lado derecho)
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSeccionTitulo('Factura', Icons.receipt),
+                      const SizedBox(height: 8),
+                      FacturaUploader(
+                        onFacturaSeleccionada: (File? archivo) {
+                          setState(() {
+                            _facturaSeleccionada = archivo;
+                          });
+                          _actualizarCredito();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
 
             // 📌 9. CLIENTE
@@ -816,6 +856,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
         facturaPath: _facturaSeleccionada?.path,
         nombreFactura: _facturaSeleccionada?.path.split('/').last,
         fechasPersonalizadas: _fechasPersonalizadas,
+        notas: _notasController.text,
       );
       widget.onCreditoActualizado(credito);
     }
@@ -1030,6 +1071,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
     _cuotasController.dispose();
     _clienteController.dispose();
     _telefonoController.dispose();
+    _notasController.dispose();
     super.dispose();
   }
 }

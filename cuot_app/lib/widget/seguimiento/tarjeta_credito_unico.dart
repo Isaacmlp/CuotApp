@@ -46,6 +46,8 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
       cantidadAbonos: credito.pagosRealizados.length,
       fechaLimite: DateFormat('dd/MM/yy').format(credito.fechaLimite),
       diasRestantes: diasRestantes,
+      numeroCredito: credito.numeroCredito,
+      notas: credito.notas,
     );
     WhatsappService.abrirWhatsApp(
       telefono: credito.telefono,
@@ -223,22 +225,40 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
                                 color: _colorDiasRestantes.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: Row(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  Icon(
-                                    Icons.event,
-                                    size: 14,
-                                    color: _colorDiasRestantes,
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.event,
+                                        size: 14,
+                                        color: _colorDiasRestantes,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        _textoDiasRestantes,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: _colorDiasRestantes,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    _textoDiasRestantes,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: _colorDiasRestantes,
+                                  if (widget.credito.numeroCredito != null) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Crédito #${widget.credito.numeroCredito}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey.shade700,
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ],
                               ),
                             ),

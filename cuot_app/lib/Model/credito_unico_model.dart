@@ -23,6 +23,7 @@ class CreditoUnico {
   // Campos adicionales
   final String? descripcion;
   final String? notas;
+  final int? numeroCredito;
 
   CreditoUnico({
     required this.id,
@@ -36,6 +37,7 @@ class CreditoUnico {
     this.pagosRealizados = const [],
     this.descripcion,
     this.notas,
+    this.numeroCredito,
   });
 
   double get totalPagado => 

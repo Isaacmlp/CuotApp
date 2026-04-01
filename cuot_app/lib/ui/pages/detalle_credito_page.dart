@@ -856,14 +856,14 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                         Expanded(
                           child: _buildMiniInfo(
                             'Mora',
-                            '\$${(renovacion.condicionesNuevas['monto_mora'] as num?)?.toStringAsFixed(0) ?? '0'}',
+                            '\$${(renovacion.condicionesNuevas['monto_mora'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
                             Icons.warning_amber_rounded,
                           ),
                         ),
                         Expanded(
                           child: _buildMiniInfo(
                             'Total',
-                            '\$${(renovacion.condicionesNuevas['monto_total'] as num?)?.toStringAsFixed(0) ?? '0'}',
+                            '\$${(renovacion.condicionesNuevas['monto_total'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
                             Icons.payments,
                           ),
                         ),

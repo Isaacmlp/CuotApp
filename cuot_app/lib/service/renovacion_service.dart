@@ -66,11 +66,17 @@ class RenovacionService {
     Map<String, dynamic> updateData = {
       'margen_ganancia': nuevoMargen,
       'numero_cuotas': renovacion.nuevoPlazo,
+      'fecha_inicio': condicionesNuevas['fecha_inicio_nueva'],
     };
 
     if (tipoCredito == 'unico' && condicionesNuevas['fecha_pago_nueva'] != null) {
-      // Nota: Si la tabla tiene un campo fecha_vencimiento, usarlo. 
-      // Si no, se actualiza solo en la cuota.
+      updateData['fecha_vencimiento'] = condicionesNuevas['fecha_pago_nueva'];
+    } else {
+      // Para cuotas, el vencimiento es la fecha de la última cuota renovada
+      final List<dynamic> cuotasRenovadas = condicionesNuevas['cuotas_renovadas'] ?? [];
+      if (cuotasRenovadas.isNotEmpty) {
+        updateData['fecha_vencimiento'] = cuotasRenovadas.last['fecha'];
+      }
     }
 
     await _supabase.client

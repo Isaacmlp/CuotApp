@@ -455,6 +455,25 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                 return 'N/A';
               })()),
               const SizedBox(height: 12),
+              _buildInfoRow(Icons.timer, 'Plazo Total', (() {
+                final start = _credito?['fecha_inicio'];
+                final end = _credito?['fecha_vencimiento'] ?? 
+                             ((_credito?['Cuotas'] as List?)?.isNotEmpty == true 
+                               ? (_credito?['Cuotas'] as List).last['fecha_pago'] 
+                               : null);
+                if (start != null && end != null) {
+                  try {
+                    final s = DateTime.parse(start.toString());
+                    final e = DateTime.parse(end.toString());
+                    final sUtc = DateTime.utc(s.year, s.month, s.day);
+                    final eUtc = DateTime.utc(e.year, e.month, e.day);
+                    final days = eUtc.difference(sUtc).inDays + 1;
+                    return '$days días';
+                  } catch (_) { return 'N/A'; }
+                }
+                return 'N/A';
+              })()),
+              const SizedBox(height: 12),
               _buildInfoRow(Icons.monetization_on, 'Monto total',
                   '\$${uiTotal.toStringAsFixed(2)}',
                   isBold: true),

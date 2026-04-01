@@ -226,6 +226,10 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
             children: [
               ..._buildInfoSeccion(),
               const SizedBox(height: 16),
+              if (_credito?['notas'] != null && _credito!['notas'].toString().isNotEmpty) ...[
+                _buildNotasSeccion(),
+                const SizedBox(height: 16),
+              ],
               ..._buildDetallesSeccion(),
               const SizedBox(height: 16),
               ..._buildHistorialUnificadoSeccion(),
@@ -490,6 +494,34 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
         ),
       ),
     ];
+  }
+
+  Widget _buildNotasSeccion() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.notes, size: 20, color: AppColors.primaryGreen),
+                SizedBox(width: 8),
+                Text('Notas / Observaciones',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const Divider(height: 24),
+            Text(
+              _credito!['notas'].toString(),
+              style: TextStyle(fontSize: 15, color: Colors.grey.shade800, height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   List<Widget> _buildDetallesSeccion() {

@@ -210,6 +210,7 @@ class CreditService {
             'concepto': data['concepto'],
             'costo_inversion': data['costo_inversion'],
             'margen_ganancia': data['margen_ganancia'],
+            'notas': data['notas'],
             if (data.containsKey('cliente_id')) 'cliente_id': data['cliente_id'],
             if (data['fecha_vencimiento'] != null) 'fecha_vencimiento': data['fecha_vencimiento'],
           })
@@ -266,6 +267,7 @@ class CreditService {
             'costo_inversion': data['costo_inversion'],
             'margen_ganancia': data['margen_ganancia'],
             'numero_cuotas': data['numero_cuotas'],
+            'notas': data['notas'],
             if (data.containsKey('cliente_id')) 'cliente_id': data['cliente_id'],
           })
           .eq('id', creditId);

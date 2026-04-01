@@ -223,7 +223,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                         ),
                         keyboardType: TextInputType.number,
                         validator: (v) =>
-                            Validators.positiveNumber(v, 'Ganancia'),
+                            Validators.positiveNumber(v, 'Ganancia', allowZero: true),
                         onChanged: (value) {
                           _actualizarCredito();
                         },

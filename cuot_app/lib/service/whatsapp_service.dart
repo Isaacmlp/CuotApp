@@ -86,7 +86,7 @@ Días restantes: *$diasText*''';
   }) {
     final String estadoExt = saldoPendiente.abs() < 0.01 ? ' ✅ *PAGADO*' : '';
     final String numCreditoStr = numeroCredito != null ? ' (#$numeroCredito)' : '';
-    final String notasStr = (notas != null && notas.trim().isNotEmpty) ? '\n*Notas:* $notas\n' : '';
+    final String notasStr = (notas != null && notas.trim().isNotEmpty) ? '\n*Nota:* $notas\n' : '';
     
     return '''*Ficha*$estadoExt$numCreditoStr
 
@@ -125,7 +125,7 @@ Pendientes: *${totalCuotas - cuotasPagadas}*''';
   }) {
     final String diasText = saldoPendiente.abs() < 0.01 ? '✅ *Pagado*' : diasRestantes;
     final String numCreditoStr = numeroCredito != null ? ' (#$numeroCredito)' : '';
-    final String notasStr = (notas != null && notas.trim().isNotEmpty) ? '\n*Notas:* $notas\n' : '';
+    final String notasStr = (notas != null && notas.trim().isNotEmpty) ? '\n*Nota:* $notas\n' : '';
 
     return '''*Ficha*$numCreditoStr
 

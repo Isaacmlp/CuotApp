@@ -34,8 +34,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      // 🛠️ REPARACIÓN: Limpiar duplicados antes de cargar
-      await _creditService.repairDuplicateCuotas(widget.nombreUsuario);
+      // 🚀 OPTIMIZACIÓN: Ya no reparamos cada vez, lo cual ahorra cientos de consultas.
+      /* await _creditService.repairDuplicateCuotas(widget.nombreUsuario); */
 
       // 🚀 OPTIMIZACIÓN: Una sola consulta para traer todo (N+1 fixed)
       final rawCredits =

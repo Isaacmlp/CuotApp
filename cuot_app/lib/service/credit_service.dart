@@ -51,11 +51,12 @@ class CreditService {
       final data = List<Map<String, dynamic>>.from(response);
 
       try {
-        // Consultar renovaciones aparte para evitar el error de ambigüedad (múltiples foreign keys)
+        // Consultar renovaciones por usuario para ser más eficiente que traer TODAS
         final renovacionesRes = await _supabase.client
             .schema('Financiamientos')
             .from('Renovaciones')
-            .select('*'); // Seleccionar todo para tener created_at y otras metas para el aislamiento exacto.
+            .select('*, Creditos!inner(usuario_nombre)')
+            .eq('Creditos.usuario_nombre', usuarioNombre);
             
         final renovacionesList = List<Map<String, dynamic>>.from(renovacionesRes);
         

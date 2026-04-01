@@ -185,6 +185,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
   String _filtroEstado = 'atrasado';
   String _busqueda = '';
   final TextEditingController _searchController = TextEditingController();
+  bool _ordenAscendente = true; // 👈 NUEVO: Estado del orden
 
   // Función para calcular el estado de créditos en cuotas
   String _calcularEstadoCreditoCuotas(Map<String, dynamic> financiamiento) {
@@ -243,7 +244,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
   List<dynamic> get _financiamientosFiltrados {
     _actualizarEstados();
 
-    return _financiamientos.where((f) {
+    final filtered = _financiamientos.where((f) {
       String nombre = '';
       String telefono = '';
       String estado = '';
@@ -273,6 +274,28 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
 
       return matchesBusqueda && matchesEstado;
     }).toList();
+
+    // 🚀 NUEVO: Ordenar por número de crédito
+    filtered.sort((a, b) {
+      int numA = 0;
+      int numB = 0;
+
+      if (a is Map<String, dynamic>) {
+        numA = a['numeroCredito'] ?? 0;
+      } else if (a is CreditoUnico) {
+        numA = a.numeroCredito ?? 0;
+      }
+
+      if (b is Map<String, dynamic>) {
+        numB = b['numeroCredito'] ?? 0;
+      } else if (b is CreditoUnico) {
+        numB = b.numeroCredito ?? 0;
+      }
+
+      return _ordenAscendente ? numA.compareTo(numB) : numB.compareTo(numA);
+    });
+
+    return filtered;
   }
 
   Color _getColorParaFiltro(String filtro) {
@@ -461,41 +484,65 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
-        children: filtros.map((filtro) {
-          final isSelected = _filtroEstado == filtro;
-          final color = _getColorParaFiltro(filtro);
+        children: [
+          ...filtros.map((filtro) {
+            final isSelected = _filtroEstado == filtro;
+            final color = _getColorParaFiltro(filtro);
 
-          String nombreFiltro = filtro;
-          if (filtro == 'todos') nombreFiltro = 'Todos';
-          else if (filtro == 'atrasado') nombreFiltro = 'Vencidos';
-          else if (filtro == 'al día') nombreFiltro = 'Al día';
-          else if (filtro == 'pagado') nombreFiltro = 'Pagados';
+            String nombreFiltro = filtro;
+            if (filtro == 'todos') nombreFiltro = 'Todos';
+            else if (filtro == 'atrasado') nombreFiltro = 'Vencidos';
+            else if (filtro == 'al día') nombreFiltro = 'Al día';
+            else if (filtro == 'pagado') nombreFiltro = 'Pagados';
 
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: FilterChip(
-              selected: isSelected,
-              label: Text(
-                nombreFiltro,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : color,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                selected: isSelected,
+                label: Text(
+                  nombreFiltro,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : color,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
                 ),
+                selectedColor: color,
+                checkmarkColor: Colors.white,
+                backgroundColor: color.withOpacity(0.1),
+                side: BorderSide(
+                  color: isSelected ? Colors.transparent : color.withOpacity(0.5),
+                ),
+                onSelected: (selected) {
+                  setState(() {
+                    _filtroEstado = filtro;
+                  });
+                },
               ),
-              selectedColor: color,
-              checkmarkColor: Colors.white,
-              backgroundColor: color.withOpacity(0.1),
-              side: BorderSide(
-                color: isSelected ? Colors.transparent : color.withOpacity(0.5),
+            );
+          }).toList(),
+          
+          // 🚀 NUEVO: Botón de Ordenamiento
+          Padding(
+            padding: const EdgeInsets.only(left: 8),
+            child: ActionChip(
+              avatar: Icon(
+                _ordenAscendente ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 16,
+                color: AppColors.primaryGreen,
               ),
-              onSelected: (selected) {
+              label: Text(
+                _ordenAscendente ? 'Menor a Mayor' : 'Mayor a Menor',
+                style: const TextStyle(color: AppColors.primaryGreen, fontSize: 12),
+              ),
+              backgroundColor: AppColors.primaryGreen.withOpacity(0.1),
+              onPressed: () {
                 setState(() {
-                  _filtroEstado = filtro;
+                  _ordenAscendente = !_ordenAscendente;
                 });
               },
             ),
-          );
-        }).toList(),
+          ),
+        ],
       ),
     );
   }

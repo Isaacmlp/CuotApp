@@ -46,6 +46,14 @@ class _HistorialRenovacionesPageState extends State<HistorialRenovacionesPage> {
     try {
       final data =
           await _renovacionService.getRenovacionesRaw(widget.nombreUsuario);
+      
+      // Ordenar por marca de tiempo real (más reciente primero)
+      data.sort((a, b) {
+        final dateA = DateTime.tryParse((a['created_at'] ?? a['fecha_renovacion']).toString()) ?? DateTime(1970);
+        final dateB = DateTime.tryParse((b['created_at'] ?? b['fecha_renovacion']).toString()) ?? DateTime(1970);
+        return dateB.compareTo(dateA);
+      });
+
       setState(() {
         _renovaciones = data;
         _isLoading = false;
@@ -429,9 +437,7 @@ class _HistorialRenovacionesPageState extends State<HistorialRenovacionesPage> {
     final fechaInicio = condNuevas['fecha_inicio_nueva'] ?? fechaRen;
     
     if (tipo == 'unico') {
-      if (condNuevas['plazo_dias_nuevo'] != null) {
-        return '${condNuevas['plazo_dias_nuevo']} días';
-      }
+      // Forzar recalculo para asegurar la lógica inclusiva (+1) y no depender de valores guardados con el bug antiguo.
       final fechaNueva = condNuevas['fecha_pago_nueva'];
       return '${_calcularDiasSimple(fechaInicio, fechaNueva)} días';
     } else {

@@ -650,18 +650,20 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     }).toList();
 
     for (var pago in pagosGenerales) {
-      final fs = pago['fecha_pago_real'] ?? pago['fecha_pago'] ?? DateTime.now().toIso8601String();
+      // Priorizar created_at para un ordenamiento preciso por tiempo real
+      final sortDateStr = pago['created_at'] ?? pago['fecha_pago_real'] ?? pago['fecha_pago'];
       historialData.add({
         'type': 'pago',
-        'date': DateTime.tryParse(fs.toString()) ?? DateTime.now(),
+        'date': sortDateStr != null ? DateTime.tryParse(sortDateStr.toString()) : DateTime.now(),
         'data': pago,
       });
     }
     
     for (var ren in _historialRenovaciones) {
+      // Priorizar createdAt (timestamp del servidor) para el ordenamiento
       historialData.add({
         'type': 'renovacion',
-        'date': ren.fechaRenovacion,
+        'date': ren.createdAt ?? ren.fechaRenovacion,
         'data': ren,
       });
     }
@@ -897,9 +899,13 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
   int _calcularDiasSimple(dynamic start, dynamic end) {
     if (start == null || end == null) return 0;
     try {
-      final s = DateTime.parse(start.toString());
-      final e = DateTime.parse(end.toString());
-      return e.difference(s).inDays;
+      String sStr = start.toString().split(' ')[0].split('T')[0];
+      String eStr = end.toString().split(' ')[0].split('T')[0];
+      final s = DateTime.parse(sStr);
+      final e = DateTime.parse(eStr);
+      final sUtc = DateTime.utc(s.year, s.month, s.day);
+      final eUtc = DateTime.utc(e.year, e.month, e.day);
+      return eUtc.difference(sUtc).inDays + 1;
     } catch (e) {
       return 0;
     }
@@ -908,17 +914,16 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
   String _getResumenPlazoLocal(
       DateTime fechaRen, Map<String, dynamic> condNuevas) {
     final tipo = condNuevas['tipo_credito'] ?? 'cuotas';
+    final fechaInicio = condNuevas['fecha_inicio_nueva'] ?? fechaRen.toIso8601String();
+    
     if (tipo == 'unico') {
       final fechaNueva = condNuevas['fecha_pago_nueva'];
-      return '${_calcularDiasSimple(fechaRen.toIso8601String(), fechaNueva)} días';
+      return '${_calcularDiasSimple(fechaInicio, fechaNueva)} días';
     } else {
       final cuotas = condNuevas['cuotas_renovadas'];
       if (cuotas is List && cuotas.isNotEmpty) {
         final last = cuotas.last;
-        final e = DateTime.tryParse(last['fecha'].toString());
-        if (e != null) {
-          return '${e.difference(fechaRen).inDays} días';
-        }
+        return '${_calcularDiasSimple(fechaInicio, last['fecha'])} días';
       }
       return '? días';
     }

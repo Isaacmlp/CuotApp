@@ -64,7 +64,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
   // 📌 NUEVO: Propiedades de cuotas pagadas
   int get _cantidadCuotasPagadas =>
       _fechasPersonalizadas?.where((c) => c.pagada).length ?? 0;
-  
+
   bool get _tienePagosAsociados =>
       _fechasPersonalizadas?.any((c) => c.bloqueada) ?? false;
 
@@ -91,7 +91,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
         _mostrarTelefono = true;
         _telefonoController.text = inicial.telefono!;
       }
-      
+
       if (inicial.notas != null) {
         _notasController.text = inicial.notas!;
       }
@@ -188,18 +188,49 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
             const SizedBox(height: 20),
 
             // 📌 2. INVERSIÓN
-            _buildSeccionTitulo('Inversión/Coste', Icons.attach_money),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _inversionController,
-              decoration: _buildInputDecoration(
-                label: 'Monto invertido',
-                icon: Icons.money,
-                prefix: '\$ ',
-              ),
-              keyboardType: TextInputType.number,
-              validator: (v) => Validators.positiveNumber(v, 'Inversión'),
-              onChanged: _actualizarCredito,
+            Row(
+              children: [
+                Column(
+                  children: [
+                    _buildSeccionTitulo('Inversión/Coste', Icons.attach_money),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _inversionController,
+                        decoration: _buildInputDecoration(
+                          label: 'Monto invertido',
+                          icon: Icons.money,
+                          prefix: '\$ ',
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (v) => Validators.positiveNumber(v, 'Inversión'),
+                        onChanged: _actualizarCredito,
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  children: [
+                    _buildSeccionTitulo('Ganancia', Icons.trending_up),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _gananciaController,
+                        decoration: _buildInputDecoration(
+                          label: 'Ganancia',
+                          icon: Icons.add_chart,
+                          prefix: '\$ ',
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (v) => Validators.positiveNumber(v, 'Ganancia',
+                            allowZero: true),
+                        onChanged: (value) {
+                          _actualizarCredito();
+                        },
+                      ),
+                    ),
+                  ],
+                )
+              ],
             ),
             const SizedBox(height: 20),
 
@@ -211,24 +242,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSeccionTitulo('Ganancia', Icons.trending_up),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _gananciaController,
-                        decoration: _buildInputDecoration(
-                          label: 'Ganancia',
-                          icon: Icons.add_chart,
-                          prefix: '\$ ',
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (v) =>
-                            Validators.positiveNumber(v, 'Ganancia', allowZero: true),
-                        onChanged: (value) {
-                          _actualizarCredito();
-                        },
-                      ),
-                    ],
+                    children: [],
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -249,7 +263,8 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                           label: 'Cantidad',
                           icon: Icons.numbers,
                           suffixIcon: _tienePagosAsociados
-                              ? const Icon(Icons.lock, color: Colors.grey, size: 16)
+                              ? const Icon(Icons.lock,
+                                  color: Colors.grey, size: 16)
                               : null,
                         ),
                         keyboardType: TextInputType.number,
@@ -294,12 +309,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          children: [
-                            Icon(Icons.play_circle,
-                                color: Colors.green, size: 20),
-                            const SizedBox(width: 8),
-                            const Text('Fecha de inicio:'),
-                          ],
+                          children: [],
                         ),
                         const SizedBox(height: 8),
                         CustomDatePicker(
@@ -310,7 +320,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                             });
                             _actualizarCredito();
                           },
-                          label: 'Seleccionar fecha',
+                          label: 'Fecha de Inicio',
                         ),
                       ],
                     ),
@@ -331,12 +341,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          children: [
-                            Icon(Icons.stop_circle,
-                                color: Colors.red, size: 20),
-                            const SizedBox(width: 8),
-                            const Text('Fecha límite:'),
-                          ],
+                          children: [],
                         ),
                         const SizedBox(height: 8),
                         Container(
@@ -405,7 +410,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                     ? const Icon(Icons.lock, color: Colors.grey, size: 16)
                     : null,
               ),
-              items: _tienePagosAsociados 
+              items: _tienePagosAsociados
                   ? [
                       DropdownMenuItem(
                         value: _modalidadSeleccionada,
@@ -417,7 +422,8 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                               color: Colors.grey,
                             ),
                             const SizedBox(width: 8),
-                            Text(_getModalidadText(_modalidadSeleccionada), style: const TextStyle(color: Colors.grey)),
+                            Text(_getModalidadText(_modalidadSeleccionada),
+                                style: const TextStyle(color: Colors.grey)),
                           ],
                         ),
                       )
@@ -438,13 +444,15 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                         ),
                       );
                     }).toList(),
-              onChanged: _tienePagosAsociados ? null : (modalidad) {
-                setState(() {
-                  _modalidadSeleccionada = modalidad!;
-                });
-                _resetConfiguracionPersonalizada();
-                _actualizarCredito();
-              },
+              onChanged: _tienePagosAsociados
+                  ? null
+                  : (modalidad) {
+                      setState(() {
+                        _modalidadSeleccionada = modalidad!;
+                      });
+                      _resetConfiguracionPersonalizada();
+                      _actualizarCredito();
+                    },
             ),
             const SizedBox(height: 16),
 
@@ -464,7 +472,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
             const SizedBox(height: 8),
             TextFormField(
               controller: _notasController,
-              maxLines: 2,
+              maxLines: 1,
               decoration: _buildInputDecoration(
                 label: 'Observaciones...',
                 icon: Icons.edit_note,
@@ -674,8 +682,10 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
 
     // Si hay pagadas, comparar cuotas pendientes vs saldo pendiente
     // Si no hay pagadas, comparar total cuotas vs precio total
-    final double montoReferencia = _cantidadCuotasPagadas > 0 ? saldoPendiente : _precioTotal;
-    final double totalAComparar = _cantidadCuotasPagadas > 0 ? totalCuotasPendientes : totalCuotas;
+    final double montoReferencia =
+        _cantidadCuotasPagadas > 0 ? saldoPendiente : _precioTotal;
+    final double totalAComparar =
+        _cantidadCuotasPagadas > 0 ? totalCuotasPendientes : totalCuotas;
     final diferencia = totalAComparar - montoReferencia;
     final totalValido = diferencia.abs() <= 0.01;
 
@@ -754,8 +764,8 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                         Expanded(
                           child: Text(
                             _cantidadCuotasPagadas > 0
-                              ? 'Cuotas pendientes (\$${totalCuotasPendientes.toStringAsFixed(2)}) no coinciden con saldo pendiente (\$${saldoPendiente.toStringAsFixed(2)})'
-                              : 'Diferencia: \$${diferencia.toStringAsFixed(2)}',
+                                ? 'Cuotas pendientes (\$${totalCuotasPendientes.toStringAsFixed(2)}) no coinciden con saldo pendiente (\$${saldoPendiente.toStringAsFixed(2)})'
+                                : 'Diferencia: \$${diferencia.toStringAsFixed(2)}',
                             style: TextStyle(
                               color: Colors.red.shade700,
                               fontWeight: FontWeight.w500,
@@ -861,7 +871,8 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
       final totalCuotasPendientes = CuotaPersonalizada.calcularTotalCuotas(
           _fechasPersonalizadas!.where((c) => !c.pagada).toList());
       final saldoPendiente = _precioTotal - _montoPagado;
-      final montoReferencia = _cantidadCuotasPagadas > 0 ? saldoPendiente : _precioTotal;
+      final montoReferencia =
+          _cantidadCuotasPagadas > 0 ? saldoPendiente : _precioTotal;
       final diferencia = (totalCuotasPendientes - montoReferencia).abs();
 
       if (diferencia > 0.01) {
@@ -869,11 +880,11 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
           'Total de cuotas incorrecto',
           _cantidadCuotasPagadas > 0
               ? 'La suma de las cuotas pendientes (\$${totalCuotasPendientes.toStringAsFixed(2)}) '
-                'no coincide con el saldo pendiente (\$${montoReferencia.toStringAsFixed(2)}).\n\n'
-                'Diferencia: \$${diferencia.toStringAsFixed(2)}'
+                  'no coincide con el saldo pendiente (\$${montoReferencia.toStringAsFixed(2)}).\n\n'
+                  'Diferencia: \$${diferencia.toStringAsFixed(2)}'
               : 'La suma de todas las cuotas (\$${totalCuotasPendientes.toStringAsFixed(2)}) '
-                'no coincide con el precio total (\$${_precioTotal.toStringAsFixed(2)}).\n\n'
-                'Diferencia: \$${diferencia.toStringAsFixed(2)}',
+                  'no coincide con el precio total (\$${_precioTotal.toStringAsFixed(2)}).\n\n'
+                  'Diferencia: \$${diferencia.toStringAsFixed(2)}',
         );
         return;
       }

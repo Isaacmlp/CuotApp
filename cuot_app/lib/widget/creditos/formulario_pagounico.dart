@@ -28,7 +28,7 @@ class FormularioPagounico extends StatefulWidget {
 
 class _FormularioPagounicoState extends State<FormularioPagounico> {
   final _formKey = GlobalKey<FormState>();
-  
+
   // Controladores
   final _conceptoController = TextEditingController();
   final _inversionController = TextEditingController();
@@ -36,13 +36,13 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
   final _clienteController = TextEditingController();
   final _telefonoController = TextEditingController();
   final _notasController = TextEditingController();
-  
+
   // Variables de estado
   DateTime _fechaInicio = DateTime.now();
   DateTime _fechaLimite = DateTime.now().add(const Duration(days: 30));
   File? _facturaSeleccionada;
   bool _mostrarTelefono = false; // 👈 NUEVO: Estado del checkbox
-  
+
   // Valores calculados
   double get _inversion => double.tryParse(_inversionController.text) ?? 0;
   double get _ganancia => double.tryParse(_gananciaController.text) ?? 0;
@@ -61,12 +61,12 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
       _inversionController.text = credito.costeInversion.toString();
       _gananciaController.text = credito.margenGanancia.toString();
       _clienteController.text = credito.nombreCliente;
-      
+
       if (credito.telefono != null && credito.telefono!.isNotEmpty) {
         _mostrarTelefono = true;
         _telefonoController.text = credito.telefono!;
       }
-      
+
       if (credito.notas != null) {
         _notasController.text = credito.notas!;
       }
@@ -105,7 +105,7 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
             const SizedBox(height: 20),
 
             // 📌 2. INVERSIÓN Y GANANCIA - CORREGIDO
-                        // 📌 2. INVERSIÓN Y GANANCIA - CON INVERSIÓN MÁS GRANDE
+            // 📌 2. INVERSIÓN Y GANANCIA - CON INVERSIÓN MÁS GRANDE
             Row(
               children: [
                 // INVERSIÓN - OCUPA MÁS ESPACIO (flex: 2)
@@ -114,7 +114,8 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildSeccionTitulo('Inversión/Coste', Icons.attach_money),
+                      _buildSeccionTitulo(
+                          'Inversión/Coste', Icons.attach_money),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _inversionController,
@@ -124,8 +125,9 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
                           prefix: '\$ ',
                         ),
                         keyboardType: TextInputType.number,
-                        validator: (v) =>
-                            Validators.positiveNumber(v, 'Inversión', allowZero: true),
+                        validator: (v) => Validators.positiveNumber(
+                            v, 'Inversión',
+                            allowZero: true),
                         onChanged: (value) {
                           setState(() {}); // 👈 Para actualizar resumen
                           _actualizarCredito();
@@ -134,9 +136,9 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(width: 12), // Espacio entre columnas
-                
+
                 // GANANCIA - OCUPA MENOS ESPACIO (flex: 1)
                 Expanded(
                   flex: 1, // 👈 VALOR MÁS BAJO = MENOS ESPACIO
@@ -153,7 +155,9 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
                           prefix: '\$ ',
                         ),
                         keyboardType: TextInputType.number,
-                        validator: (v) => Validators.positiveNumber(v, 'Ganancia', allowZero: true),
+                        validator: (v) => Validators.positiveNumber(
+                            v, 'Ganancia',
+                            allowZero: true),
                         onChanged: (value) {
                           setState(() {});
                           _actualizarCredito();
@@ -169,95 +173,81 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
             // 📌 4. FECHAS
             _buildSeccionTitulo('Fechas de pago', Icons.date_range),
             const SizedBox(height: 8),
-            
+
             // Fecha de inicio
             Row(
               spacing: 5,
               children: [
-                Expanded( child:
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color.fromARGB(255, 27, 19, 19)),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.play_circle, color: Colors.green, size: 20),
-                          const SizedBox(width: 8),
-                          const Text('Inicio de pago:'),
-                          const Spacer(),
-                         /* Text(
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: const Color.fromARGB(255, 27, 19, 19)),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                             /* Text(
                             _formatearFecha(_fechaInicio),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Theme.of(context).primaryColor,
                             ),
                           ),*/
-                        ],
-                      ),
-                      CustomDatePicker(
-                        selectedDate: _fechaInicio,
-                        onDateSelected: (date) {
-                          setState(() => _fechaInicio = date);
-                          _actualizarCredito();
-                        },
-                        label: 'Fecha de inicio',
-                      ),
-                      
-                    ],
-                    
-                    
+                          ],
+                        ),
+                        CustomDatePicker(
+                          selectedDate: _fechaInicio,
+                          onDateSelected: (date) {
+                            setState(() => _fechaInicio = date);
+                            _actualizarCredito();
+                          },
+                          label: 'Fecha de inicio',
+                        ),
+                      ],
+                    ),
                   ),
-                  
-                  
                 ),
-                ),
- 
+
                 // Fecha límite
                 Expanded(
-                   child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.stop_circle, color: Colors.red, size: 20),
-                          const SizedBox(width: 8),
-                          const Text('Fecha límite:'),
-                          const Spacer(),
-                          /*Text(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            /*Text(
                             _formatearFecha(_fechaLimite),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Theme.of(context).primaryColor,
                             ),
                           ),*/
-                        ],
-                      ),
-                      
-                      CustomDatePicker(
-                        selectedDate: _fechaLimite,
-                        onDateSelected: (date) {
-                          setState(() => _fechaLimite = date);
-                          _actualizarCredito();
-                        },
-                        label: 'Fecha límite',
-                      ),
-                    ],
+                          ],
+                        ),
+                        CustomDatePicker(
+                          selectedDate: _fechaLimite,
+                          onDateSelected: (date) {
+                            setState(() => _fechaLimite = date);
+                            _actualizarCredito();
+                          },
+                          label: 'Fecha límite',
+                        ),
+                      ],
+                    ),
                   ),
-                ),
                 )
               ],
-              
             ),
             const SizedBox(height: 20),
 
@@ -280,7 +270,7 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
 
             // 📌 6. RESUMEN DE VALORES
             _buildResumenCard(),
-          
+
             const SizedBox(height: 20),
 
             // 📌 7. NOTAS (NUEVA POSICIÓN)
@@ -288,7 +278,7 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
             const SizedBox(height: 8),
             TextFormField(
               controller: _notasController,
-              maxLines: 2,
+              maxLines: 1,
               decoration: _buildInputDecoration(
                 label: 'Observaciones...',
                 icon: Icons.edit_note,
@@ -313,7 +303,7 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
               onChanged: _actualizarCredito,
             ),
             const SizedBox(height: 20),
-            
+
             // 📌 7.5 TELEFONO OPCIONAL
             CheckboxListTile(
               title: const Text('Agregar número de teléfono'),
@@ -373,7 +363,8 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
                     SizedBox(width: 8),
                     Text(
                       'GUARDAR PAGO ÚNICO',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -407,7 +398,7 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
           children: [
             _buildInfoRow('Precio total:', '\$$_precioTotal'),
             _buildInfoRow(
-              'Duración:', 
+              'Duración:',
               DateUt.formatearDuracion(_fechaInicio, _fechaLimite),
             ),
             const Divider(),
@@ -419,7 +410,8 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
                   style: TextStyle(fontWeight: FontWeight.w500),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade100,
                     borderRadius: BorderRadius.circular(20),
@@ -494,7 +486,8 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
         fechaInicio: _fechaInicio,
         modalidadPago: ModalidadPago.mensual,
         nombreCliente: _clienteController.text,
-        telefono: _mostrarTelefono ? _telefonoController.text : '', // 👈 Condicional
+        telefono:
+            _mostrarTelefono ? _telefonoController.text : '', // 👈 Condicional
         numeroCuotas: 1,
         facturaPath: _facturaSeleccionada?.path,
         nombreFactura: _facturaSeleccionada?.path.split('/').last,
@@ -530,7 +523,8 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
     }
 
     // Diálogo para factura opcional
-    if (_facturaSeleccionada == null && widget.creditoInicial?.facturaPath == null) {
+    if (_facturaSeleccionada == null &&
+        widget.creditoInicial?.facturaPath == null) {
       _mostrarDialogoFacturaOpcional();
     } else {
       widget.onGuardar();
@@ -561,8 +555,7 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
       builder: (context) => AlertDialog(
         title: const Text('¿Adjuntar factura/foto?'),
         content: const Text(
-          'No has adjuntado ninguna factura/foto. ¿Deseas continuar sin factura/foto?'
-        ),
+            'No has adjuntado ninguna factura/foto. ¿Deseas continuar sin factura/foto?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -634,8 +627,8 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
 
   String _formatearFecha(DateTime fecha) {
     return '${fecha.day.toString().padLeft(2, '0')}/'
-           '${fecha.month.toString().padLeft(2, '0')}/'
-           '${fecha.year}';
+        '${fecha.month.toString().padLeft(2, '0')}/'
+        '${fecha.year}';
   }
 
   @override

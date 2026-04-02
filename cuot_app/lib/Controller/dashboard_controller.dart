@@ -13,6 +13,7 @@ class DashboardController extends ChangeNotifier {
   double pendingBalance = 0.0; // 4. Saldo de Cuotas Pendiente
   List<PaymentModel> upcomingPayments = []; // 5. Próximos Vencimientos
   List<PaymentModel> latePayments = []; // 6. Cuotas Atrasadas
+  double totalCapital = 0.0; // 7. Capital total
 
   bool isLoading = true;
   String? errorMessage;
@@ -63,11 +64,17 @@ class DashboardController extends ChangeNotifier {
     pendingBalance = 0.0;
     upcomingPayments = [];
     latePayments = [];
+    totalCapital = 0.0;
 
     for (var credit in credits) {
       // 1. Créditos activos
       if (credit['estado'] != 'Pagado') {
         totalCredits++;
+      }
+
+      // 7. Capital total
+      if (credit['estado'] != 'Pagado') {
+        totalCapital += (credit['costo_inversion'] as num).toDouble();
       }
 
       final clienteData = credit['Clientes'];
@@ -129,6 +136,8 @@ class DashboardController extends ChangeNotifier {
         }
       }
     }
+
+   
 
     // Ordenar listas por fecha
     upcomingPayments.sort((a, b) => a.date.compareTo(b.date));

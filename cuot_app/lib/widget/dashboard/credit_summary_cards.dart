@@ -2,10 +2,11 @@ import 'package:cuot_app/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class CreditSummaryCards extends StatelessWidget {
-  final int totalCredits;           // 1. Cantidad de Créditos
-  final double totalPaid;           // 2. Dinero abonado
-  final int pendingWeeklyQuotas;    // 3. Cuotas pendientes por semana
-  final double pendingBalance;      // 4. Saldo de Cuotas Pendiente
+  final int totalCredits; // 1. Cantidad de Créditos
+  final double totalPaid; // 2. Dinero abonado
+  final int pendingWeeklyQuotas; // 3. Cuotas pendientes por semana
+  final double pendingBalance; // 4. Saldo de Cuotas Pendiente
+  final double totalCapital; // 5. Capital total
 
   final VoidCallback? onTapActiveCredits; // 👈 NUEVO: Callback para navegación
   final VoidCallback? onTapPendingBalance; // 👈 NUEVO: Opcional para el futuro
@@ -18,6 +19,7 @@ class CreditSummaryCards extends StatelessWidget {
     required this.pendingBalance,
     this.onTapActiveCredits,
     this.onTapPendingBalance,
+    required this.totalCapital,
   });
 
   @override
@@ -31,11 +33,12 @@ class CreditSummaryCards extends StatelessWidget {
       childAspectRatio: 1.2,
       children: [
         _buildSummaryCard(
-          title: 'Créditos Activos',
+          title: 'Registros Activos',
           value: totalCredits.toString(),
           icon: Icons.credit_card,
           color: AppColors.primaryGreen,
           onTap: onTapActiveCredits, // 👈 ASIGNADO
+          extraInfo: 'Capital: \n\$${totalCapital.toStringAsFixed(2)}',
         ),
         _buildSummaryCard(
           title: 'Total Abonado',
@@ -65,61 +68,76 @@ class CreditSummaryCards extends StatelessWidget {
     required IconData icon,
     required Color color,
     VoidCallback? onTap, // 👈 AGREGADO
+    String? extraInfo,
   }) {
     return Card(
       elevation: 2,
-      clipBehavior: Clip.antiAlias, // Para que el ripple del InkWell respete el borde del Card
-      child: InkWell( // 👈 AGREGADO para interactividad
+      clipBehavior: Clip
+          .antiAlias, // Para que el ripple del InkWell respete el borde del Card
+      child: InkWell(
+        // 👈 AGREGADO para interactividad
         onTap: onTap,
         child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.pureWhite,
-              color.withOpacity(0.1),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, color: color, size: 20),
-                ),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.pureWhite,
+                color.withOpacity(0.1),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(icon, color: color, size: 20),
+                        SizedBox(width: 4),
+                        Text(
+                          "${extraInfo ?? ''}",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.mediumGrey,
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-          ],
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.mediumGrey,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

@@ -378,7 +378,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
             const SizedBox(height: 20),
 
             // 📌 5. FACTURA (NUEVA POSICIÓN)
-            _buildSeccionTitulo('Factura', Icons.receipt),
+            _buildSeccionTitulo('Factura/Foto', Icons.receipt),
             const SizedBox(height: 8),
             FacturaUploader(
               onFacturaSeleccionada: (File? archivo) {
@@ -460,7 +460,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
             const SizedBox(height: 24),
 
             // 📌 8. NOTAS (NUEVA POSICIÓN)
-            _buildSeccionTitulo('Notas', Icons.note_alt_outlined),
+            _buildSeccionTitulo('Nota', Icons.note_alt_outlined),
             const SizedBox(height: 8),
             TextFormField(
               controller: _notasController,
@@ -792,7 +792,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Factura adjunta:',
+                  'Factura/foto adjunta:',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Text(
@@ -939,9 +939,9 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('¿Adjuntar factura?'),
+        title: const Text('¿Adjuntar factura/foto?'),
         content: const Text(
-          'No has adjuntado ninguna factura. ¿Deseas continuar sin factura?',
+          'No has adjuntado ninguna factura/foto. ¿Deseas continuar sin factura/foto?',
         ),
         actions: [
           TextButton(

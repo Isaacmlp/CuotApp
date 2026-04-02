@@ -288,7 +288,7 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
             const SizedBox(height: 8),
             TextFormField(
               controller: _notasController,
-              maxLines: 3,
+              maxLines: 2,
               decoration: _buildInputDecoration(
                 label: 'Observaciones...',
                 icon: Icons.edit_note,

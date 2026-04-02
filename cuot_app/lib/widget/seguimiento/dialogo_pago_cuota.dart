@@ -323,7 +323,7 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
                   onTap: () async {
                     final date = await showDatePicker(
                       context: context,
-                      initialDate: _fechaPago,
+                      initialDate: DateTime.now(), // 👈 Siempre inicia el calendario en HOY
                       firstDate: DateTime.now().subtract(const Duration(days: 30)),
                       lastDate: DateTime.now().add(const Duration(days: 30)),
                       builder: (context, child) {

@@ -34,7 +34,7 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
       final DateTime firstDate = widget.firstDate ?? DateTime(2000);
       final DateTime lastDate = widget.lastDate ?? DateTime(now.year + 10);
 
-      DateTime initialDate = widget.selectedDate ?? now;
+      DateTime initialDate = now; // 👈 Siempre inicia el calendario en HOY
       if (initialDate.isBefore(firstDate)) initialDate = firstDate;
       if (initialDate.isAfter(lastDate)) initialDate = lastDate;
 

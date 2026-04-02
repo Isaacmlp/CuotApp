@@ -702,9 +702,12 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
 
                             if (pickedStart != null && mounted) {
                               // Step 2: Select End Date (Default: Start + 30 days)
+                              DateTime initialEnd = DateTime.now();
+                              if (initialEnd.isBefore(pickedStart)) initialEnd = pickedStart;
+
                               final pickedEnd = await showDatePicker(
                                 context: context,
-                                initialDate: pickedStart.add(const Duration(days: 30)),
+                                initialDate: initialEnd,
                                 firstDate: pickedStart,
                                 lastDate: DateTime(2100),
                                 helpText: 'Selecciona la fecha final',

@@ -377,7 +377,24 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
             ),
             const SizedBox(height: 20),
 
-            // 📌 5. MODALIDAD DE COBRO
+            // 📌 5. FACTURA (NUEVA POSICIÓN)
+            _buildSeccionTitulo('Factura', Icons.receipt),
+            const SizedBox(height: 8),
+            FacturaUploader(
+              onFacturaSeleccionada: (File? archivo) {
+                setState(() {
+                  _facturaSeleccionada = archivo;
+                });
+                _actualizarCredito();
+              },
+            ),
+            if (_facturaSeleccionada != null) ...[
+              const SizedBox(height: 12),
+              _buildFacturaIndicator(),
+            ],
+            const SizedBox(height: 24),
+
+            // 📌 6. MODALIDAD DE COBRO
             _buildSeccionTitulo('Modalidad de cobro', Icons.payment),
             const SizedBox(height: 8),
             DropdownButtonFormField<ModalidadPago>(
@@ -440,7 +457,22 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
 
             // 📌 7. RESUMEN DE VALORES
             _buildResumenCard(),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+
+            // 📌 8. NOTAS (NUEVA POSICIÓN)
+            _buildSeccionTitulo('Notas', Icons.note_alt_outlined),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _notasController,
+              maxLines: 3,
+              decoration: _buildInputDecoration(
+                label: 'Observaciones...',
+                icon: Icons.edit_note,
+              ),
+              onChanged: _actualizarCredito,
+            ),
+            const SizedBox(height: 24),
+
             _buildSeccionTitulo('Cliente', Icons.person),
             const SizedBox(height: 8),
             TextFormField(
@@ -489,59 +521,6 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                 onChanged: _actualizarCredito,
               ),
             ],
-            const SizedBox(height: 20),
-
-            // 📌 8. NOTAS Y FACTURA (EN FILA)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Notas (Lado izquierdo)
-                Expanded(
-                  flex: 2,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSeccionTitulo('Notas', Icons.note_alt_outlined),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _notasController,
-                        maxLines: 3,
-                        decoration: _buildInputDecoration(
-                          label: 'Observaciones...',
-                          icon: Icons.edit_note,
-                        ),
-                        onChanged: _actualizarCredito,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Factura (Lado derecho)
-                Expanded(
-                  flex: 1,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSeccionTitulo('Factura', Icons.receipt),
-                      const SizedBox(height: 8),
-                      FacturaUploader(
-                        onFacturaSeleccionada: (File? archivo) {
-                          setState(() {
-                            _facturaSeleccionada = archivo;
-                          });
-                          _actualizarCredito();
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            // 📌 9. CLIENTE
-
-            // 📌 10. INDICADOR DE FACTURA (si hay)
-            if (_facturaSeleccionada != null) _buildFacturaIndicator(),
             const SizedBox(height: 24),
 
             // 📌 11. BOTÓN GUARDAR

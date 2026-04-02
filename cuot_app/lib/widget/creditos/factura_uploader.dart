@@ -147,16 +147,11 @@ class _FacturaUploaderState extends State<FacturaUploader> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Factura/Foto',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        SizedBox(height: 16),
-
         // Área de selección/vista previa
         Container(
-          width: 190,
+          width: double.infinity,
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
             borderRadius: BorderRadius.circular(12),
           ),
           child: _facturaFile == null
@@ -168,82 +163,64 @@ class _FacturaUploaderState extends State<FacturaUploader> {
   }
 
   Widget _buildEmptyState() {
-  // Verificar que el método existe
-  return GestureDetector(
-    onTap: () {
-      try {
-        _mostrarOpciones();
-      } catch (e) {
-        print('Error en _mostrarOpciones: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
-    },
-    child: Center( // 👈 1. Envolver en Center para centrar horizontalmente
+    return GestureDetector(
+      onTap: _mostrarOpciones,
       child: Container(
-        //height: 165, // Altura fija (la puedes ajustar)
-        // width: double.infinity, // 👈 2. QUITAR esto para que no ocupe todo el ancho
-        
-        // 👇 3. OPCIONES PARA CONTROLAR EL ANCHO:
-        
-        // Opción A: Ancho fijo (ej: 300 píxeles)
-        width: 150, 
-        
-        // Opción B: Porcentaje del ancho de la pantalla
-        // width: MediaQuery.of(context).size.width * 0.8, // 80% del ancho
-        
-        // Opción C: Sin ancho definido (se ajusta al contenido)
-        // (comenta las opciones A y B si eliges esta)
-        
-        margin: const EdgeInsets.symmetric(
-          horizontal: 20, // Margen horizontal
-          vertical: 8,    // Margen vertical
-        ),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         decoration: BoxDecoration(
-          color: Colors.grey.shade50,
+          color: const Color(0xFFE8F5E9).withOpacity(0.5), // Verde muy suave
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.grey.shade300,
-            width: 1,
-            style: BorderStyle.solid,
-          ),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min, // 👈 4. IMPORTANTE: Para que la columna no ocupe más espacio del necesario
-          mainAxisAlignment: MainAxisAlignment.start,
+        child: Row(
           children: [
-            Icon(
-              Icons.cloud_upload_outlined, 
-              size: 48, 
-              color: Colors.grey.shade400,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Toca para subir la factura',
-              style: TextStyle(
-                fontSize: 16, 
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w500,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 5,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              textAlign: TextAlign.center, // 👈 5. Centrar texto por si es muy largo
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'PDF, JPG o PNG (Max. 10MB)',
-              style: TextStyle(
-                fontSize: 12, 
-                color: Colors.grey.shade500,
+              child: const Icon(
+                Icons.cloud_upload_outlined,
+                size: 32,
+                color: Color(0xFF4CAF50),
               ),
-              textAlign: TextAlign.center,
             ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Subir factura o foto',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2E7D32),
+                    ),
+                  ),
+                  Text(
+                    'Toca para adjuntar (PDF, JPG o PNG)',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.add_a_photo_outlined, color: Colors.grey.shade400, size: 20),
           ],
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildFilePreview() {
     return Stack(

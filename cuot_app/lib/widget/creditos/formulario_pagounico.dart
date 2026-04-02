@@ -262,7 +262,7 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
             const SizedBox(height: 20),
 
             // 📌 5. FACTURA (NUEVA POSICIÓN)
-            _buildSeccionTitulo('Factura', Icons.receipt),
+            _buildSeccionTitulo('Factura/Foto', Icons.receipt),
             const SizedBox(height: 8),
             FacturaUploader(
               onFacturaSeleccionada: (File? archivo) {
@@ -284,7 +284,7 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
             const SizedBox(height: 20),
 
             // 📌 7. NOTAS (NUEVA POSICIÓN)
-            _buildSeccionTitulo('Notas', Icons.note_alt_outlined),
+            _buildSeccionTitulo('Nota', Icons.note_alt_outlined),
             const SizedBox(height: 8),
             TextFormField(
               controller: _notasController,
@@ -459,7 +459,7 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Factura adjunta:',
+                  'Factura/Foto adjunta:',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Text(
@@ -559,9 +559,9 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('¿Adjuntar factura?'),
+        title: const Text('¿Adjuntar factura/foto?'),
         content: const Text(
-          'No has adjuntado ninguna factura. ¿Deseas continuar sin factura?'
+          'No has adjuntado ninguna factura/foto. ¿Deseas continuar sin factura/foto?'
         ),
         actions: [
           TextButton(

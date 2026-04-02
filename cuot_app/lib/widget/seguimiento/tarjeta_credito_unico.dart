@@ -251,7 +251,7 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
                                   if (widget.credito.numeroCredito != null) ...[
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Crédito #${widget.credito.numeroCredito}',
+                                      'Registro #${widget.credito.numeroCredito}',
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,

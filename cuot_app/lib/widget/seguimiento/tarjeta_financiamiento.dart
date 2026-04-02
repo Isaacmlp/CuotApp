@@ -174,7 +174,7 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
                                             : widget.telefono,
                                         style: TextStyle(
                                           fontSize: 13,
-                                          color: Colors.grey,
+                                          color: Colors.green,
                                           fontStyle: widget.telefono.isEmpty 
                                               ? FontStyle.italic 
                                               : FontStyle.normal,

@@ -104,22 +104,21 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
             ),
             const SizedBox(height: 20),
 
-            // 📌 2. INVERSIÓN Y GANANCIA - CORREGIDO
-                        // 📌 2. INVERSIÓN Y GANANCIA - CON INVERSIÓN MÁS GRANDE
+            // 📌 2 & 3. INVERSIÓN Y GANANCIA (MISMA FILA)
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // INVERSIÓN - OCUPA MÁS ESPACIO (flex: 2)
+                // INVERSIÓN
                 Expanded(
-                  flex: 2, // 👈 VALOR MÁS ALTO = MÁS ESPACIO
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildSeccionTitulo('Inversión/Coste', Icons.attach_money),
+                      _buildSeccionTitulo('Inversión', Icons.attach_money),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _inversionController,
                         decoration: _buildInputDecoration(
-                          label: 'Monto invertido',
+                          label: 'Coste',
                           icon: Icons.money,
                           prefix: '\$ ',
                         ),
@@ -127,7 +126,7 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
                         validator: (v) =>
                             Validators.positiveNumber(v, 'Inversión', allowZero: true),
                         onChanged: (value) {
-                          setState(() {}); // 👈 Para actualizar resumen
+                          setState(() {}); 
                           _actualizarCredito();
                         },
                       ),
@@ -135,11 +134,10 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
                   ),
                 ),
                 
-                const SizedBox(width: 12), // Espacio entre columnas
+                const SizedBox(width: 12),
                 
-                // GANANCIA - OCUPA MENOS ESPACIO (flex: 1)
+                // GANANCIA
                 Expanded(
-                  flex: 1, // 👈 VALOR MÁS BAJO = MENOS ESPACIO
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -148,7 +146,7 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
                       TextFormField(
                         controller: _gananciaController,
                         decoration: _buildInputDecoration(
-                          label: '',
+                          label: 'Monto',
                           icon: Icons.add_chart,
                           prefix: '\$ ',
                         ),
@@ -161,7 +159,7 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
                       ),
                     ],
                   ),
-                )
+                ),
               ],
             ),
             const SizedBox(height: 20),

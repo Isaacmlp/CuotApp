@@ -187,26 +187,32 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
             ),
             const SizedBox(height: 20),
 
-            // 📌 2. INVERSIÓN
-            _buildSeccionTitulo('Inversión/Coste', Icons.attach_money),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _inversionController,
-              decoration: _buildInputDecoration(
-                label: 'Monto invertido',
-                icon: Icons.money,
-                prefix: '\$ ',
-              ),
-              keyboardType: TextInputType.number,
-              validator: (v) => Validators.positiveNumber(v, 'Inversión'),
-              onChanged: _actualizarCredito,
-            ),
-            const SizedBox(height: 20),
-
-            // 📌 3. FILA: GANANCIA Y CUOTAS
+            // 📌 2. FILA: INVERSIÓN Y GANANCIA
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Inversión
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSeccionTitulo('Inversión', Icons.attach_money),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _inversionController,
+                        decoration: _buildInputDecoration(
+                          label: 'Coste',
+                          icon: Icons.money,
+                          prefix: '\$ ',
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (v) => Validators.positiveNumber(v, 'Inversión'),
+                        onChanged: _actualizarCredito,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
                 // Ganancia
                 Expanded(
                   child: Column(
@@ -217,7 +223,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                       TextFormField(
                         controller: _gananciaController,
                         decoration: _buildInputDecoration(
-                          label: 'Ganancia',
+                          label: 'Monto',
                           icon: Icons.add_chart,
                           prefix: '\$ ',
                         ),
@@ -231,16 +237,20 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                // Cuotas
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // 📌 3. FILA: CUOTAS Y MODALIDAD
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // No. Cuotas
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildSeccionTitulo(
-                        'No. Cuotas',
-                        Icons.format_list_numbered,
-                      ),
+                      _buildSeccionTitulo('No. Cuotas', Icons.format_list_numbered),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _cuotasController,
@@ -266,6 +276,66 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
                               ModalidadPago.personalizado) {
                             _resetConfiguracionPersonalizada();
                           }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Modalidad de pago
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSeccionTitulo('Modalidad', Icons.payment),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<ModalidadPago>(
+                        value: _modalidadSeleccionada,
+                        decoration: _buildInputDecoration(
+                          label: 'Seleccionar',
+                          suffixIcon: _tienePagosAsociados
+                              ? const Icon(Icons.lock, color: Colors.grey, size: 16)
+                              : null,
+                        ),
+                        items: _tienePagosAsociados 
+                            ? [
+                                DropdownMenuItem(
+                                  value: _modalidadSeleccionada,
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        _getModalidadIcon(_modalidadSeleccionada),
+                                        size: 18,
+                                        color: Colors.grey,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(_getModalidadText(_modalidadSeleccionada), style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                                    ],
+                                  ),
+                                )
+                              ]
+                            : ModalidadPago.values.map((modalidad) {
+                                return DropdownMenuItem(
+                                  value: modalidad,
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        _getModalidadIcon(modalidad),
+                                        size: 18,
+                                        color: Theme.of(context).primaryColor,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(_getModalidadText(modalidad), style: const TextStyle(fontSize: 13)),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                        onChanged: _tienePagosAsociados ? null : (modalidad) {
+                          setState(() {
+                            _modalidadSeleccionada = modalidad!;
+                          });
+                          _resetConfiguracionPersonalizada();
+                          _actualizarCredito();
                         },
                       ),
                     ],
@@ -394,58 +464,7 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
             ],
             const SizedBox(height: 24),
 
-            // 📌 6. MODALIDAD DE COBRO
-            _buildSeccionTitulo('Modalidad de cobro', Icons.payment),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<ModalidadPago>(
-              value: _modalidadSeleccionada,
-              decoration: _buildInputDecoration(
-                label: 'Seleccionar',
-                suffixIcon: _tienePagosAsociados
-                    ? const Icon(Icons.lock, color: Colors.grey, size: 16)
-                    : null,
-              ),
-              items: _tienePagosAsociados 
-                  ? [
-                      DropdownMenuItem(
-                        value: _modalidadSeleccionada,
-                        child: Row(
-                          children: [
-                            Icon(
-                              _getModalidadIcon(_modalidadSeleccionada),
-                              size: 18,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(_getModalidadText(_modalidadSeleccionada), style: const TextStyle(color: Colors.grey)),
-                          ],
-                        ),
-                      )
-                    ]
-                  : ModalidadPago.values.map((modalidad) {
-                      return DropdownMenuItem(
-                        value: modalidad,
-                        child: Row(
-                          children: [
-                            Icon(
-                              _getModalidadIcon(modalidad),
-                              size: 18,
-                              color: Theme.of(context).primaryColor,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(_getModalidadText(modalidad)),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-              onChanged: _tienePagosAsociados ? null : (modalidad) {
-                setState(() {
-                  _modalidadSeleccionada = modalidad!;
-                });
-                _resetConfiguracionPersonalizada();
-                _actualizarCredito();
-              },
-            ),
+            // 📌 6. CONFIGURACIÓN PERSONALIZADA (solo si aplica)
             const SizedBox(height: 16),
 
             // 📌 6. CONFIGURACIÓN PERSONALIZADA (solo si aplica)

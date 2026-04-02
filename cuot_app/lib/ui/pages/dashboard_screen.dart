@@ -256,6 +256,7 @@ class DashboardScreen extends StatelessWidget {
                               totalPaid: controller.totalPaid,
                               pendingWeeklyQuotas: controller.pendingWeeklyQuotas,
                               pendingBalance: controller.pendingBalance,
+                              totalCapital: controller.totalCapital,
                               onTapActiveCredits: () {
                                 Navigator.push(
                                   context,

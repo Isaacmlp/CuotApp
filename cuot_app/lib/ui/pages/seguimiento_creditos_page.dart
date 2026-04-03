@@ -265,7 +265,30 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
 
       bool matchesEstado = true;
       if (_filtroEstado != 'todos') {
-        if (_filtroEstado == 'atrasado') {
+        if (_filtroEstado == 'hoy') {
+          final hoy = DateTime.now();
+          final hoySinHora = DateTime(hoy.year, hoy.month, hoy.day);
+          
+          if (f is Map<String, dynamic>) {
+            final cuotas = f['cuotas'] as List<CuotaPersonalizada>;
+            final totalPagado = f['totalPagado'] as double;
+            final totalCredito = f['totalCredito'] as double;
+            
+            // Si ya está pagado por completo, no sale en "Hoy"
+            if ((totalPagado - totalCredito).abs() < 0.01) {
+              matchesEstado = false;
+            } else {
+              // Buscar si alguna cuota pendiente es para hoy
+              matchesEstado = cuotas.any((c) {
+                final fechaCuota = DateTime(c.fechaPago.year, c.fechaPago.month, c.fechaPago.day);
+                return !c.pagada && fechaCuota.isAtSameMomentAs(hoySinHora);
+              });
+            }
+          } else if (f is CreditoUnico) {
+            final fechaLimiteSinHora = DateTime(f.fechaLimite.year, f.fechaLimite.month, f.fechaLimite.day);
+            matchesEstado = !f.estaPagado && fechaLimiteSinHora.isAtSameMomentAs(hoySinHora);
+          }
+        } else if (_filtroEstado == 'atrasado') {
           matchesEstado = estado == 'atrasado' || estado == 'vencido';
         } else {
           matchesEstado = estado == _filtroEstado.toLowerCase();
@@ -302,6 +325,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
     switch (filtro.toLowerCase()) {
       case 'todos':
         return AppColors.info;
+      case 'hoy':
+        return AppColors.warning;
       case 'al día':
         return AppColors.primaryGreen;
       case 'atrasado':
@@ -478,7 +503,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
   }
 
   Widget _buildFiltros() {
-    final filtros = ['atrasado', 'al día', 'pagado', 'todos'];
+    final filtros = ['hoy', 'atrasado', 'al día', 'pagado', 'todos'];
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -491,6 +516,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
 
             String nombreFiltro = filtro;
             if (filtro == 'todos') nombreFiltro = 'Todos';
+            else if (filtro == 'hoy') nombreFiltro = 'Hoy';
             else if (filtro == 'atrasado') nombreFiltro = 'Vencidos';
             else if (filtro == 'al día') nombreFiltro = 'Al día';
             else if (filtro == 'pagado') nombreFiltro = 'Pagados';

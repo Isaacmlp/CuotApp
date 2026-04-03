@@ -182,7 +182,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
     }
   }
 
-  String _filtroEstado = 'atrasado';
+  String _filtroEstado = 'hoy';
   String _busqueda = '';
   final TextEditingController _searchController = TextEditingController();
   bool _ordenAscendente = true; // 👈 NUEVO: Estado del orden

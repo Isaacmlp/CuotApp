@@ -142,7 +142,7 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                       Center(
                         child: Column(
                           children: [
-                            Container(
+                            /*Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 color: widget.credito.estadoColor.withOpacity(0.1),
@@ -156,6 +156,7 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                                 color: widget.credito.estadoColor,
                               ),
                             ),
+                            */
                             const SizedBox(height: 12),
                             Text(
                               widget.esParcial 

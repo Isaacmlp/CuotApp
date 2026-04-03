@@ -260,6 +260,7 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                         Center(
                           child: Column(
                             children: [
+                              /*
                               Container(
                                 width: 90,
                                 height: 90,
@@ -285,6 +286,7 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                                   size: 45,
                                 ),
                               ),
+                              */
                               const SizedBox(height: 16),
                               Text(
                                 'Registrar Pago',

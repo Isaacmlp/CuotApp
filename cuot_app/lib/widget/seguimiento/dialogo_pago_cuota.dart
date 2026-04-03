@@ -108,7 +108,7 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
                 // Título con diseño mejorado
                 Stack(
                   children: [
-                    Container(
+                    /*Container(
                       height: 80,
                       width: 80,
                       decoration: BoxDecoration(
@@ -125,7 +125,7 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
                         color: Colors.white,
                         size: 40,
                       ),
-                    ),
+                    )*/
                   ],
                 ),
                 

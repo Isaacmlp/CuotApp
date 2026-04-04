@@ -343,7 +343,7 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
                                     children: [
                                       const SizedBox(height: 25, width: double.infinity),
                                       Positioned(
-                                        left: (constraints.maxWidth * progress) - 40,
+                                        left: ((constraints.maxWidth * progress) - 42.5).clamp(0.0, constraints.maxWidth - 85.0),
                                         child: Container(
                                           width: 85,
                                           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),

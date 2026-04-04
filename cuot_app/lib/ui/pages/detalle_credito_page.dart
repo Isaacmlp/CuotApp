@@ -1518,7 +1518,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                           children: [
                             if (tipoCredito == 'unico') ...[
                               _buildCondRow(
-                                'Nueva Fecha de Pago',
+                                'Nueva Fecha Límite',
                                 condNuevas['fecha_pago_nueva'] != null
                                     ? _formatFecha(
                                         condNuevas['fecha_pago_nueva']
@@ -1543,7 +1543,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                                   (condNuevas['cuotas_renovadas'] as List)
                                       .isNotEmpty)
                                 _buildCondRow(
-                                  'Fecha Tope',
+                                  'Nueva Fecha Límite',
                                   _getFechaTope(condNuevas['cuotas_renovadas']),
                                 ),
                               _buildCondRow(

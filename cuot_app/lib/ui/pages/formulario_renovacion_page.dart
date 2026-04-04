@@ -26,7 +26,7 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
   final CreditService _creditService = CreditService();
   final RenovacionService _renovacionService = RenovacionService();
 
-  // Datos del crédito original
+  // Datos del préstamo original
   Map<String, dynamic>? _credito;
   bool _isLoading = true;
   bool _isSaving = false;
@@ -553,7 +553,7 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Renovación de Crédito'),
+          title: const Text('Renovación de Préstamo'),
           backgroundColor: AppColors.primaryGreen,
           foregroundColor: Colors.white,
         ),
@@ -564,11 +564,11 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
     if (_credito == null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Renovación de Crédito'),
+          title: const Text('Renovación de Préstamo'),
           backgroundColor: AppColors.primaryGreen,
           foregroundColor: Colors.white,
         ),
-        body: const Center(child: Text('Error al cargar el crédito')),
+        body: const Center(child: Text('Error al cargar el préstamo')),
       );
     }
 
@@ -577,7 +577,7 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Renovación de Crédito'),
+        title: const Text('Renovación de Préstamo'),
         backgroundColor: AppColors.primaryGreen,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -589,7 +589,7 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // === DATOS DEL CRÉDITO ORIGINAL (CUADRO ROJO SOLICITADO) ===
+              // === DATOS DEL PRÉSTAMO ORIGINAL (CUADRO ROJO SOLICITADO) ===
               _buildSectionTitle('📋 Condiciones Originales', AppColors.error),
               const SizedBox(height: 8),
               Container(
@@ -1128,10 +1128,11 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
                         width: 1,
                       ),
                     ),
-                    columnWidths: const {
-                      0: FlexColumnWidth(2),
-                      1: FlexColumnWidth(2),
-                      2: FlexColumnWidth(2),
+                    columnWidths: {
+                      0: const FlexColumnWidth(1.2),
+                      1: const FlexColumnWidth(2),
+                      2: const FlexColumnWidth(2),
+                      if (_tipoCredito != 'unico') 3: const FlexColumnWidth(2),
                     },
                     children: [
                       // Header
@@ -1144,87 +1145,60 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
                           ),
                         ),
                         children: [
-                          _buildTableCell('Concepto', isHeader: true),
-                          _buildTableCell('Pendiente Actual', isHeader: true),
-                          _buildTableCell('Nuevo Total', isHeader: true),
+                          _buildTableCell('', isHeader: true),
+                          _buildTableCell('Plazo', isHeader: true),
+                          _buildTableCell('Total', isHeader: true),
+                          if (_tipoCredito != 'unico')
+                            _buildTableCell('Cuota', isHeader: true),
                         ],
                       ),
-                      // Plazo
-                      TableRow(
-                        children: [
-                          _buildTableCell('Plazo'),
-                          _buildTableCell(_tipoCredito == 'unico'
-                              ? '${_plazoOriginal > 1 ? _plazoOriginal : "30"} días' // Usualmente 30 si es inicial único
-                              : '$_plazoOriginal cuotas'),
-                          _buildTableCell(
-                              _tipoCredito == 'unico'
-                                  ? (_fechaLimiteNueva != null && _fechaInicioRenovacion != null
-                                      ? '${_fechaLimiteNueva!.difference(DateTime(_fechaInicioRenovacion!.year, _fechaInicioRenovacion!.month, _fechaInicioRenovacion!.day)).inDays + 1} días'
-                                      : 'N/A')
-                                  : '${_cuotasEditables.length} cuotas',
-                              color: AppColors.primaryGreen),
-                        ],
-                      ),
-                      // Cuota
-                      if (_tipoCredito != 'unico')
-                        TableRow(
-                          children: [
-                            _buildTableCell('Cuota Prom.'),
-                            _buildTableCell(
-                                '\$${_cuotaActual.toStringAsFixed(2)}'),
-                            _buildTableCell(
-                                '\$${_nuevaCuota.toStringAsFixed(2)}',
-                                color: AppColors.primaryGreen),
-                          ],
-                        ),
-                      // Mora
-                      if (_incluirMora && _montoMora > 0)
-                        TableRow(
-                          children: [
-                            _buildTableCell('Ganancia extra'),
-                            _buildTableCell('\$0.00'),
-                            _buildTableCell(
-                                '\$${_montoMora.toStringAsFixed(2)}',
-                                color: AppColors.error),
-                          ],
-                        ),
-                      // Total a Pagar
+                      // Fila VIEJO
                       TableRow(
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                          color: Colors.red.withOpacity(0.05),
                         ),
                         children: [
-                          _buildTableCell('Total', isBold: true),
+                          _buildTableCell('Viejo', isBold: true, color: Colors.red.shade900),
+                          _buildTableCell(
+                            _tipoCredito == 'unico'
+                                ? '${_plazoOriginal > 1 ? _plazoOriginal : "30"} días'
+                                : '$_plazoOriginal cuotas',
+                          ),
                           _buildTableCell(
                             '\$${_totalPagarActual.toStringAsFixed(2)}',
                             isBold: true,
+                          ),
+                          if (_tipoCredito != 'unico')
+                            _buildTableCell('\$${_cuotaActual.toStringAsFixed(2)}'),
+                        ],
+                      ),
+                      // Fila NUEVO
+                      TableRow(
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.05),
+                        ),
+                        children: [
+                          _buildTableCell('Nuevo', isBold: true, color: Colors.green.shade900),
+                          _buildTableCell(
+                            _tipoCredito == 'unico'
+                                ? (_fechaLimiteNueva != null && _fechaInicioRenovacion != null
+                                    ? '${_fechaLimiteNueva!.difference(DateTime(_fechaInicioRenovacion!.year, _fechaInicioRenovacion!.month, _fechaInicioRenovacion!.day)).inDays + 1} días'
+                                    : 'N/A')
+                                : '${_cuotasEditables.length} cuotas',
+                            color: AppColors.primaryGreen,
                           ),
                           _buildTableCell(
                             '\$${_totalPagarNuevo.toStringAsFixed(2)}',
                             isBold: true,
                             color: AppColors.primaryGreen,
                           ),
+                          if (_tipoCredito != 'unico')
+                            _buildTableCell(
+                              '\$${_nuevaCuota.toStringAsFixed(2)}',
+                              color: AppColors.primaryGreen,
+                            ),
                         ],
                       ),
-                      // Diferencia de cuotas
-                      if (_tipoCredito == 'cuotas' &&
-                          (_montoCuotasEditadas - _montoTotalCalculado).abs() >
-                              0.01)
-                        TableRow(
-                          children: [
-                            _buildTableCell(
-                                _montoCuotasEditadas > _montoTotalCalculado
-                                    ? 'Sobran'
-                                    : 'Faltan',
-                                color: AppColors.error),
-                            _buildTableCell(''),
-                            _buildTableCell(
-                              '\$${(_montoCuotasEditadas - _montoTotalCalculado).abs().toStringAsFixed(2)}',
-                              color: AppColors.error,
-                              isBold: true,
-                            ),
-                          ],
-                        ),
                     ],
                   ),
                 ),
@@ -1246,16 +1220,16 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
                       _buildCalcRow('Saldo Pendiente', _saldoPendiente),
                       if (_abono > 0)
                         _buildCalcRow('- Abono aplicado', -_abono,
-                            color: AppColors.success),
+                            color: AppColors.error),
                       if (_incluirMora && _montoMora > 0)
                         _buildCalcRow('+ Ganancia extra', _montoMora,
-                            color: AppColors.error),
+                            color: AppColors.success),
                       const Divider(),
-                      _buildCalcRow('NUEVO TOTAL CRÉDITO', _nuevoMontoTotal,
+                      _buildCalcRow('NUEVO TOTAL PRÉSTAMO', _nuevoMontoTotal,
                           isBold: true, color: AppColors.primaryGreen),
                       if (_tipoCredito != 'unico')
                         _buildCalcRow(
-                            'Cuota promedio (${_cuotasEditables.length} cuotas)',
+                            'Nueva Cuota (${_cuotasEditables.length} cuotas)',
                             _nuevaCuota,
                             isBold: true,
                             color: AppColors.darkGreen),
@@ -1355,8 +1329,12 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
   }
 
   Widget _buildTableCell(String text,
-      {bool isHeader = false, bool isBold = false, Color? color}) {
-    return Padding(
+      {bool isHeader = false,
+      bool isBold = false,
+      Color? color,
+      Color? backgroundColor}) {
+    return Container(
+      color: backgroundColor,
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       child: Text(
         text,

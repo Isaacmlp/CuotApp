@@ -33,8 +33,8 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
   final List<Map<String, dynamic>> _metodosPago = [
     {'valor': 'efectivo', 'label': 'Efectivo', 'icon': Icons.money, 'color': Colors.green},
     {'valor': 'transferencia', 'label': 'Transferencia', 'icon': Icons.compare_arrows, 'color': Colors.blue},
-    {'valor': 'pagomovil', 'label': 'Pago móvil', 'icon': Icons.credit_card, 'color': Colors.purple},
-    {'valor': 'zelle', 'label': 'Zelle', 'icon': Icons.qr_code, 'color': Colors.red},
+    {'valor': 'pagomovil', 'label': 'Pago móvil', 'icon': Icons.credit_card, 'color': Colors.red},
+    {'valor': 'zelle', 'label': 'Zelle', 'icon': Icons.qr_code, 'color': Colors.purple},
   ];
 
   @override
@@ -339,6 +339,7 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
                       },
                     );
                     if (date != null) {
+                      if (!mounted) return;
                       setState(() {
                         _fechaPago = date;
                       });

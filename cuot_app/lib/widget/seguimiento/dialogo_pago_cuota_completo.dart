@@ -69,9 +69,9 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
   final List<Map<String, dynamic>> _metodosPago = [
     {'valor': 'efectivo', 'label': 'Efectivo', 'icon': Icons.money, 'color': Colors.green},
     {'valor': 'transferencia', 'label': 'Transferencia', 'icon': Icons.compare_arrows, 'color': Colors.blue},
-    {'valor': 'pagomovil', 'label': 'Pago Móvil', 'icon': Icons.smartphone, 'color': Colors.orange},
+    {'valor': 'pagomovil', 'label': 'Pago Móvil', 'icon': Icons.smartphone, 'color': Colors.red},
     {'valor': 'divisas', 'label': 'Divisas (E)', 'icon': Icons.attach_money, 'color': Colors.teal},
-    {'valor': 'binance', 'label': 'Binance', 'icon': Icons.currency_bitcoin, 'color': Colors.amber},
+    {'valor': 'binance', 'label': 'Binance', 'icon': Icons.currency_bitcoin, 'color': Colors.black},
     {'valor': 'zelle', 'label': 'Zelle', 'icon': Icons.qr_code, 'color': Colors.purple},
   ];
 
@@ -516,7 +516,8 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                         // 2. Campo de referencia condicional
                         if (_metodoPago == 'transferencia' || 
                             _metodoPago == 'pagomovil' || 
-                            _metodoPago == 'zelle') ...[
+                            _metodoPago == 'zelle' ||
+                            _metodoPago == 'binance') ...[
                           const SizedBox(height: 16),
                           TextFormField(
                             controller: _referenciaController,
@@ -546,23 +547,9 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                           label: 'Fecha de pago',
                         ),
                         
-                        const SizedBox(height: 16),
-                        
                         // 4. Observaciones
-                        TextFormField(
-                          controller: _observacionesController,
-                          maxLines: 2,
-                          decoration: InputDecoration(
-                            labelText: 'Observaciones (opcional)',
-                            alignLabelWithHint: true,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
-                          ),
-                        ),
                         
+
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 20),
                           child: Divider(),
@@ -694,7 +681,7 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                         // 8. Equivalente en Bolívares
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(5),
                           decoration: BoxDecoration(
                             color: AppColors.primaryGreen.withOpacity(0.05),
                             borderRadius: BorderRadius.circular(16),
@@ -734,7 +721,23 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                             ],
                           ),
                         ),
-                        
+
+                        SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: _observacionesController,
+                          maxLines: 1,
+                          decoration: InputDecoration(
+                            labelText: 'Observaciones (opcional)',
+                            alignLabelWithHint: true,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                          ),
+                        ),
+                                                                        
                         // 👇 NUEVO: Mostrar cuánto quedará pendiente después del pago parcial
                         if (_tipoPago == 'parcial' && _montoPendienteDespues > 0) ...[
                           const SizedBox(height: 8),
@@ -769,7 +772,7 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                         
                         // 9. Alerta de mora (si está atrasado)
                         if (_diasAtraso > 0) ...[
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(

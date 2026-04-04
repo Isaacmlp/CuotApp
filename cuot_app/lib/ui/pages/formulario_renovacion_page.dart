@@ -290,6 +290,7 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
           }
         }
 
+        if (!mounted) return;
         setState(() {
           _credito = data;
           _costoInversion = costoInversion;
@@ -321,10 +322,12 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
           _isLoading = false;
         });
       } else {
+        if (!mounted) return;
         setState(() => _isLoading = false);
       }
     } catch (e) {
       print('Error cargando crédito: $e');
+      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }
@@ -714,6 +717,7 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
                               );
 
                               if (pickedEnd != null && mounted) {
+                                if (!mounted) return;
                                 setState(() {
                                   _fechaInicioRenovacion = pickedStart;
                                   _fechaLimiteNueva = pickedEnd;

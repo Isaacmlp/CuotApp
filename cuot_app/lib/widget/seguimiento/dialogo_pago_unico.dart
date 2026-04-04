@@ -38,9 +38,9 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
   final List<Map<String, dynamic>> _metodosPago = [
     {'valor': 'efectivo', 'label': 'Efectivo', 'icon': Icons.money, 'color': Colors.green},
     {'valor': 'transferencia', 'label': 'Transferencia', 'icon': Icons.compare_arrows, 'color': Colors.blue},
-    {'valor': 'pagomovil', 'label': 'Pago Móvil', 'icon': Icons.smartphone, 'color': Colors.orange},
+    {'valor': 'pagomovil', 'label': 'Pago Móvil', 'icon': Icons.smartphone, 'color': Colors.red},
     {'valor': 'divisas', 'label': 'Divisas (E)', 'icon': Icons.attach_money, 'color': Colors.teal},
-    {'valor': 'binance', 'label': 'Binance', 'icon': Icons.currency_bitcoin, 'color': Colors.amber},
+    {'valor': 'binance', 'label': 'Binance', 'icon': Icons.currency_bitcoin, 'color': Colors.black},
     {'valor': 'zelle', 'label': 'Zelle', 'icon': Icons.qr_code, 'color': Colors.purple},
   ];
 
@@ -316,7 +316,8 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                       // 2. Campo de referencia condicional
                       if (_metodoPago == 'transferencia' || 
                           _metodoPago == 'pagomovil' || 
-                          _metodoPago == 'zelle') ...[
+                          _metodoPago == 'zelle' ||
+                          _metodoPago == 'binance') ...[
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _referenciaController,
@@ -332,6 +333,8 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                           ),
                         ),
                       ],
+
+                      
                       
                       const SizedBox(height: 16),
                       
@@ -347,25 +350,7 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                       ),
                       
                       const SizedBox(height: 16),
-                      
-                      // 4. Observaciones
-                      TextFormField(
-                        controller: _observacionesController,
-                        maxLines: 2,
-                        decoration: InputDecoration(
-                          labelText: 'Observaciones (opcional)',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey.shade50,
-                        ),
-                      ),
-
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 20),
-                        child: Divider(),
-                      ),
+                                                   
 
                       // 5. Campo de monto
                       TextFormField(
@@ -426,7 +411,7 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                       // 7. Equivalente en Bolívares
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(5),
                         decoration: BoxDecoration(
                           color: AppColors.primaryGreen.withOpacity(0.05),
                           borderRadius: BorderRadius.circular(16),
@@ -463,6 +448,7 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                           ],
                         ),
                       ),
+
                       
                       if (widget.esParcial) ...[
                         const SizedBox(height: 8),
@@ -476,6 +462,22 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                           ],
                         ),
                       ],
+
+                      const SizedBox(height: 16),
+                      
+                      // 4. Observaciones
+                      TextFormField(
+                        controller: _observacionesController,
+                        maxLines: 1,
+                        decoration: InputDecoration(
+                          labelText: 'Observaciones (opcional)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                        ),
+                      ),
 
                       const SizedBox(height: 24),
                       
@@ -510,7 +512,7 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 2),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [

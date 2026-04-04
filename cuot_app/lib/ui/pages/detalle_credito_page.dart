@@ -48,6 +48,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     setState(() => _isLoading = true);
     try {
       final data = await _creditService.getCreditById(widget.creditoId);
+      if (!mounted) return;
       setState(() {
         _credito = data;
         _isLoading = false;
@@ -55,6 +56,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     } catch (e, stackTrace) {
       debugPrint('Error cargando detalle del crédito: $e');
       debugPrint('$stackTrace');
+      if (!mounted) return;
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -74,6 +76,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     try {
       final renovaciones =
           await _renovacionService.getRenovacionesPorCredito(widget.creditoId);
+      if (!mounted) return;
       setState(() {
         _historialRenovaciones = renovaciones;
         _isHistorialLoading = false;
@@ -81,6 +84,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     } catch (e, stackTrace) {
       debugPrint('Error cargando historial de renovaciones: $e');
       debugPrint('$stackTrace');
+      if (!mounted) return;
       setState(() => _isHistorialLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -183,7 +187,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                       ),
                     ),
                   ).then((result) {
-                    if (result == true) {
+                    if (result == true && mounted) {
                       _loadDetalle();
                     }
                   });
@@ -411,7 +415,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                               ),
                             ),
                           ).then((result) {
-                            if (result == true) {
+                            if (result == true && mounted) {
                               _loadDetalle();
                             }
                           });

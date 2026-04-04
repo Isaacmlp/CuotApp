@@ -304,9 +304,9 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
                     Row(
                       children: [
                         _buildMontoCard(
-                          'Total',
-                          '\$${widget.credito.montoTotal.toStringAsFixed(2)}',
-                          AppColors.primaryGreen,
+                          'Resta',
+                          '\$${widget.credito.saldoPendiente.toStringAsFixed(2)}',
+                          AppColors.error,
                         ),
                         const SizedBox(width: 8),
                         _buildMontoCard(
@@ -333,56 +333,66 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
                       children: [
                         Expanded(
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
+                              // Marca de progreso flotante
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final double progress = widget.credito.progreso.clamp(0.0, 1.0);
+                                  return Stack(
                                     children: [
-                                      Icon(
-                                        Icons.trending_up,
-                                        size: 14,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Progreso de pago',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey.shade600,
+                                      const SizedBox(height: 25, width: double.infinity),
+                                      Positioned(
+                                        left: (constraints.maxWidth * progress) - 40,
+                                        child: Container(
+                                          width: 85,
+                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: widget.credito.estadoColor,
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: Text(
+                                            'Pagado: \$${widget.credito.totalPagado.toStringAsFixed(0)}',
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              fontSize: 9,
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ],
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: widget.credito.estadoColor.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      '${(widget.credito.progreso * 100).toStringAsFixed(1)}%',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: widget.credito.estadoColor,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                  );
+                                },
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 2),
                               LinearProgressIndicator(
                                 value: widget.credito.progreso.clamp(0.0, 1.0),
                                 backgroundColor: Colors.grey.shade200,
                                 valueColor: AlwaysStoppedAnimation<Color>(
                                   widget.credito.estadoColor,
                                 ),
-                                minHeight: 8,
-                                borderRadius: BorderRadius.circular(4),
+                                minHeight: 10,
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    '\$0',
+                                    style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    'Meta: \$${widget.credito.montoTotal.toStringAsFixed(0)}',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),

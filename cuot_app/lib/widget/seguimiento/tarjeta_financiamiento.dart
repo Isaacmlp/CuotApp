@@ -279,9 +279,9 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
                         ),
                         const Spacer(),
                         _buildMiniEstadistica(
-                          'Total',
-                          '\$${widget.totalCredito.toStringAsFixed(2)}',
-                          AppColors.primaryGreen,
+                          'Resta',
+                          '\$${(widget.totalCredito - widget.totalPagado).toStringAsFixed(2)}',
+                          AppColors.error,
                           isProminent: true,
                         ),
                       ],
@@ -335,31 +335,64 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
                       children: [
                         Expanded(
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Text(
-                                    'Progreso',
-                                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                                  ),
-                                  Text(
-                                    '${(widget.progreso * 100).toStringAsFixed(1)}%',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: _estadoColor,
-                                    ),
-                                  ),
-                                ],
+                              // Marca de progreso flotante
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final double progress = widget.progreso.clamp(0.0, 1.0);
+                                  return Stack(
+                                    children: [
+                                      const SizedBox(height: 25, width: double.infinity),
+                                      Positioned(
+                                        left: (constraints.maxWidth * progress) - 40,
+                                        child: Container(
+                                          width: 85,
+                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: _estadoColor,
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: Text(
+                                            'Pagado: \$${widget.totalPagado.toStringAsFixed(0)}',
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              fontSize: 9,
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 2),
                               LinearProgressIndicator(
                                 value: widget.progreso.clamp(0.0, 1.0),
                                 backgroundColor: Colors.grey.shade200,
                                 valueColor: AlwaysStoppedAnimation<Color>(_estadoColor),
-                                minHeight: 6,
-                                borderRadius: BorderRadius.circular(3),
+                                minHeight: 8,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    '\$0',
+                                    style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    'Meta: \$${widget.totalCredito.toStringAsFixed(0)}',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),

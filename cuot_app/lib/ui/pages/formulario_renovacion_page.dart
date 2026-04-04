@@ -1067,24 +1067,7 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
                       const SizedBox(height: 16),
 
                       // Observaciones (opcional)
-                      const Text('Observaciones (opcional)',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 14)),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _observacionesController,
-                        maxLines: 2,
-                        decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey.shade100,
-                          hintText: 'Notas adicionales...',
-                        ),
-                      ),
+                      
                     ],
                   ),
                 ),

@@ -116,7 +116,7 @@ class CustomDrawer extends StatelessWidget {
               isSelected: ventanaActiva == 'Cuotas Personales', // 👈 Condición
             ),
 
-            _buildDrawerItem(
+           /* _buildDrawerItem(
               icon: Icons.payment,
               label: 'Cuotas Comunitarias',
               onTap: () {
@@ -124,9 +124,9 @@ class CustomDrawer extends StatelessWidget {
               },
               isSelected:
                   ventanaActiva == 'Cuotas Comunitarias', // 👈 Condición
-            ),
+            ),*/
 
-            _buildDrawerItem(
+            /*_buildDrawerItem(
               icon: Icons.calendar_today,
               label: 'Cuotas Empresariales',
               onTap: () {
@@ -135,7 +135,7 @@ class CustomDrawer extends StatelessWidget {
               },
               isSelected:
                   ventanaActiva == 'Cuotas Empresariales', // 👈 Condición
-            ),
+            ),*/
 
             _buildDrawerItem(
               icon: Icons.history,

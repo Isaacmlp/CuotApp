@@ -55,7 +55,7 @@ class CreditService {
         final renovacionesRes = await _supabase.client
             .schema('Financiamientos')
             .from('Renovaciones')
-            .select('*, Creditos!inner(usuario_nombre)')
+            .select('*, Creditos!Renovaciones_credito_original_id_fkey!inner(usuario_nombre)')
             .eq('Creditos.usuario_nombre', usuarioNombre);
             
         final renovacionesList = List<Map<String, dynamic>>.from(renovacionesRes);

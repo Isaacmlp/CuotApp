@@ -709,38 +709,22 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
                           child: GestureDetector(
                             key: ValueKey('${_fechaInicioRenovacion?.millisecondsSinceEpoch}_${_fechaLimiteNueva?.millisecondsSinceEpoch}'),
                             onTap: () async {
-                              // Step 1: Select Start Date (Default: Today)
-                              final pickedStart = await showDatePicker(
+                              final pickedRange = await showDialog<DateTimeRange>(
                                 context: context,
-                                initialDate: DateTime.now(),
-                                firstDate: DateTime(2000),
-                                lastDate: DateTime(2100),
-                                helpText: 'Selecciona la fecha de inicio',
+                                builder: (context) => _DateRangeStepperDialog(
+                                  initialStart: _fechaInicioRenovacion,
+                                  initialEnd: _fechaLimiteNueva,
+                                ),
                               );
 
-                              if (pickedStart != null && mounted) {
-                                // Step 2: Select End Date (Default: Start + 30 days)
-                                DateTime initialEnd = DateTime.now();
-                                if (initialEnd.isBefore(pickedStart)) initialEnd = pickedStart;
-
-                                final pickedEnd = await showDatePicker(
-                                  context: context,
-                                  initialDate: initialEnd,
-                                  firstDate: pickedStart,
-                                  lastDate: DateTime(2100),
-                                  helpText: 'Selecciona la fecha final',
-                                );
-
-                                if (pickedEnd != null && mounted) {
-                                  if (!mounted) return;
-                                  setState(() {
-                                    _fechaInicioRenovacion = pickedStart;
-                                    _fechaLimiteNueva = pickedEnd;
-                                    _fechaRenovacion = pickedEnd;
-                                    _moraEditadaManualmente = false; 
-                                    _updateMoraController();
-                                  });
-                                }
+                              if (pickedRange != null && mounted) {
+                                setState(() {
+                                  _fechaInicioRenovacion = pickedRange.start;
+                                  _fechaLimiteNueva = pickedRange.end;
+                                  _fechaRenovacion = pickedRange.end;
+                                  _moraEditadaManualmente = false; 
+                                  _updateMoraController();
+                                });
                               }
                             },
                             child: Container(
@@ -1410,6 +1394,169 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// 🌓 DIÁLOGO PERSONALIZADO PARA RANGO DE FECHAS ANIMADO
+class _DateRangeStepperDialog extends StatefulWidget {
+  final DateTime? initialStart;
+  final DateTime? initialEnd;
+
+  const _DateRangeStepperDialog({this.initialStart, this.initialEnd});
+
+  @override
+  State<_DateRangeStepperDialog> createState() => _DateRangeStepperDialogState();
+}
+
+class _DateRangeStepperDialogState extends State<_DateRangeStepperDialog> {
+  late DateTime _selectedStart;
+  late DateTime _selectedEnd;
+  final PageController _pageController = PageController();
+  int _currentStep = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedStart = widget.initialStart ?? DateTime.now();
+    _selectedEnd = widget.initialEnd ?? DateTime.now().add(const Duration(days: 30));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      elevation: 8,
+      child: Container(
+        width: 350,
+        height: 520,
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          children: [
+            // Header con indicador de pasos
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _currentStep == 0 ? 'Fecha de Inicio' : 'Fecha de Vencimiento',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.darkGreen,
+                        ),
+                      ),
+                      Text(
+                        '${_currentStep + 1}/2',
+                        style: TextStyle(
+                          color: AppColors.primaryGreen.withOpacity(0.6),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Barra de progreso animada
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: LinearProgressIndicator(
+                      value: (_currentStep + 1) / 2,
+                      backgroundColor: Colors.grey.shade200,
+                      color: AppColors.primaryGreen,
+                      minHeight: 4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 10),
+
+            // Contenido principal (Calendarios)
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(), // Controlamos el scroll con botones
+                onPageChanged: (v) => setState(() => _currentStep = v),
+                children: [
+                  // Paso 1: Inicio
+                  CalendarDatePicker(
+                    initialDate: _selectedStart,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2100),
+                    onDateChanged: (d) => setState(() => _selectedStart = d),
+                  ),
+                  // Paso 2: Final
+                  CalendarDatePicker(
+                    initialDate: _selectedStart.isAfter(_selectedEnd) ? _selectedStart : _selectedEnd,
+                    firstDate: _selectedStart, // No puede ser antes del inicio
+                    lastDate: DateTime(2100),
+                    onDateChanged: (d) => setState(() => _selectedEnd = d),
+                  ),
+                ],
+              ),
+            ),
+
+            // Botones de acción
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  if (_currentStep > 0)
+                    TextButton(
+                      onPressed: () => _pageController.previousPage(
+                        duration: const Duration(milliseconds: 400), 
+                        curve: Curves.easeInOutBack
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                         minimumSize: Size.zero,
+                      ),
+                      child: const Text('VOLVER'),
+                    ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.grey,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: Size.zero,
+                    ),
+                    child: const Text('CANCELAR'),
+                  ),
+                  const SizedBox(width: 4),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (_currentStep == 0) {
+                        _pageController.nextPage(
+                          duration: const Duration(milliseconds: 500), 
+                          curve: Curves.easeInOutQuint
+                        );
+                      } else {
+                        Navigator.pop(context, DateTimeRange(start: _selectedStart, end: _selectedEnd));
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      minimumSize: const Size(80, 40),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(
+                      _currentStep == 0 ? 'SIGUIENTE' : 'CONFIRMAR',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

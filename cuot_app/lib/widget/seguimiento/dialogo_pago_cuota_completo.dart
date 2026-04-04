@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:cuot_app/widget/creditos/custom_date_picker.dart';
 import 'package:image_picker/image_picker.dart'; // 👈 NUEVO
 import 'dart:io'; // 👈 NUEVO
+import 'package:cuot_app/service/storage_service.dart'; // 👈 NUEVO
 
 class DialogoPagoCuotaCompleto extends StatefulWidget {
   final int numeroCuota;
@@ -69,6 +70,8 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  bool _isUploading = false; // 👈 NUEVO
+  final StorageService _storageService = StorageService(); // 👈 NUEVO
 
   final List<Map<String, dynamic>> _metodosPago = [
     {'valor': 'efectivo', 'label': 'Efectivo', 'icon': Icons.money, 'color': Colors.green},
@@ -759,55 +762,86 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
 
                         const SizedBox(height: 16),
 
-                        // 👈 NUEVO: Sección de Capture
+                        // 👈 MEJORADO: Sección de Capture
                         const Text(
                           'Comprobante de Pago (Capture)',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
+                            color: AppColors.darkGrey,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
                         GestureDetector(
-                          onTap: _seleccionarComprobante,
-                          child: Container(
+                          onTap: _isUploading ? null : _seleccionarComprobante,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
                             width: double.infinity,
-                            height: 120,
+                            height: 160,
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(16),
+                              color: _comprobantePath != null 
+                                  ? Colors.transparent 
+                                  : Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(24),
                               border: Border.all(
                                 color: _comprobantePath != null 
                                     ? AppColors.primaryGreen.withOpacity(0.5)
-                                    : Colors.grey.shade300,
-                                style: BorderStyle.solid,
+                                    : Colors.grey.shade200,
+                                width: 2,
                               ),
+                              boxShadow: _comprobantePath != null ? [
+                                BoxShadow(
+                                  color: AppColors.primaryGreen.withOpacity(0.1),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                )
+                              ] : null,
                             ),
                             child: _comprobantePath != null
                                 ? Stack(
                                     children: [
                                       ClipRRect(
-                                        borderRadius: BorderRadius.circular(15),
+                                        borderRadius: BorderRadius.circular(22),
                                         child: Image.file(
                                           File(_comprobantePath!),
                                           width: double.infinity,
-                                          height: 120,
+                                          height: 160,
                                           fit: BoxFit.cover,
                                         ),
                                       ),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(22),
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Colors.black.withOpacity(0.3),
+                                              Colors.transparent,
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                       Positioned(
-                                        top: 5,
-                                        right: 5,
+                                        top: 10,
+                                        right: 10,
                                         child: GestureDetector(
                                           onTap: () => setState(() => _comprobantePath = null),
                                           child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            decoration: const BoxDecoration(
-                                              color: Colors.red,
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
                                               shape: BoxShape.circle,
                                             ),
-                                            child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                            child: const Icon(Icons.close, color: Colors.red, size: 20),
                                           ),
+                                        ),
+                                      ),
+                                      const Center(
+                                        child: Icon(
+                                          Icons.check_circle_rounded,
+                                          color: Colors.white,
+                                          size: 48,
                                         ),
                                       ),
                                     ],
@@ -815,11 +849,33 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                                 : Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(Icons.add_a_photo_outlined, color: Colors.grey.shade400, size: 32),
-                                      const SizedBox(height: 8),
+                                      Container(
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primaryGreen.withOpacity(0.05),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          Icons.add_photo_alternate_outlined, 
+                                          color: AppColors.primaryGreen, 
+                                          size: 40
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
                                       Text(
-                                        'Toca para subir el capture',
-                                        style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                                        'Toca aquí para subir el capture',
+                                        style: TextStyle(
+                                          color: AppColors.darkGrey.withOpacity(0.8),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Formatos soportados: JPG, PNG',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade400,
+                                          fontSize: 11,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -1073,7 +1129,7 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                           children: [
                             Expanded(
                               child: TextButton(
-                                onPressed: () => Navigator.pop(context),
+                                onPressed: _isUploading ? null : () => Navigator.pop(context),
                                 style: TextButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(vertical: 16),
                                   shape: RoundedRectangleBorder(
@@ -1095,12 +1151,43 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                             const SizedBox(width: 12),
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: () {
+                                onPressed: _isUploading ? null : () async {
                                   if (_formKey.currentState!.validate()) {
+                                    setState(() => _isUploading = true);
+                                    
                                     final monto = double.parse(_montoController.text);
                                     final esPagoParcial = _tipoPago == 'parcial' && 
                                         (monto < widget.montoRestante - 0.01);
                                     
+                                    String? comprobanteUrl;
+                                    
+                                    // 🚀 UPLOAD TO STORAGE
+                                    if (_comprobantePath != null) {
+                                      try {
+                                        final nombreArchivo = 'pago_cuota_${widget.numeroCuota}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+                                        comprobanteUrl = await _storageService.subirCaptura(
+                                          File(_comprobantePath!), 
+                                          nombreArchivo
+                                        );
+
+                                        if (comprobanteUrl == null) {
+                                          throw Exception('La subida finalizó sin URL');
+                                        }
+                                      } catch (e) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Error al subir comprobante: $e'),
+                                              backgroundColor: Colors.red,
+                                              duration: const Duration(seconds: 5),
+                                            ),
+                                          );
+                                        }
+                                        setState(() => _isUploading = false);
+                                        return;
+                                      }
+                                    }
+
                                     widget.onPagar(
                                       monto,
                                       _combinarFechaConHoraActual(_fechaPago),
@@ -1110,9 +1197,12 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                                       _aplicarMora,
                                       _aplicarMora ? _montoMora : null,
                                       esPagoParcial,
-                                      _comprobantePath, // 👈 NUEVO
+                                      comprobanteUrl ?? _comprobantePath,
                                     );
-                                    Navigator.pop(context);
+                                    
+                                    if (mounted) {
+                                      Navigator.pop(context);
+                                    }
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(
@@ -1124,20 +1214,29 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                                   ),
                                   elevation: 4,
                                 ),
-                                child: const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.check_circle, size: 20),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'CONFIRMAR PAGO',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
+                                child: _isUploading
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                       ),
+                                    )
+                                  : const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.check_circle, size: 20),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'CONFIRMAR PAGO',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
                               ),
                             ),
                           ],
@@ -1147,23 +1246,23 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                   ), // Fin Form
                 ), // Fin SingleChildScrollView
               ), // Fin Expanded
-            ],
-            ), // Fin Main Column,
-            Positioned(
-              top: 10,
-              left: 10,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: AppColors.mediumGrey),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ),
-          ],
-        ), // Fin Stack
-      ), // Fin Container
-    ),
-  )
-  );
-}
+                  ],
+                ), // Fin Main Column
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: AppColors.mediumGrey),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+              ],
+            ), // Fin Stack
+          ), // Fin Container
+        ),
+      ),
+    );
+  }
 
   Widget _buildInfoCard(String label, String valor, Color color, IconData icono) {
     return Expanded(

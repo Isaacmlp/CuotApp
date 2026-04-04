@@ -12,6 +12,7 @@ class AppConstants {
   // 🔧 LÓGICA: Buckets de Storage
   static const String facturasBucket = 'facturas';
   static const String documentosBucket = 'documentos';
+  static const String capturasBucket = 'Capture';
   
   // 🔧 LÓGICA: Tablas de Supabase
   static const String tableUsuarios = 'Usuarios';

@@ -7,6 +7,7 @@ import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/widget/creditos/custom_date_picker.dart';
 import 'package:image_picker/image_picker.dart'; // 👈 NUEVO
 import 'dart:io'; // 👈 NUEVO: Para manejar el File del path
+import 'package:cuot_app/service/storage_service.dart'; // 👈 NUEVO
 
 class DialogoPagoUnico extends StatefulWidget {
   final CreditoUnico credito;
@@ -37,6 +38,8 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
+  bool _isUploading = false; // 👈 NUEVO: Estado de subida a Storage
+  final StorageService _storageService = StorageService(); // 👈 NUEVO
 
   final List<Map<String, dynamic>> _metodosPago = [
     {'valor': 'efectivo', 'label': 'Efectivo', 'icon': Icons.money, 'color': Colors.green},
@@ -499,55 +502,95 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
 
                       const SizedBox(height: 16),
 
-                      // 👈 NUEVO: Sección de Capture
+                      // 👈 MEJORADO: Sección de Capture
                       const Text(
                         'Comprobante de Pago (Capture)',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
+                          color: AppColors.darkGrey,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                       GestureDetector(
-                        onTap: _seleccionarComprobante,
-                        child: Container(
+                        onTap: _isUploading ? null : _seleccionarComprobante,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
                           width: double.infinity,
-                          height: 120,
+                          height: 160,
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(16),
+                            color: _comprobantePath != null 
+                                ? Colors.transparent 
+                                : Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(24),
                             border: Border.all(
                               color: _comprobantePath != null 
                                   ? AppColors.primaryGreen.withOpacity(0.5)
                                   : Colors.grey.shade300,
-                              style: BorderStyle.solid,
+                              width: 2,
+                              style: _comprobantePath != null 
+                                  ? BorderStyle.solid 
+                                  : BorderStyle.solid, // Nota: No hay dashed nativo, simularé con estilo
                             ),
+                            boxShadow: _comprobantePath != null ? [
+                              BoxShadow(
+                                color: AppColors.primaryGreen.withOpacity(0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              )
+                            ] : null,
                           ),
                           child: _comprobantePath != null
                               ? Stack(
                                   children: [
                                     ClipRRect(
-                                      borderRadius: BorderRadius.circular(15),
+                                      borderRadius: BorderRadius.circular(22),
                                       child: Image.file(
                                         File(_comprobantePath!),
                                         width: double.infinity,
-                                        height: 120,
+                                        height: 160,
                                         fit: BoxFit.cover,
                                       ),
                                     ),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(22),
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            Colors.black.withOpacity(0.3),
+                                            Colors.transparent,
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                                     Positioned(
-                                      top: 5,
-                                      right: 5,
+                                      top: 10,
+                                      right: 10,
                                       child: GestureDetector(
                                         onTap: () => setState(() => _comprobantePath = null),
                                         child: Container(
-                                          padding: const EdgeInsets.all(4),
-                                          decoration: const BoxDecoration(
-                                            color: Colors.red,
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
                                             shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.2),
+                                                blurRadius: 4,
+                                              )
+                                            ],
                                           ),
-                                          child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                          child: const Icon(Icons.close, color: Colors.red, size: 20),
                                         ),
+                                      ),
+                                    ),
+                                    const Center(
+                                      child: Icon(
+                                        Icons.check_circle,
+                                        color: Colors.white,
+                                        size: 48,
                                       ),
                                     ),
                                   ],
@@ -555,11 +598,34 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                               : Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.add_a_photo_outlined, color: Colors.grey.shade400, size: 32),
-                                    const SizedBox(height: 8),
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primaryGreen.withOpacity(0.1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.cloud_upload_outlined, 
+                                        color: AppColors.primaryGreen, 
+                                        size: 40
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
                                     Text(
-                                      'Toca para subir el capture',
-                                      style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                                      'Toca aquí para subir el capture',
+                                      style: TextStyle(
+                                        color: AppColors.darkGrey.withOpacity(0.7),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'JPG, PNG o Capture de pantalla',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade400, 
+                                        fontSize: 11
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -638,14 +704,14 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                         children: [
                           Expanded(
                             child: TextButton(
-                              onPressed: () => Navigator.pop(context),
+                              onPressed: _isUploading ? null : () => Navigator.pop(context),
                               child: const Text('CANCELAR'),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: _confirmarPago,
+                              onPressed: _isUploading ? null : _confirmarPago,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.success,
                                 foregroundColor: Colors.white,
@@ -654,7 +720,16 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text('CONFIRMAR'),
+                              child: _isUploading 
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : const Text('CONFIRMAR'),
                             ),
                           ),
                         ],
@@ -753,7 +828,7 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
     return date;
   }
 
-  void _confirmarPago() {
+  Future<void> _confirmarPago() async {
     final monto = double.tryParse(_montoController.text) ?? 0;
     
     if (monto <= 0) {
@@ -776,6 +851,36 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
       return;
     }
 
+    String? comprobanteUrl;
+
+    // 🚀 SUBIR A STORAGE SI HAY IMAGEN
+    if (_comprobantePath != null) {
+      setState(() => _isUploading = true);
+      try {
+        final nombreArchivo = 'pago_unico_${widget.credito.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        comprobanteUrl = await _storageService.subirCaptura(
+          File(_comprobantePath!), 
+          nombreArchivo
+        );
+        
+        if (comprobanteUrl == null) {
+          throw Exception('La subida finalizó sin URL (Error desconocido)');
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error al subir comprobante: $e'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5), // Más tiempo para leer el error real
+            ),
+          );
+        }
+        setState(() => _isUploading = false);
+        return;
+      }
+    }
+
     final nuevoPago = Pago(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       creditoId: widget.credito.id,
@@ -787,10 +892,12 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
       metodoPago: _metodoPago,
       referencia: _referenciaController.text,
       observaciones: _observacionesController.text,
-      comprobantePath: _comprobantePath, // 👈 NUEVO
+      comprobantePath: comprobanteUrl ?? _comprobantePath, // Guardamos la URL si existe
     );
 
     widget.onPagoRealizado(nuevoPago);
-    Navigator.pop(context);
+    if (mounted) {
+      Navigator.pop(context);
+    }
   }
 }

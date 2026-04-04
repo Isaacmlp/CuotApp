@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cuot_app/theme/app_colors.dart';
+import 'package:cuot_app/service/storage_service.dart'; // 👈 NUEVO
 
 class DialogoPagoCuota extends StatefulWidget {
   final int numeroCuota;
@@ -31,6 +32,8 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
   String? _comprobantePath; // 👈 NUEVO: Ruta de la captura
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
+  bool _isUploading = false; // 👈 NUEVO
+  final StorageService _storageService = StorageService(); // 👈 NUEVO
 
   final List<Map<String, dynamic>> _metodosPago = [
     {'valor': 'efectivo', 'label': 'Efectivo', 'icon': Icons.money, 'color': Colors.green},
@@ -398,83 +401,123 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
                 
                 const SizedBox(height: 20),
                 
-                // Sección de comprobante (Capture)
+                // 👈 MEJORADO: Sección de comprobante (Capture)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(left: 4, bottom: 8),
+                      padding: const EdgeInsets.only(left: 4, bottom: 12),
                       child: Text(
-                        'Comprobante de pago (Opcional)',
+                        'Comprobante de pago (Capture)',
                         style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.mediumGrey,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                          color: AppColors.darkGrey,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                    if (_comprobantePath != null)
-                      Stack(
-                        children: [
-                          Container(
-                            height: 120,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              image: DecorationImage(
-                                image: FileImage(File(_comprobantePath!)),
-                                fit: BoxFit.cover,
-                              ),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
+                    GestureDetector(
+                      onTap: _isUploading ? null : _seleccionarComprobante,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        width: double.infinity,
+                        height: 150,
+                        decoration: BoxDecoration(
+                          color: _comprobantePath != null 
+                              ? Colors.transparent 
+                              : Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: _comprobantePath != null 
+                                ? AppColors.primaryGreen.withOpacity(0.5)
+                                : Colors.grey.shade200,
+                            width: 2,
                           ),
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: GestureDetector(
-                              onTap: () => setState(() => _comprobantePath = null),
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.close, color: Colors.white, size: 16),
-                              ),
-                            ),
-                          ),
-                        ],
-                      )
-                    else
-                      InkWell(
-                        onTap: _seleccionarComprobante,
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 20),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Colors.grey.shade300,
-                              style: BorderStyle.solid,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(Icons.add_a_photo_outlined, color: AppColors.primaryGreen, size: 30),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Subir captura del pago',
-                                style: TextStyle(
-                                  color: AppColors.primaryGreen,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
+                          boxShadow: _comprobantePath != null ? [
+                            BoxShadow(
+                              color: AppColors.primaryGreen.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            )
+                          ] : null,
                         ),
+                        child: _comprobantePath != null
+                            ? Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(22),
+                                    child: Image.file(
+                                      File(_comprobantePath!),
+                                      width: double.infinity,
+                                      height: 150,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(22),
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Colors.black.withOpacity(0.3),
+                                          Colors.transparent,
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: GestureDetector(
+                                      onTap: () => setState(() => _comprobantePath = null),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(Icons.close, color: Colors.red, size: 18),
+                                      ),
+                                    ),
+                                  ),
+                                  const Center(
+                                    child: Icon(
+                                      Icons.check_circle,
+                                      color: Colors.white,
+                                      size: 40,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.add_a_photo_rounded, 
+                                    color: AppColors.primaryGreen.withOpacity(0.5), 
+                                    size: 36
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    'Toca para subir el capture',
+                                    style: TextStyle(
+                                      color: AppColors.mediumGrey,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Opcional',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade400,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
                       ),
+                    ),
                   ],
                 ),
                 
@@ -485,7 +528,7 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
                   children: [
                     Expanded(
                       child: TextButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: _isUploading ? null : () => Navigator.pop(context),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
@@ -506,16 +549,49 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: _isUploading ? null : () async {
                           if (_formKey.currentState!.validate()) {
+                            setState(() => _isUploading = true);
+                            
                             final monto = double.parse(_montoController.text);
+                            String? comprobanteUrl;
+
+                            // 🚀 SUBIR A STORAGE SI HAY IMAGEN
+                            if (_comprobantePath != null) {
+                              try {
+                                final nombreArchivo = 'pago_cuota_simple_${widget.numeroCuota}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+                                comprobanteUrl = await _storageService.subirCaptura(
+                                  File(_comprobantePath!), 
+                                  nombreArchivo
+                                );
+                                if (comprobanteUrl == null) {
+                                  throw Exception('La subida finalizó sin URL (Error desconocido)');
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Error al subir comprobante: $e'),
+                                      backgroundColor: Colors.red,
+                                      duration: const Duration(seconds: 5),
+                                    ),
+                                  );
+                                }
+                                setState(() => _isUploading = false);
+                                return;
+                              }
+                            }
+
                             widget.onPagar(
                               monto, 
                               _combinarFechaConHoraActual(_fechaPago), 
                               _metodoPago,
-                              _comprobantePath, // 👈 NUEVO: Pasar la ruta
+                              comprobanteUrl ?? _comprobantePath,
                             );
-                            Navigator.pop(context);
+                            
+                            if (mounted) {
+                              Navigator.pop(context);
+                            }
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -527,20 +603,29 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
                           ),
                           elevation: 4,
                         ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.check_circle, size: 18),
-                            SizedBox(width: 8),
-                            Text(
-                              'PAGAR',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                        child: _isUploading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check_circle, size: 18),
+                                SizedBox(width: 8),
+                                Text(
+                                  'PAGAR',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
                       ),
                     ),
                   ],

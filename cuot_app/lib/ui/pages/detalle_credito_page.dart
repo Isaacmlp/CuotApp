@@ -54,7 +54,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
         _isLoading = false;
       });
     } catch (e, stackTrace) {
-      debugPrint('Error cargando detalle del crédito: $e');
+      debugPrint('Error cargando detalle del préstamo: $e');
       debugPrint('$stackTrace');
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -102,7 +102,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Detalle de Crédito'),
+          title: const Text('Detalle de Préstamo'),
           backgroundColor: AppColors.primaryGreen,
           foregroundColor: Colors.white,
         ),
@@ -113,7 +113,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     if (_credito == null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Detalle de Crédito'),
+          title: const Text('Detalle de Préstamo'),
           backgroundColor: AppColors.primaryGreen,
           foregroundColor: Colors.white,
         ),
@@ -127,7 +127,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
 
     double costoInversion = (_credito!['costo_inversion'] as num).toDouble();
     double margenGanancia = (_credito!['margen_ganancia'] as num).toDouble();
-    double totalCredito = costoInversion + margenGanancia;
+    double totalPrestamo = costoInversion + margenGanancia;
 
     double totalPagado = 0;
     for (var pago in rawPagos) {
@@ -136,7 +136,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
       if (referencia == 'Abono en Renovación') continue;
       totalPagado += (pago['monto'] as num).toDouble();
     }
-    double saldoPendiente = totalCredito - totalPagado;
+    double saldoPendiente = totalPrestamo - totalPagado;
     final bool isPagado = saldoPendiente <= 0.01;
 
     // Sort pagos by date
@@ -150,7 +150,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text(
-          'Detalle de Crédito',
+          'Detalle de Préstamo',
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
         backgroundColor: AppColors.primaryGreen,
@@ -159,15 +159,15 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
           if (widget.onEditar != null && !isPagado)
             IconButton(
               icon: const Icon(
-                Icons.edit_note_rounded,
+                Icons.drive_file_rename_outline_rounded,
                 color: Colors.white,
-                size: 28,
+                size: 26,
               ),
               onPressed: () {
                 Navigator.pop(context);
                 widget.onEditar!();
               },
-              tooltip: 'Editar Crédito',
+              tooltip: 'Editar Préstamo',
             ),
           if (widget.nombreUsuario != null && !isPagado)
             IconButton(
@@ -204,7 +204,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                   }
                 }
               },
-              tooltip: 'Renovar Crédito',
+              tooltip: 'Renovar Préstamo',
             ),
           if (widget.onEliminar != null)
             IconButton(
@@ -217,7 +217,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                 Navigator.pop(context);
                 widget.onEliminar!();
               },
-              tooltip: 'Eliminar Crédito',
+              tooltip: 'Eliminar Préstamo',
             ),
         ],
       ),
@@ -286,7 +286,9 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
       }
     }
 
-    final double rawTotalDB = ((_credito?['costo_inversion'] as num?)?.toDouble() ?? 0) + ((_credito?['margen_ganancia'] as num?)?.toDouble() ?? 0);
+    final double costoInversion = ((_credito?['costo_inversion'] as num?)?.toDouble() ?? 0);
+    final double margenGanancia = ((_credito?['margen_ganancia'] as num?)?.toDouble() ?? 0);
+    final double rawTotalDB = costoInversion + margenGanancia;
     final double uiTotal = rawTotalDB;
     final double saldoPendiente = uiTotal - pagosValidosEnUI;
     
@@ -481,6 +483,12 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                 }
                 return 'N/A';
               })()),
+              const SizedBox(height: 12),
+              _buildInfoRow(Icons.account_balance, 'Inversión', 
+                  _formatMonto(costoInversion)),
+              const SizedBox(height: 12),
+              _buildInfoRow(Icons.trending_up, 'Ganancia Pactada', 
+                  _formatMonto(margenGanancia), color: AppColors.primaryGreen, isBold: true),
               const SizedBox(height: 12),
               _buildInfoRow(Icons.monetization_on, 'Monto total',
                   '\$${uiTotal.toStringAsFixed(2)}',
@@ -839,7 +847,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Renovación de Crédito',
+                                'Renovación de Préstamo',
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
@@ -1095,7 +1103,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
             displayValue = value.toString().capitalize();
             break;
           case 'tipo_credito':
-            label = 'Tipo de Crédito';
+            label = 'Tipo de Préstamo';
             displayValue = value == 'unico' ? 'Pago Único' : 'Cuotas';
             break;
           case 'abono':
@@ -1116,7 +1124,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
             final moraNum =
                 value is num ? value : num.tryParse(value.toString());
             if (moraNum != null && moraNum > 0) {
-              label = 'Monto de Mora';
+              label = 'Ganancia (Renovación)';
               displayValue = _formatMonto(value);
             }
             break;
@@ -1523,9 +1531,13 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                                           0) >
                                       0)
                                 _buildCondRow(
-                                  'Mora',
+                                  'Ganancia',
                                   _formatMonto(condNuevas['monto_mora']),
                                 ),
+                              _buildCondRow(
+                                'Plazo en días (Nuevos)',
+                                _calcularDiasPlazo(condNuevas),
+                              ),
                             ] else ...[
                               if (condNuevas['cuotas_renovadas'] is List &&
                                   (condNuevas['cuotas_renovadas'] as List)
@@ -1544,7 +1556,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                                           0) >
                                       0)
                                 _buildCondRow(
-                                  'Mora',
+                                  'Ganancia',
                                   _formatMonto(condNuevas['monto_mora']),
                                 ),
                             ],

@@ -5,6 +5,8 @@ import 'package:cuot_app/Model/credito_unico_model.dart';
 import 'package:cuot_app/Model/pago_model.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/widget/creditos/custom_date_picker.dart';
+import 'package:image_picker/image_picker.dart'; // 👈 NUEVO
+import 'dart:io'; // 👈 NUEVO: Para manejar el File del path
 
 class DialogoPagoUnico extends StatefulWidget {
   final CreditoUnico credito;
@@ -31,6 +33,7 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
   String _metodoPago = 'efectivo';
   DateTime _fechaPago = DateTime.now();
   bool _isLoadingTasa = false; // 👈 NUEVO: Estado de carga
+  String? _comprobantePath; // 👈 NUEVO: Ruta del capture
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
@@ -87,6 +90,21 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
       });
     } else if (mounted) {
       setState(() => _isLoadingTasa = false);
+    }
+  }
+
+  // 👈 NUEVO: Método para seleccionar el capture
+  Future<void> _seleccionarComprobante() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70, // Reducir calidad para ahorrar espacio
+    );
+
+    if (image != null && mounted) {
+      setState(() {
+        _comprobantePath = image.path;
+      });
     }
   }
 
@@ -479,6 +497,75 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                         ),
                       ),
 
+                      const SizedBox(height: 16),
+
+                      // 👈 NUEVO: Sección de Capture
+                      const Text(
+                        'Comprobante de Pago (Capture)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: _seleccionarComprobante,
+                        child: Container(
+                          width: double.infinity,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _comprobantePath != null 
+                                  ? AppColors.primaryGreen.withOpacity(0.5)
+                                  : Colors.grey.shade300,
+                              style: BorderStyle.solid,
+                            ),
+                          ),
+                          child: _comprobantePath != null
+                              ? Stack(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(15),
+                                      child: Image.file(
+                                        File(_comprobantePath!),
+                                        width: double.infinity,
+                                        height: 120,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 5,
+                                      right: 5,
+                                      child: GestureDetector(
+                                        onTap: () => setState(() => _comprobantePath = null),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_a_photo_outlined, color: Colors.grey.shade400, size: 32),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Toca para subir el capture',
+                                      style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+
                       const SizedBox(height: 24),
                       
                       // 👈 INTEGRADO: Resumen final de pago (ESTILO REUTILIZADO)
@@ -700,6 +787,7 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
       metodoPago: _metodoPago,
       referencia: _referenciaController.text,
       observaciones: _observacionesController.text,
+      comprobantePath: _comprobantePath, // 👈 NUEVO
     );
 
     widget.onPagoRealizado(nuevoPago);

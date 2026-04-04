@@ -411,6 +411,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
     bool aplicarMora,
     double? montoMora,
     bool esPagoParcial,
+    String? comprobantePath, // 👈 NUEVO
   ) async {
     final f = _financiamientos[financiamientoIndex];
     if (f is! Map<String, dynamic>) return;
@@ -426,6 +427,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         referencia: referencia,
         observaciones: observaciones,
         esPagoParcial: esPagoParcial,
+        comprobantePath: comprobantePath, // 👈 NUEVO
       );
 
       // 2. Refrescar datos desde la base de datos
@@ -907,6 +909,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                                           aplicarMora,
                                           montoMora,
                                           esPagoParcial,
+                                          comprobantePath, // 👈 NUEVO
                                         ) {
                                           _pagarCuotaCompleto(
                                             originalIndex,
@@ -919,6 +922,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                                             aplicarMora,
                                             montoMora,
                                             esPagoParcial,
+                                            comprobantePath, // 👈 NUEVO
                                           );
                                         },
                                       ),

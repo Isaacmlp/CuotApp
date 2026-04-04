@@ -8,8 +8,9 @@ class Pago {
   final DateTime? fechaPagoReal;
   final String estado; // 'pendiente', 'pagado', 'atrasado'
   final String? metodoPago; // 'efectivo', 'transferencia', 'tarjeta'
-  final String? referencia; // 👈 NUEVO
-  final String? observaciones; // 👈 NUEVO
+  final String? referencia;
+  final String? observaciones;
+  final String? comprobantePath; // 👈 NUEVO: Ruta local del capture
 
   Pago({
     required this.id,
@@ -22,6 +23,7 @@ class Pago {
     this.metodoPago,
     this.referencia,
     this.observaciones,
+    this.comprobantePath,
   });
 
   Map<String, dynamic> toJson() {
@@ -36,6 +38,7 @@ class Pago {
       'metodoPago': metodoPago,
       'referencia': referencia,
       'observaciones': observaciones,
+      'comprobantePath': comprobantePath,
     };
   }
 
@@ -53,6 +56,7 @@ class Pago {
       metodoPago: json['metodoPago'],
       referencia: json['referencia'],
       observaciones: json['observaciones'],
+      comprobantePath: json['comprobantePath'],
     );
   }
 
@@ -67,6 +71,7 @@ class Pago {
     String? metodoPago,
     String? referencia,
     String? observaciones,
+    String? comprobantePath,
   }) {
     return Pago(
       id: id ?? this.id,
@@ -79,6 +84,7 @@ class Pago {
       metodoPago: metodoPago ?? this.metodoPago,
       referencia: referencia ?? this.referencia,
       observaciones: observaciones ?? this.observaciones,
+      comprobantePath: comprobantePath ?? this.comprobantePath,
     );
   }
 

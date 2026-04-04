@@ -97,6 +97,7 @@ class CreditService {
     String? referencia,
     String? observaciones,
     bool esPagoParcial = false,
+    String? comprobantePath, // 👈 NUEVO
   }) async {
     try {
       // 1. Insertar el registro de pago
@@ -111,6 +112,7 @@ class CreditService {
             'metodo_pago': metodoPago,
             'referencia': referencia,
             'observaciones': observaciones,
+            'comprobante_path': comprobantePath, // 👈 NUEVO: El nombre exacto en DB debe ser este
           });
 
       // 2. Obtener la cuota actual

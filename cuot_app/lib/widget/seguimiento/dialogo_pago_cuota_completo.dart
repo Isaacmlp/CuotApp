@@ -4,6 +4,8 @@ import 'package:cuot_app/utils/scrapper_util.dart'; // 👈 NUEVO: Scrapper
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import 'package:cuot_app/widget/creditos/custom_date_picker.dart';
+import 'package:image_picker/image_picker.dart'; // 👈 NUEVO
+import 'dart:io'; // 👈 NUEVO
 
 class DialogoPagoCuotaCompleto extends StatefulWidget {
   final int numeroCuota;
@@ -25,7 +27,8 @@ class DialogoPagoCuotaCompleto extends StatefulWidget {
     String observaciones,
     bool aplicarMora,
     double? montoMora,
-    bool esPagoParcial, // 👈 NUEVO: para indicar si el pago es parcial
+    bool esPagoParcial,
+    String? comprobantePath, // 👈 NUEVO
   ) onPagar;
 
   const DialogoPagoCuotaCompleto({
@@ -62,6 +65,7 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
   bool _aplicarMora = false;
   double _montoMora = 0.0;
   bool _isLoadingTasa = false; // 👈 NUEVO: Estado de carga
+  String? _comprobantePath; // 👈 NUEVO: Ruta del capture
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -186,6 +190,21 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
       });
     } else if (mounted) {
       setState(() => _isLoadingTasa = false);
+    }
+  }
+
+  // 👈 NUEVO: Método para seleccionar el capture
+  Future<void> _seleccionarComprobante() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+
+    if (image != null && mounted) {
+      setState(() {
+        _comprobantePath = image.path;
+      });
     }
   }
 
@@ -737,6 +756,75 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                             fillColor: Colors.grey.shade50,
                           ),
                         ),
+
+                        const SizedBox(height: 16),
+
+                        // 👈 NUEVO: Sección de Capture
+                        const Text(
+                          'Comprobante de Pago (Capture)',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: _seleccionarComprobante,
+                          child: Container(
+                            width: double.infinity,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: _comprobantePath != null 
+                                    ? AppColors.primaryGreen.withOpacity(0.5)
+                                    : Colors.grey.shade300,
+                                style: BorderStyle.solid,
+                              ),
+                            ),
+                            child: _comprobantePath != null
+                                ? Stack(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(15),
+                                        child: Image.file(
+                                          File(_comprobantePath!),
+                                          width: double.infinity,
+                                          height: 120,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 5,
+                                        right: 5,
+                                        child: GestureDetector(
+                                          onTap: () => setState(() => _comprobantePath = null),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.red,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.add_a_photo_outlined, color: Colors.grey.shade400, size: 32),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Toca para subir el capture',
+                                        style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
                                                                         
                         // 👇 NUEVO: Mostrar cuánto quedará pendiente después del pago parcial
                         if (_tipoPago == 'parcial' && _montoPendienteDespues > 0) ...[
@@ -1022,6 +1110,7 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                                       _aplicarMora,
                                       _aplicarMora ? _montoMora : null,
                                       esPagoParcial,
+                                      _comprobantePath, // 👈 NUEVO
                                     );
                                     Navigator.pop(context);
                                   }

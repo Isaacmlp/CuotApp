@@ -1,5 +1,6 @@
-// lib/widget/seguimiento/dialogo_pago_cuota.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 
 class DialogoPagoCuota extends StatefulWidget {
@@ -7,7 +8,7 @@ class DialogoPagoCuota extends StatefulWidget {
   final double monto;
   final DateTime fechaVencimiento;
   final String nombreCliente;
-  final Function(double, DateTime, String) onPagar;
+  final Function(double, DateTime, String, String?) onPagar; // 👈 ACTUALIZADO: String? comprobantePath
 
   const DialogoPagoCuota({
     super.key,
@@ -27,6 +28,7 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
   late TextEditingController _montoController;
   DateTime _fechaPago = DateTime.now();
   String _metodoPago = 'efectivo';
+  String? _comprobantePath; // 👈 NUEVO: Ruta de la captura
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
 
@@ -68,6 +70,17 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
     }
     // Si es otra fecha, la dejamos como está (probablemente 00:00:00 del picker)
     return date;
+  }
+
+  Future<void> _seleccionarComprobante() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (image != null) {
+      setState(() {
+        _comprobantePath = image.path;
+      });
+    }
   }
 
   @override
@@ -383,6 +396,88 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
                   ),
                 ),
                 
+                const SizedBox(height: 20),
+                
+                // Sección de comprobante (Capture)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4, bottom: 8),
+                      child: Text(
+                        'Comprobante de pago (Opcional)',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.mediumGrey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    if (_comprobantePath != null)
+                      Stack(
+                        children: [
+                          Container(
+                            height: 120,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              image: DecorationImage(
+                                image: FileImage(File(_comprobantePath!)),
+                                fit: BoxFit.cover,
+                              ),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: GestureDetector(
+                              onTap: () => setState(() => _comprobantePath = null),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.close, color: Colors.white, size: 16),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      InkWell(
+                        onTap: _seleccionarComprobante,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              style: BorderStyle.solid,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(Icons.add_a_photo_outlined, color: AppColors.primaryGreen, size: 30),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Subir captura del pago',
+                                style: TextStyle(
+                                  color: AppColors.primaryGreen,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                
                 const SizedBox(height: 24),
                 
                 // Botones
@@ -414,7 +509,12 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
                             final monto = double.parse(_montoController.text);
-                            widget.onPagar(monto, _combinarFechaConHoraActual(_fechaPago), _metodoPago);
+                            widget.onPagar(
+                              monto, 
+                              _combinarFechaConHoraActual(_fechaPago), 
+                              _metodoPago,
+                              _comprobantePath, // 👈 NUEVO: Pasar la ruta
+                            );
                             Navigator.pop(context);
                           }
                         },

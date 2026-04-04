@@ -692,82 +692,130 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
                     children: [
                       // === SECCIÓN DINÁMICA SEGÚN TIPO ===
                       if (_tipoCredito == 'unico') ...[
-                        GestureDetector(
-                          onTap: () async {
-                            // Step 1: Select Start Date (Default: Today)
-                            final pickedStart = await showDatePicker(
-                              context: context,
-                              initialDate: DateTime.now(),
-                              firstDate: DateTime(2000),
-                              lastDate: DateTime(2100),
-                              helpText: 'Selecciona la fecha de inicio',
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 500),
+                          transitionBuilder: (Widget child, Animation<double> animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0.1, 0),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
+                              ),
                             );
-
-                            if (pickedStart != null && mounted) {
-                              // Step 2: Select End Date (Default: Start + 30 days)
-                              DateTime initialEnd = DateTime.now();
-                              if (initialEnd.isBefore(pickedStart)) initialEnd = pickedStart;
-
-                              final pickedEnd = await showDatePicker(
+                          },
+                          child: GestureDetector(
+                            key: ValueKey('${_fechaInicioRenovacion?.millisecondsSinceEpoch}_${_fechaLimiteNueva?.millisecondsSinceEpoch}'),
+                            onTap: () async {
+                              // Step 1: Select Start Date (Default: Today)
+                              final pickedStart = await showDatePicker(
                                 context: context,
-                                initialDate: initialEnd,
-                                firstDate: pickedStart,
+                                initialDate: DateTime.now(),
+                                firstDate: DateTime(2000),
                                 lastDate: DateTime(2100),
-                                helpText: 'Selecciona la fecha final',
+                                helpText: 'Selecciona la fecha de inicio',
                               );
 
-                              if (pickedEnd != null && mounted) {
-                                if (!mounted) return;
-                                setState(() {
-                                  _fechaInicioRenovacion = pickedStart;
-                                  _fechaLimiteNueva = pickedEnd;
-                                  _fechaRenovacion = pickedEnd;
-                                  _moraEditadaManualmente = false; // 👈 Resetear para forzar el nuevo cálculo dinámico
-                                  _updateMoraController();
-                                });
+                              if (pickedStart != null && mounted) {
+                                // Step 2: Select End Date (Default: Start + 30 days)
+                                DateTime initialEnd = DateTime.now();
+                                if (initialEnd.isBefore(pickedStart)) initialEnd = pickedStart;
+
+                                final pickedEnd = await showDatePicker(
+                                  context: context,
+                                  initialDate: initialEnd,
+                                  firstDate: pickedStart,
+                                  lastDate: DateTime(2100),
+                                  helpText: 'Selecciona la fecha final',
+                                );
+
+                                if (pickedEnd != null && mounted) {
+                                  if (!mounted) return;
+                                  setState(() {
+                                    _fechaInicioRenovacion = pickedStart;
+                                    _fechaLimiteNueva = pickedEnd;
+                                    _fechaRenovacion = pickedEnd;
+                                    _moraEditadaManualmente = false; 
+                                    _updateMoraController();
+                                  });
+                                }
                               }
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.calendar_month, color: AppColors.primaryGreen),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('Rango de Renovación', 
-                                        style: TextStyle(fontSize: 12, color: Colors.grey)),
-                                      Text(
-                                        _fechaInicioRenovacion != null && _fechaLimiteNueva != null
-                                            ? '${DateFormat('dd/MM/yyyy').format(_fechaInicioRenovacion!)} - ${DateFormat('dd/MM/yyyy').format(_fechaLimiteNueva!)}'
-                                            : 'Toca para seleccionar fechas',
-                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _fechaInicioRenovacion != null && _fechaLimiteNueva != null
+                                      ? AppColors.primaryGreen.withOpacity(0.5)
+                                      : Colors.grey.shade300,
+                                  width: _fechaInicioRenovacion != null && _fechaLimiteNueva != null ? 2 : 1,
+                                ),
+                                boxShadow: _fechaInicioRenovacion != null && _fechaLimiteNueva != null
+                                    ? [
+                                        BoxShadow(
+                                          color: AppColors.primaryGreen.withOpacity(0.1),
+                                          blurRadius: 10,
+                                          spreadRadius: 2,
+                                        )
+                                      ]
+                                    : null,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_month, 
+                                    color: _fechaInicioRenovacion != null && _fechaLimiteNueva != null
+                                        ? AppColors.primaryGreen
+                                        : Colors.grey,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('Rango de Renovación', 
+                                          style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                        Text(
+                                          _fechaInicioRenovacion != null && _fechaLimiteNueva != null
+                                              ? '${DateFormat('dd/MM/yyyy').format(_fechaInicioRenovacion!)} - ${DateFormat('dd/MM/yyyy').format(_fechaLimiteNueva!)}'
+                                              : 'Toca para seleccionar fechas',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: _fechaInicioRenovacion != null && _fechaLimiteNueva != null
+                                                ? AppColors.primaryGreen
+                                                : Colors.black87,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: _fechaInicioRenovacion != null && _fechaLimiteNueva != null
+                                          ? AppColors.primaryGreen.withOpacity(0.1)
+                                          : Colors.grey.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      _fechaInicioRenovacion != null && _fechaLimiteNueva != null
+                                          ? '${DateTime.utc(_fechaLimiteNueva!.year, _fechaLimiteNueva!.month, _fechaLimiteNueva!.day).difference(DateTime.utc(_fechaInicioRenovacion!.year, _fechaInicioRenovacion!.month, _fechaInicioRenovacion!.day)).inDays + 1} días'
+                                          : '-',
+                                      style: TextStyle(
+                                        fontSize: 13, 
+                                        color: _fechaInicioRenovacion != null && _fechaLimiteNueva != null
+                                            ? AppColors.primaryGreen
+                                            : Colors.grey, 
+                                        fontWeight: FontWeight.bold
                                       ),
-                                    ],
+                                    ),
                                   ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryGreen.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    _fechaInicioRenovacion != null && _fechaLimiteNueva != null
-                                        ? '${DateTime.utc(_fechaLimiteNueva!.year, _fechaLimiteNueva!.month, _fechaLimiteNueva!.day).difference(DateTime.utc(_fechaInicioRenovacion!.year, _fechaInicioRenovacion!.month, _fechaInicioRenovacion!.day)).inDays + 1} días'
-                                        : '-',
-                                    style: const TextStyle(fontSize: 12, color: AppColors.primaryGreen, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),

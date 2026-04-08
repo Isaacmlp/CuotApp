@@ -55,16 +55,17 @@ class RenovacionService {
         (condicionesNuevas['monto_total'] as num).toDouble();
 
     // PIZARRA LIMPIA: El gross en DB es exactamente el nuevo saldo deseado.
-    // La UI (detalle_credito_page) excluye los pagos anteriores a la renovación,
-    // por lo que el usuario verá: Total = nuevo saldo, Abonado = 0, Pendiente = nuevo saldo.
-    // No se suman pagos históricos ni el abono aquí — hacerlo inflaría el Total visible.
     final double verdaderoGrossTotal = nuevoSaldoPendienteDeseado;
 
-    final double costoInversionOriginal = (renovacion.condicionesAnteriores['costo_inversion'] ?? 0).toDouble();
-    final double nuevoMargen = verdaderoGrossTotal - costoInversionOriginal;
+    // La nueva ganancia pactada es el monto_mora extra de esta renovación
+    final double nuevaMora = (condicionesNuevas['monto_mora'] ?? 0).toDouble();
+    
+    // El nuevo costo de inversión es el total menos la ganancia pactada
+    final double nuevoCostoInversion = verdaderoGrossTotal - nuevaMora;
 
     Map<String, dynamic> updateData = {
-      'margen_ganancia': nuevoMargen,
+      'costo_inversion': nuevoCostoInversion,
+      'margen_ganancia': nuevaMora,
       'numero_cuotas': renovacion.nuevoPlazo,
       'fecha_inicio': condicionesNuevas['fecha_inicio_nueva'],
     };

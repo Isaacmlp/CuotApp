@@ -1,5 +1,6 @@
 // lib/widget/seguimiento/dialogo_pago_unico.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cuot_app/utils/scrapper_util.dart'; // 👈 NUEVO: Scrapper
 import 'package:cuot_app/Model/credito_unico_model.dart';
 import 'package:cuot_app/Model/pago_model.dart';
@@ -29,6 +30,7 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
     with SingleTickerProviderStateMixin {
   late TextEditingController _montoController;
   late TextEditingController _tasaController; // 👈 NUEVO
+  late TextEditingController _bsController; // 👈 NUEVO
   late TextEditingController _referenciaController;
   late TextEditingController _observacionesController;
   String _metodoPago = 'efectivo';
@@ -61,6 +63,7 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
           : _maxMonto.toStringAsFixed(2),
     );
     _tasaController = TextEditingController(); // 👈 NUEVO
+    _bsController = TextEditingController(); // 👈 NUEVO
     _referenciaController = TextEditingController();
     _observacionesController = TextEditingController();
     
@@ -96,6 +99,37 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
     }
   }
 
+  void _updateBsFromUsd() {
+    final montoUsd = double.tryParse(_montoController.text) ?? 0.0;
+    final tasa = double.tryParse(_tasaController.text) ?? 0.0;
+    final bs = montoUsd * tasa;
+    if (bs > 0) {
+      _bsController.text = bs.toStringAsFixed(2);
+    } else {
+      _bsController.clear();
+    }
+  }
+
+  void _updateUsdFromBs() {
+    final montoBs = double.tryParse(_bsController.text) ?? 0.0;
+    final tasa = double.tryParse(_tasaController.text) ?? 0.0;
+    if (tasa > 0) {
+      final usd = montoBs / tasa;
+      _montoController.text = usd.toStringAsFixed(2);
+    }
+  }
+
+  void _copyToClipboard(String text, String label) {
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('✅ $label copiado al portapapeles'),
+        duration: const Duration(seconds: 1),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   // 👈 NUEVO: Método para seleccionar el capture
   Future<void> _seleccionarComprobante() async {
     final ImagePicker picker = ImagePicker();
@@ -115,6 +149,7 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
   void dispose() {
     _montoController.dispose();
     _tasaController.dispose(); // 👈 NUEVO
+    _bsController.dispose(); // 👈 NUEVO
     _referenciaController.dispose();
     _observacionesController.dispose();
     _animationController.dispose();
@@ -267,71 +302,65 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                         ),
                       ),
                       const SizedBox(height: 8),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 2.5,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                        ),
-                        itemCount: _metodosPago.length,
-                        itemBuilder: (context, index) {
-                          final metodo = _metodosPago[index];
-                          final isSelected = _metodoPago == metodo['valor'];
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _metodoPago = metodo['valor'];
-                              });
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              decoration: BoxDecoration(
-                                color: isSelected 
-                                    ? metodo['color'] 
-                                    : metodo['color'].withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isSelected 
-                                      ? Colors.transparent 
-                                      : metodo['color'].withOpacity(0.3),
-                                ),
-                                boxShadow: isSelected ? [
-                                  BoxShadow(
-                                    color: metodo['color'].withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  )
-                                ] : null,
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
+                      DropdownButtonFormField<String>(
+                        value: _metodoPago,
+                        items: _metodosPago.map((metodo) {
+                          return DropdownMenuItem<String>(
+                            value: metodo['valor'],
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: (metodo['color'] as Color).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
                                     metodo['icon'],
-                                    color: isSelected ? Colors.white : metodo['color'],
-                                    size: 18,
+                                    color: metodo['color'],
+                                    size: 20,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Flexible(
-                                    child: Text(
-                                      metodo['label'],
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: isSelected ? Colors.white : metodo['color'],
-                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  metodo['label'],
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _metodoPago = val;
+                            });
+                          }
                         },
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: Colors.grey.shade200),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: AppColors.primaryGreen, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                        ),
+                        isExpanded: true,
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.mediumGrey),
+                        dropdownColor: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       
                       // 2. Campo de referencia condicional
@@ -374,22 +403,31 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                                                    
 
                       // 5. Campo de monto
+                      // 5. Campo de monto
                       TextFormField(
                         controller: _montoController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        onChanged: (value) {
+                          _updateBsFromUsd();
+                          setState(() {});
+                        },
                         decoration: InputDecoration(
                           labelText: widget.esParcial
-                              ? 'Monto a pagar (parcial)'
-                              : 'Monto total',
+                              ? 'Monto a pagar (USD)'
+                              : 'Monto total (USD)',
                           prefixText: '\$ ',
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.copy, size: 20),
+                            onPressed: () => _copyToClipboard(_montoController.text, 'Monto USD'),
+                            tooltip: 'Copiar USD',
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                           filled: true,
                           fillColor: Colors.grey.shade50,
                         ),
-                        keyboardType: TextInputType.number,
-                        enabled: widget.esParcial,
-                        onChanged: (value) => setState(() {}),
                       ),
                       
                       const SizedBox(height: 16),
@@ -397,7 +435,10 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                       // 6. Tasa del día
                       TextFormField(
                         controller: _tasaController,
-                        readOnly: true,
+                        onChanged: (value) {
+                          _updateBsFromUsd();
+                          setState(() {});
+                        },
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -406,19 +447,30 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                         decoration: InputDecoration(
                           labelText: 'Tasa del día (BCV)',
                           prefixText: 'Bs. ',
-                          suffixIcon: _isLoadingTasa 
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                              )
-                            : IconButton(
-                                icon: const Icon(Icons.refresh),
-                                onPressed: _cargarTasaBcv,
+                          suffixIcon: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.copy, size: 20),
+                                onPressed: () => _copyToClipboard(_tasaController.text, 'Tasa'),
+                                tooltip: 'Copiar Tasa',
                               ),
+                              _isLoadingTasa 
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: Padding(
+                                      padding: EdgeInsets.all(4),
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                  )
+                                : IconButton(
+                                    icon: const Icon(Icons.refresh),
+                                    onPressed: _cargarTasaBcv,
+                                    tooltip: 'Refrescar Tasa',
+                                  ),
+                            ],
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -429,45 +481,37 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                       
                       const SizedBox(height: 16),
                       
-                      // 7. Equivalente en Bolívares
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryGreen.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: AppColors.primaryGreen.withOpacity(0.2),
+                      // 7. Equivalente en Bolívares (Editable)
+                      TextFormField(
+                        controller: _bsController,
+                        onChanged: (value) {
+                          _updateUsdFromBs();
+                          setState(() {});
+                        },
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryGreen,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'EQUIVALENTE EN BOLÍVARES',
+                          prefixText: 'Bs. ',
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.copy, size: 20),
+                            onPressed: () => _copyToClipboard(_bsController.text, 'Monto Bs'),
+                            tooltip: 'Copiar Bs',
                           ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: AppColors.primaryGreen.withOpacity(0.2)),
+                          ),
+                          filled: true,
+                          fillColor: AppColors.primaryGreen.withOpacity(0.05),
                         ),
-                        child: Column(
-                          children: [
-                            const Text(
-                              'EQUIVALENTE EN BOLÍVARES',
-                              style: TextStyle(
-                                fontSize: 10, 
-                                color: Colors.grey,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                () {
-                                  final montoUsd = double.tryParse(_montoController.text) ?? 0.0;
-                                  final tasa = double.tryParse(_tasaController.text) ?? 0.0;
-                                  return 'Bs. ${(montoUsd * tasa).toStringAsFixed(2)}';
-                                }(),
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryGreen,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        keyboardType: TextInputType.number,
                       ),
 
                       

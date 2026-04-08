@@ -449,6 +449,30 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
       }
     }
 
+    // NUEVAS VALIDACIONES: Evitar saldo cero y abono excesivo
+    final totalConMora = _saldoPendiente + (_incluirMora ? _montoMora : 0);
+    if (_abono >= totalConMora) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❌ El abono no puede cubrir el total del saldo. Para liquidar el préstamo, registre un pago normal.'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (_nuevoMontoTotal < 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❌ El nuevo total del préstamo debe ser mayor a \$1.00'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     try {
@@ -1155,7 +1179,7 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
                       // Fila VIEJO
                       TableRow(
                         decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.05),
+                          color: Colors.red.shade100.withOpacity(0.4),
                         ),
                         children: [
                           _buildTableCell('Viejo', isBold: true, color: Colors.red.shade900),
@@ -1182,7 +1206,7 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
                           _buildTableCell(
                             _tipoCredito == 'unico'
                                 ? (_fechaLimiteNueva != null && _fechaInicioRenovacion != null
-                                    ? '${_fechaLimiteNueva!.difference(DateTime(_fechaInicioRenovacion!.year, _fechaInicioRenovacion!.month, _fechaInicioRenovacion!.day)).inDays + 1} días'
+                                    ? '${DateTime.utc(_fechaLimiteNueva!.year, _fechaLimiteNueva!.month, _fechaLimiteNueva!.day).difference(DateTime.utc(_fechaInicioRenovacion!.year, _fechaInicioRenovacion!.month, _fechaInicioRenovacion!.day)).inDays + 1} días'
                                     : 'N/A')
                                 : '${_cuotasEditables.length} cuotas',
                             color: AppColors.primaryGreen,

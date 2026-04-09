@@ -1,5 +1,6 @@
 // lib/widget/seguimiento/dialogo_pago_cuota_completo.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // 👈 NUEVO: Clipboard
 import 'package:cuot_app/utils/scrapper_util.dart'; // 👈 NUEVO: Scrapper
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:intl/intl.dart';
@@ -57,6 +58,7 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _montoController;
   late TextEditingController _tasaController; // 👈 NUEVO
+  late TextEditingController _bsController; // 👈 NUEVO
   late TextEditingController _referenciaController;
   late TextEditingController _observacionesController;
   
@@ -151,7 +153,43 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
     }
   }
 
+  // 👈 NUEVO: Lógica de conversión
+  void _updateBsFromUsd() {
+    final montoUsd = double.tryParse(_montoController.text) ?? 0.0;
+    final tasa = double.tryParse(_tasaController.text) ?? 0.0;
+    final bs = montoUsd * tasa;
+    if (bs > 0) {
+      _bsController.text = bs.toStringAsFixed(2);
+    } else {
+      _bsController.clear();
+    }
+  }
 
+  void _updateUsdFromBs() {
+    final montoBs = double.tryParse(_bsController.text) ?? 0.0;
+    final tasa = double.tryParse(_tasaController.text) ?? 0.0;
+    if (tasa > 0) {
+      final usd = montoBs / tasa;
+      // Actualizamos solo si NO es el modo completo bloqueado
+      if (_tipoPago == 'parcial') {
+        _montoController.text = usd.toStringAsFixed(2);
+      }
+    }
+  }
+
+  void _copyToClipboard(String text, String label) {
+    if (text.isEmpty) return;
+    Clipboard.setData(ClipboardData(text: text));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ $label copiado al portapapeles'),
+          duration: const Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -161,6 +199,7 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
       text: widget.montoRestante.toStringAsFixed(2), // 👈 Usar montoRestante
     );
     _tasaController = TextEditingController(); // 👈 NUEVO
+    _bsController = TextEditingController(); // 👈 NUEVO
     _referenciaController = TextEditingController();
     _observacionesController = TextEditingController();
     
@@ -190,6 +229,7 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
       setState(() {
         _tasaController.text = tasa.toStringAsFixed(2);
         _isLoadingTasa = false;
+        _updateBsFromUsd(); // 👈 NUEVO
       });
     } else if (mounted) {
       setState(() => _isLoadingTasa = false);
@@ -215,6 +255,7 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
   void dispose() {
     _montoController.dispose();
     _tasaController.dispose(); // 👈 NUEVO
+    _bsController.dispose(); // 👈 NUEVO
     _referenciaController.dispose();
     _observacionesController.dispose();
     _animationController.dispose();
@@ -468,71 +509,65 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                           ),
                         ),
                         const SizedBox(height: 8),
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 2.5,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 10,
-                          ),
-                          itemCount: _metodosPago.length,
-                          itemBuilder: (context, index) {
-                            final metodo = _metodosPago[index];
-                            final isSelected = _metodoPago == metodo['valor'];
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _metodoPago = metodo['valor'];
-                                });
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                decoration: BoxDecoration(
-                                  color: isSelected 
-                                      ? metodo['color'] 
-                                      : metodo['color'].withOpacity(0.05),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isSelected 
-                                        ? Colors.transparent 
-                                        : metodo['color'].withOpacity(0.3),
-                                  ),
-                                  boxShadow: isSelected ? [
-                                    BoxShadow(
-                                      color: metodo['color'].withOpacity(0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    )
-                                  ] : null,
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
+                        DropdownButtonFormField<String>(
+                          value: _metodoPago,
+                          items: _metodosPago.map((metodo) {
+                            return DropdownMenuItem<String>(
+                              value: metodo['valor'],
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: (metodo['color'] as Color).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
                                       metodo['icon'],
-                                      color: isSelected ? Colors.white : metodo['color'],
-                                      size: 18,
+                                      color: metodo['color'],
+                                      size: 20,
                                     ),
-                                    const SizedBox(width: 8),
-                                    Flexible(
-                                      child: Text(
-                                        metodo['label'],
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: isSelected ? Colors.white : metodo['color'],
-                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    metodo['label'],
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() {
+                                _metodoPago = val;
+                              });
+                            }
                           },
+                          decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: Colors.grey.shade200),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: AppColors.primaryGreen, width: 2),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                          ),
+                          isExpanded: true,
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.mediumGrey),
+                          dropdownColor: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         
                         // 2. Campo de referencia condicional
@@ -623,6 +658,16 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
+                            suffixIcon: _tipoPago == 'completo'
+                                ? Icon(
+                                    Icons.lock,
+                                    color: Colors.grey.shade400,
+                                  )
+                                : IconButton(
+                                    icon: const Icon(Icons.copy, size: 20),
+                                    onPressed: () => _copyToClipboard(_montoController.text, 'Monto USD'),
+                                    tooltip: 'Copiar USD',
+                                  ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -630,15 +675,10 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                             fillColor: _tipoPago == 'completo'
                                 ? Colors.grey.shade100
                                 : Colors.grey.shade50,
-                            suffixIcon: _tipoPago == 'completo'
-                                ? Icon(
-                                    Icons.lock,
-                                    color: Colors.grey.shade400,
-                                  )
-                                : null,
                           ),
                           keyboardType: TextInputType.number,
                           onChanged: (value) {
+                            _updateBsFromUsd(); // 👈 NUEVO
                             setState(() {}); // Forzar reconstrucción para actualizar Bs.
                           },
                           validator: (value) {
@@ -664,9 +704,12 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                         // 7. Tasa del día
                         TextFormField(
                           controller: _tasaController,
-                          readOnly: true,
+                          onChanged: (value) {
+                            _updateBsFromUsd();
+                            setState(() {});
+                          },
                           style: const TextStyle(
-                            fontSize: 22, // 👈 Más grande
+                            fontSize: 22,
                             fontWeight: FontWeight.bold,
                             color: Colors.blue,
                             letterSpacing: 1.2,
@@ -675,20 +718,30 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                             labelText: 'Tasa del día (BCV)',
                             prefixText: 'Bs. ',
                             prefixStyle: const TextStyle(fontSize: 18, color: Colors.blue),
-                            suffixIcon: _isLoadingTasa 
-                              ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: Padding(
-                                    padding: EdgeInsets.all(12),
-                                    child: CircularProgressIndicator(strokeWidth: 2.5),
-                                  ),
-                                )
-                              : IconButton(
-                                  icon: const Icon(Icons.refresh, size: 28),
-                                  onPressed: _cargarTasaBcv,
-                                  tooltip: 'Refrescar tasa BCV',
+                            suffixIcon: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.copy, size: 20),
+                                  onPressed: () => _copyToClipboard(_tasaController.text, 'Tasa'),
+                                  tooltip: 'Copiar Tasa',
                                 ),
+                                _isLoadingTasa 
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: Padding(
+                                        padding: EdgeInsets.all(12),
+                                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                                      ),
+                                    )
+                                  : IconButton(
+                                      icon: const Icon(Icons.refresh, size: 28),
+                                      onPressed: _cargarTasaBcv,
+                                      tooltip: 'Refrescar tasa BCV',
+                                    ),
+                              ],
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -696,52 +749,43 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                             fillColor: Colors.blue.withOpacity(0.05),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                           ),
+                          keyboardType: TextInputType.number,
                         ),
                         
                         const SizedBox(height: 16),
                         
                         // 8. Equivalente en Bolívares
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryGreen.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: AppColors.primaryGreen.withOpacity(0.2),
+                        TextFormField(
+                          controller: _bsController,
+                          onChanged: (value) {
+                            _updateUsdFromBs();
+                            setState(() {});
+                          },
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryGreen,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: 'EQUIVALENTE EN BOLÍVARES',
+                            prefixText: 'Bs. ',
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.copy, size: 20),
+                              onPressed: () => _copyToClipboard(_bsController.text, 'Monto Bs'),
+                              tooltip: 'Copiar Bs',
                             ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: AppColors.primaryGreen.withOpacity(0.2)),
+                            ),
+                            filled: true,
+                            fillColor: AppColors.primaryGreen.withOpacity(0.05),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              const Text(
-                                'EQUIVALENTE EN BOLÍVARES',
-                                style: TextStyle(
-                                  fontSize: 10, 
-                                  color: Colors.grey,
-                                  letterSpacing: 1.1,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  () {
-                                    final montoUsd = double.tryParse(_montoController.text) ?? 0.0;
-                                    final tasa = double.tryParse(_tasaController.text) ?? 0.0;
-                                    final totalBs = montoUsd * tasa;
-                                    return 'Bs. ${totalBs.toStringAsFixed(2)}';
-                                  }(),
-                                  style: TextStyle(
-                                    fontSize: 28, // 👈 Se mantiene grande pero escala si es necesario
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primaryGreen,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                          keyboardType: TextInputType.number,
                         ),
 
                         SizedBox(height: 16),

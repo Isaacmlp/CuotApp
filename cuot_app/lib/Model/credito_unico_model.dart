@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:cuot_app/Model/pago_model.dart';
 import 'package:flutter/material.dart';
+import 'package:cuot_app/utils/date_utils.dart';
 
 enum TipoPagoUnico {
   unico,      // Pago único en una fecha específica
@@ -51,14 +52,9 @@ class CreditoUnico {
 
   bool get estaVencido {
     if (estaPagado) return false;
-    final hoy = DateTime.now();
-    final fechaLimiteSinHora = DateTime(
-      fechaLimite.year, 
-      fechaLimite.month, 
-      fechaLimite.day
-    );
-    final hoySinHora = DateTime(hoy.year, hoy.month, hoy.day);
-    return hoySinHora.isAfter(fechaLimiteSinHora);
+    final hoy = DateUt.nowUtc();
+    final fechaLimiteUtc = DateUt.normalizeToUtc(fechaLimite);
+    return hoy.isAfter(fechaLimiteUtc);
   }
 
   String get estado {

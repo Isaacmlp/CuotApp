@@ -142,6 +142,12 @@ class CreditoController extends ChangeNotifier {
           .eq('nombre', credito.nombreCliente)
           .eq('usuario_creador', usuarioNombre);
       
+      // BUG FIX / SAFETY: Si no hay tipo de crédito seleccionado, abortar para evitar creaciones fantasmales
+      if (_tipoCreditoSeleccionado == null && !isEditing) {
+        print('⚠️ Intento de guardado sin tipo de crédito seleccionado. Abortando.');
+        return;
+      }
+
       String clienteId;
       if (clientes.isNotEmpty) {
         clienteId = clientes[0]['id'];
@@ -175,7 +181,7 @@ class CreditoController extends ChangeNotifier {
           'cliente_id': clienteId,
           'notas': credito.notas,
           if (esPagoUnico && credito.fechaLimite != null)
-            'fecha_vencimiento': credito.fechaLimite!.toIso8601String(),
+            'fecha_vencimiento': DateUt.normalizeToUtc(credito.fechaLimite!).toIso8601String(),
         };
 
         if (esPagoUnico) {
@@ -191,8 +197,8 @@ class CreditoController extends ChangeNotifier {
             for (var cuota in credito.fechasPersonalizadas!) {
               if (!cuota.pagada) {
                 nuevasCuotasPendientes.add({
-                  'numero_cuota': cuota.numeroCuota,
-                  'fecha_pago': cuota.fechaPago.toIso8601String(),
+                'numero_cuota': cuota.numeroCuota,
+                  'fecha_pago': DateUt.normalizeToUtc(cuota.fechaPago).toIso8601String(),
                   'monto': cuota.monto,
                   'pagada': false,
                 });
@@ -228,7 +234,7 @@ class CreditoController extends ChangeNotifier {
             for (int i = 0; i < fechas.length; i++) {
               nuevasCuotasPendientes.add({
                 'numero_cuota': numPagadas + i + 1,
-                'fecha_pago': fechas[i].toIso8601String(),
+                'fecha_pago': DateUt.normalizeToUtc(fechas[i]).toIso8601String(),
                 'monto': montoPorCuota,
                 'pagada': false,
               });
@@ -254,7 +260,7 @@ class CreditoController extends ChangeNotifier {
         'concepto': credito.concepto,
         'costo_inversion': credito.costeInversion,
         'margen_ganancia': credito.margenGanancia,
-        'fecha_inicio': credito.fechaInicio.toIso8601String(),
+        'fecha_inicio': DateUt.normalizeToUtc(credito.fechaInicio).toIso8601String(),
         'modalidad_pago': credito.modalidadPago.index,
         'numero_cuotas': credito.numeroCuotas,
         'tipo_credito': esPagoUnico ? 'unico' : 'cuotas',
@@ -264,7 +270,7 @@ class CreditoController extends ChangeNotifier {
         'notas': credito.notas,
         'numero_credito': nextNumber,
         if (esPagoUnico && credito.fechaLimite != null)
-          'fecha_vencimiento': credito.fechaLimite!.toIso8601String(),
+          'fecha_vencimiento': DateUt.normalizeToUtc(credito.fechaLimite!).toIso8601String(),
       };
 
       final creditoInsertado = await _supabaseService.insert('Creditos', dataCredito);
@@ -279,7 +285,7 @@ class CreditoController extends ChangeNotifier {
             .insert({
               'credito_id': creditId,
               'numero_cuota': 1,
-              'fecha_pago': (credito.fechaLimite ?? credito.fechaInicio).toIso8601String(),
+              'fecha_pago': DateUt.normalizeToUtc(credito.fechaLimite ?? credito.fechaInicio).toIso8601String(),
               'monto': credito.precioTotal,
               'pagada': false,
             });
@@ -294,7 +300,7 @@ class CreditoController extends ChangeNotifier {
             cuotasData.add({
               'credito_id': creditId,
               'numero_cuota': i + 1,
-              'fecha_pago': cuota.fechaPago.toIso8601String(),
+              'fecha_pago': DateUt.normalizeToUtc(cuota.fechaPago).toIso8601String(),
               'monto': cuota.monto,
               'pagada': false,
             });
@@ -323,7 +329,7 @@ class CreditoController extends ChangeNotifier {
             cuotasData.add({
               'credito_id': creditId,
               'numero_cuota': i + 1,
-              'fecha_pago': fechas[i].toIso8601String(),
+              'fecha_pago': DateUt.normalizeToUtc(fechas[i]).toIso8601String(),
               'monto': credito.valorPorCuota,
               'pagada': false,
             });

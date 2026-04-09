@@ -1,4 +1,6 @@
 // lib/Model/pago_model.dart
+import 'package:cuot_app/utils/date_utils.dart';
+
 class Pago {
   final String id;
   final String creditoId;
@@ -47,10 +49,10 @@ class Pago {
       id: json['id'].toString(),
       creditoId: json['creditoId'].toString(),
       numeroCuota: json['numeroCuota'],
-      fechaPago: DateTime.parse(json['fechaPago']),
+      fechaPago: DateUt.parsePureDate(json['fechaPago']),
       monto: (json['monto'] as num).toDouble(),
       fechaPagoReal: json['fechaPagoReal'] != null 
-          ? DateTime.parse(json['fechaPagoReal']) 
+          ? DateUt.parsePureDate(json['fechaPagoReal']) 
           : null,
       estado: json['estado'] ?? 'pendiente',
       metodoPago: json['metodoPago'],

@@ -4,6 +4,7 @@ import 'package:cuot_app/service/renovacion_service.dart';
 import 'package:cuot_app/Model/renovacion_model.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/ui/pages/formulario_renovacion_page.dart';
+import 'package:cuot_app/utils/date_utils.dart'; // 👈 NUEVO
 import 'package:intl/intl.dart';
 
 extension StringExtension on String {
@@ -140,8 +141,8 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     final bool isPagado = saldoPendiente <= 0.01;
 
     // Sort pagos by date
-    rawPagos.sort((a, b) => DateTime.parse(b['fecha_pago_real'])
-        .compareTo(DateTime.parse(a['fecha_pago_real'])));
+    rawPagos.sort((a, b) => DateUt.parsePureDate(b['fecha_pago_real'])
+        .compareTo(DateUt.parsePureDate(a['fecha_pago_real'])));
 
     rawCuotas.sort((a, b) =>
         (a['numero_cuota'] as int).compareTo(b['numero_cuota'] as int));
@@ -254,12 +255,12 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
       final sortedRenov = List<dynamic>.from(renovaciones);
       // Usar created_at para máxima precisión en el aislamiento cronológico
       sortedRenov.sort((a, b) {
-        final dateA = DateTime.parse(a['created_at'] ?? a['fecha_renovacion']);
-        final dateB = DateTime.parse(b['created_at'] ?? b['fecha_renovacion']);
+        final dateA = DateUt.parsePureDate(a['created_at'] ?? a['fecha_renovacion']);
+        final dateB = DateUt.parsePureDate(b['created_at'] ?? b['fecha_renovacion']);
         return dateB.compareTo(dateA);
       });
       final last = sortedRenov.first;
-      ultimaRenovacion = DateTime.parse(last['created_at'] ?? last['fecha_renovacion']);
+      ultimaRenovacion = DateUt.parsePureDate(last['created_at'] ?? last['fecha_renovacion']);
     }
 
     double pagosExcluidosDeUI = 0.0;
@@ -269,7 +270,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     for (var pago in todosLosPagos) {
       final ref = pago['referencia']?.toString() ?? '';
       final fechaStr = pago['fecha_pago_real'] ?? pago['fecha_pago'];
-      final fechaPago = fechaStr != null ? DateTime.parse(fechaStr.toString()) : DateTime.now();
+      final fechaPago = fechaStr != null ? DateUt.parsePureDate(fechaStr.toString()) : DateUt.nowUtc();
       
       if (ref == 'Abono en Renovación') {
         pagosExcluidosDeUI += (pago['monto'] as num).toDouble();
@@ -473,8 +474,8 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                                : null);
                 if (start != null && end != null) {
                   try {
-                    final s = DateTime.parse(start.toString());
-                    final e = DateTime.parse(end.toString());
+                    final s = DateUt.parsePureDate(start.toString());
+                    final e = DateUt.parsePureDate(end.toString());
                     final sUtc = DateTime.utc(s.year, s.month, s.day);
                     final eUtc = DateTime.utc(e.year, e.month, e.day);
                     final days = eUtc.difference(sUtc).inDays + 1;
@@ -943,12 +944,10 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
   int _calcularDiasSimple(dynamic start, dynamic end) {
     if (start == null || end == null) return 0;
     try {
-      String sStr = start.toString().split(' ')[0].split('T')[0];
-      String eStr = end.toString().split(' ')[0].split('T')[0];
-      final s = DateTime.parse(sStr);
-      final e = DateTime.parse(eStr);
-      final sUtc = DateTime.utc(s.year, s.month, s.day);
-      final eUtc = DateTime.utc(e.year, e.month, e.day);
+      final s = DateUt.parsePureDate(start.toString());
+      final e = DateUt.parsePureDate(end.toString());
+      final sUtc = DateUt.normalizeToUtc(s);
+      final eUtc = DateUt.normalizeToUtc(e);
       return eUtc.difference(sUtc).inDays + 1;
     } catch (e) {
       return 0;
@@ -1003,7 +1002,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
   String _formatFecha(String? fechaStr) {
     if (fechaStr == null) return 'N/A';
     try {
-      return DateFormat('dd/MM/yyyy').format(DateTime.parse(fechaStr));
+      return DateUt.formatearFecha(DateUt.parsePureDate(fechaStr));
     } catch (_) {
       return fechaStr;
     }
@@ -1013,8 +1012,9 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
   String _formatFechaHora(String? fechaStr) {
     if (fechaStr == null) return 'N/A';
     try {
+      // Para fecha y hora, parseamos y convertimos a local para mostrar al usuario final
       return DateFormat('dd/MM/yyyy, HH:mm')
-          .format(DateTime.parse(fechaStr).toLocal());
+          .format(DateUt.parsePureDate(fechaStr).toLocal());
     } catch (_) {
       return fechaStr;
     }
@@ -1132,8 +1132,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
             if (value != null) {
               label = 'Nueva Fecha de Pago';
               try {
-                displayValue = DateFormat('dd/MM/yyyy')
-                    .format(DateTime.parse(value.toString()));
+                displayValue = DateUt.formatearFecha(DateUt.parsePureDate(value.toString()));
               } catch (_) {
                 displayValue = value.toString();
               }
@@ -1168,8 +1167,8 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     // Para condiciones nuevas en único, calcular días si hay fecha_pago_nueva
     if (condiciones['fecha_pago_nueva'] != null && _credito != null) {
       try {
-        final fechaInicio = DateTime.parse(_credito!['fecha_inicio']);
-        final fechaNueva = DateTime.parse(condiciones['fecha_pago_nueva']);
+        final fechaInicio = DateUt.parsePureDate(_credito!['fecha_inicio']);
+        final fechaNueva = DateUt.parsePureDate(condiciones['fecha_pago_nueva']);
         final dias = fechaNueva.difference(fechaInicio).inDays;
         return '$dias días';
       } catch (_) {
@@ -1631,8 +1630,8 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     if (cuotas is! List || cuotas.isEmpty) return 'N/A';
     try {
       final last = cuotas.last as Map<String, dynamic>;
-      final fecha = DateTime.parse(last['fecha'].toString());
-      return DateFormat('dd/MM/yyyy').format(fecha);
+      final fecha = DateUt.parsePureDate(last['fecha'].toString());
+      return DateUt.formatearFecha(fecha);
     } catch (_) {
       return 'N/A';
     }

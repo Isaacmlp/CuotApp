@@ -72,12 +72,14 @@ class _CreditoPageState extends State<CreditoPage> {
                     creditoInicial: controller.creditoEnProceso,
                     onCreditoActualizado: controller.actualizarCreditoParcial,
                     onGuardar: () => _guardarCredito(context, controller),
+                    isLoading: _isLoading, // 👈 PASAR ESTADO
                   )
                 : FormularioPagounico(
                     creditoInicial: controller.creditoEnProceso,
                     totalPagado: controller.totalPagado,
                     onCreditoActualizado: controller.actualizarCreditoParcial,
                     onGuardar: () => _guardarCredito(context, controller),
+                    isLoading: _isLoading, // 👈 PASAR ESTADO
                   );
           },
         ),
@@ -89,11 +91,15 @@ class _CreditoPageState extends State<CreditoPage> {
     BuildContext context,
     CreditoController controller,
   ) async {
-    // Aquí se validaría y guardaría el crédito
+    if (_isLoading) return; // BLOQUEO ANTI-DOBLE-CLICK
+
+    setState(() => _isLoading = true);
+    
     try {
       if (controller.creditoEnProceso != null) {
         final credito = controller.creditoEnProceso!;
         File? facturaFile;
+
         if (credito.facturaPath != null && !credito.facturaPath!.startsWith('http')) {
           facturaFile = File(credito.facturaPath!);
         }
@@ -121,7 +127,10 @@ class _CreditoPageState extends State<CreditoPage> {
               ],
             ),
           );
-          if (continuar != true) return;
+          if (continuar != true) {
+            setState(() => _isLoading = false);
+            return;
+          }
         }
 
         await controller.guardarCredito(
@@ -166,6 +175,10 @@ class _CreditoPageState extends State<CreditoPage> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 }

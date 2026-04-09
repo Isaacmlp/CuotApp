@@ -1,3 +1,4 @@
+import 'package:cuot_app/utils/date_utils.dart';
 import 'package:cuot_app/Model/cuota_personalizada.dart';
 
 enum TipoCredito { cuotas, unPago }
@@ -106,13 +107,13 @@ class Credito {
       concepto: json['concepto'],
       costeInversion: json['costeInversion'].toDouble(),
       margenGanancia: json['margenGanancia'].toDouble(),
-      fechaInicio: DateTime.parse(json['fechaInicio']),
+      fechaInicio: DateUt.parsePureDate(json['fechaInicio']),
       modalidadPago: ModalidadPago.values[json['modalidadPago']],
       nombreCliente: json['nombreCliente'],
       telefono: json['telefono'],
       numeroCuotas: json['numeroCuotas'],
       facturaPath: json['facturaPath'],
-      fechaLimite: json['fechaLimite'] != null ? DateTime.parse(json['fechaLimite']) : null,
+      fechaLimite: json['fechaLimite'] != null ? DateUt.parsePureDate(json['fechaLimite']) : null,
       nombreFactura: json['nombreFactura'],
       fechasPersonalizadas: json['fechasPersonalizadas'] != null
           ? (json['fechasPersonalizadas'] as List)

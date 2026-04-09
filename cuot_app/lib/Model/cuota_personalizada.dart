@@ -1,4 +1,5 @@
 // lib/Model/cuota_personalizada.dart
+import 'package:cuot_app/utils/date_utils.dart';
 /// Modelo que representa una cuota individual en el plan de pagos personalizado
 class CuotaPersonalizada {
   /// Número de la cuota (1, 2, 3, etc.)
@@ -43,12 +44,12 @@ class CuotaPersonalizada {
   /// Crea una instancia desde JSON (para recuperar de base de datos)
   factory CuotaPersonalizada.fromJson(Map<String, dynamic> json) {
     return CuotaPersonalizada(
-      numeroCuota: json['numeroCuota'] ?? json['numero'] ?? 0, // Compatibilidad hacia atrás
-      fechaPago: DateTime.parse(json['fechaPago']),
+      numeroCuota: json['numeroCuota'] ?? json['numero'] ?? 0, 
+      fechaPago: DateUt.parsePureDate(json['fechaPago']),
       monto: (json['monto'] as num).toDouble(),
       pagada: json['pagada'] ?? false,
       fechaPagoReal: json['fechaPagoReal'] != null 
-          ? DateTime.parse(json['fechaPagoReal']) 
+          ? DateUt.parsePureDate(json['fechaPagoReal']) 
           : null,
       bloqueada: json['bloqueada'] ?? false,
     );

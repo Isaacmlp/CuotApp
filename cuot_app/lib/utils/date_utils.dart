@@ -1,5 +1,29 @@
 /// Utilidades para manejo de fechas
+/// Utilidades para manejo de fechas
 class DateUt {
+  /// Parsea una fecha de la base de datos y la normaliza a UTC midnight
+  /// para evitar discrepancias por zonas horarias locales.
+  static DateTime parsePureDate(dynamic date) {
+    if (date == null) return DateTime.now();
+    if (date is DateTime) return normalizeToUtc(date);
+    
+    final str = date.toString();
+    // Si ya viene con Z o + offset, parsear y normalizar
+    final parsed = DateTime.parse(str);
+    return normalizeToUtc(parsed);
+  }
+
+  /// Normaliza una fecha a UTC a las 00:00:00
+  static DateTime normalizeToUtc(DateTime date) {
+    return DateTime.utc(date.year, date.month, date.day);
+  }
+
+  /// Retorna la fecha de hoy normalizada a UTC midnight
+  static DateTime nowUtc() {
+    final now = DateTime.now();
+    return DateTime.utc(now.year, now.month, now.day);
+  }
+
   
   /// Formatea una fecha a string dd/mm/yyyy
   static String formatearFecha(DateTime fecha) {

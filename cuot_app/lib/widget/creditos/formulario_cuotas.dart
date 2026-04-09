@@ -15,12 +15,14 @@ class FormularioCuotas extends StatefulWidget {
   final Function(Credito) onCreditoActualizado;
   final Function() onGuardar;
   final Credito? creditoInicial;
+  final bool isLoading; // 👈 NUEVO
 
   const FormularioCuotas({
     super.key,
     required this.onCreditoActualizado,
     required this.onGuardar,
     this.creditoInicial,
+    this.isLoading = false, // 👈 NUEVO
   });
 
   @override
@@ -538,29 +540,38 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: _guardarCredito,
+                onPressed: widget.isLoading ? null : _guardarCredito,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  elevation: 5,
+                  elevation: widget.isLoading ? 0 : 5,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.save),
-                    SizedBox(width: 8),
-                    Text(
-                      'GUARDAR CRÉDITO',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                child: widget.isLoading 
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
                       ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.save),
+                        SizedBox(width: 8),
+                        Text(
+                          'GUARDAR CRÉDITO',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
               ),
             ),
           ],

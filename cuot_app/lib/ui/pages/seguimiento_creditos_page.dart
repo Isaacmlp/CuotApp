@@ -11,6 +11,7 @@ import 'package:cuot_app/service/credit_service.dart';
 import 'package:cuot_app/widget/dashboard/custom_drawer.dart';
 import 'package:cuot_app/ui/pages/dashboard_screen.dart';
 import 'package:cuot_app/ui/pages/detalle_credito_page.dart';
+import 'package:cuot_app/utils/date_utils.dart'; // 👈 NUEVO
 
 class SeguimientoCreditosPage extends StatefulWidget {
   final String nombreUsuario;
@@ -55,7 +56,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         final List<CuotaPersonalizada> cuotas = rawCuotas
             .map((cq) => CuotaPersonalizada(
                   numeroCuota: cq['numero_cuota'],
-                  fechaPago: DateTime.parse(cq['fecha_pago']),
+                  fechaPago: DateUt.parsePureDate(cq['fecha_pago']),
                   monto: (cq['monto'] as num).toDouble(),
                   pagada: cq['pagada'] ?? false,
                 ))
@@ -68,12 +69,12 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
           final sortedRenov = List<dynamic>.from(renovaciones);
           // Usar created_at para máxima precisión en el aislamiento cronológico
           sortedRenov.sort((a, b) {
-            final dateA = DateTime.parse(a['created_at'] ?? a['fecha_renovacion']);
-            final dateB = DateTime.parse(b['created_at'] ?? b['fecha_renovacion']);
+            final dateA = DateUt.parsePureDate(a['created_at'] ?? a['fecha_renovacion']);
+            final dateB = DateUt.parsePureDate(b['created_at'] ?? b['fecha_renovacion']);
             return dateB.compareTo(dateA);
           });
           final last = sortedRenov.first;
-          ultimaRenovacion = DateTime.parse(last['created_at'] ?? last['fecha_renovacion']);
+          ultimaRenovacion = DateUt.parsePureDate(last['created_at'] ?? last['fecha_renovacion']);
         }
 
         // Ordenar cuotas por número (menor a mayor)
@@ -85,9 +86,9 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                   id: p['id'].toString(),
                   creditoId: creditId,
                   numeroCuota: p['numero_cuota'],
-                  fechaPago: DateTime.parse(p['fecha_pago_real']),
+                  fechaPago: DateUt.parsePureDate(p['fecha_pago_real']),
                   monto: (p['monto'] as num).toDouble(),
-                  fechaPagoReal: DateTime.parse(p['fecha_pago_real']),
+                  fechaPagoReal: DateUt.parsePureDate(p['fecha_pago_real']),
                   estado: 'pagado',
                   metodoPago: p['metodo_pago'] ?? 'efectivo',
                   referencia: p['referencia'] ?? '',
@@ -130,8 +131,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             concepto: c['concepto'],
             montoTotal: uiTotal,
             fechaLimite:
-                DateTime.parse(c['fecha_vencimiento'] ?? c['fecha_inicio']),
-            fechaInicio: c['fecha_inicio'] != null ? DateTime.parse(c['fecha_inicio']) : null,
+                DateUt.parsePureDate(c['fecha_vencimiento'] ?? c['fecha_inicio']),
+            fechaInicio: c['fecha_inicio'] != null ? DateUt.parsePureDate(c['fecha_inicio']) : null,
             tipoPago: TipoPagoUnico.unico,
             descripcion: c['concepto'],
             pagosRealizados: pagos,
@@ -189,8 +190,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
 
   // Función para calcular el estado de créditos en cuotas
   String _calcularEstadoCreditoCuotas(Map<String, dynamic> financiamiento) {
-    final hoy = DateTime.now();
-    final fechaActual = DateTime(hoy.year, hoy.month, hoy.day);
+    final fechaActual = DateUt.nowUtc();
 
     final totalPagado = financiamiento['totalPagado'] as double;
     final totalCredito = financiamiento['totalCredito'] as double;

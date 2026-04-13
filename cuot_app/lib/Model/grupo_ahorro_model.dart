@@ -14,6 +14,7 @@ class GrupoAhorro {
   final String creadoPor;
   final DateTime fechaCreacion;
   final EstadoGrupo estado;
+  final int cantidadParticipantes;
 
   GrupoAhorro({
     this.id,
@@ -25,6 +26,7 @@ class GrupoAhorro {
     required this.creadoPor,
     required this.fechaCreacion,
     this.estado = EstadoGrupo.activo,
+    required this.cantidadParticipantes,
   });
 
   factory GrupoAhorro.fromJson(Map<String, dynamic> json) {
@@ -38,6 +40,7 @@ class GrupoAhorro {
       creadoPor: json['creado_por'],
       fechaCreacion: DateUt.parsePureDate(json['fecha_creacion']),
       estado: _parseEstado(json['estado']),
+      cantidadParticipantes: json['cantidad_participantes'] ?? 0,
     );
   }
 
@@ -50,6 +53,7 @@ class GrupoAhorro {
     'creado_por': creadoPor,
     'fecha_creacion': fechaCreacion.toIso8601String(),
     'estado': estado.name,
+    'cantidad_participantes': cantidadParticipantes,
   };
 
   static PeriodoAhorro _parsePeriodo(String value) {

@@ -11,6 +11,7 @@ import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/widget/creditos/formulario_grupo.dart';
 import 'package:cuot_app/service/savings_service.dart';
 import 'package:cuot_app/Model/grupo_ahorro_model.dart';
+import 'package:cuot_app/ui/pages/savings/grupo_dashboard_page.dart';
 import 'package:provider/provider.dart';
 
 class CreditoPage extends StatefulWidget {
@@ -60,54 +61,54 @@ class _CreditoPageState extends State<CreditoPage> {
           title: Text(widget.creditoIdEditar != null ? 'Editar Financiamiento' : 'Gestión de Cuotas'),
           centerTitle: true,
         ),
-        body: _isLoading 
+        body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : Consumer<CreditoController>(
-          builder: (context, controller, child) {
-            // Si no hay tipo seleccionado, mostrar selector
-            if (controller.tipoCreditoSeleccionado == null) {
-              return TipoCreditoSelector(
-                onTipoSeleccionado: controller.seleccionarTipoCredito,
-              );
-            }
-            
-            if (controller.tipoCreditoSeleccionado == TipoCredito.grupal) {
-              return FormularioGrupo(
-                nombreUsuario: widget.nombreUsuario,
-                onGuardar: (grupo) => _guardarGrupo(context, grupo),
-                isLoading: _isLoading,
-              );
-            }
+                builder: (context, controller, child) {
+                  // Si no hay tipo seleccionado, mostrar selector
+                  if (controller.tipoCreditoSeleccionado == null) {
+                    return TipoCreditoSelector(
+                      onTipoSeleccionado: controller.seleccionarTipoCredito,
+                    );
+                  }
 
-            // Mostrar formulario según tipo
-            return controller.tipoCreditoSeleccionado == TipoCredito.cuotas
-                ? FormularioCuotas(
-                    creditoInicial: controller.creditoEnProceso,
-                    onCreditoActualizado: controller.actualizarCreditoParcial,
-                    onGuardar: () => _guardarCredito(context, controller),
-                    isLoading: _isLoading, // 👈 PASAR ESTADO
-                  )
-                : FormularioPagounico(
-                    creditoInicial: controller.creditoEnProceso,
-                    totalPagado: controller.totalPagado,
-                    onCreditoActualizado: controller.actualizarCreditoParcial,
-                    onGuardar: () => _guardarCredito(context, controller),
-                    isLoading: _isLoading, // 👈 PASAR ESTADO
-                  );
-          },
-        ),
+                  if (controller.tipoCreditoSeleccionado == TipoCredito.grupal) {
+                    return FormularioGrupo(
+                      nombreUsuario: widget.nombreUsuario,
+                      onGuardar: (grupo) => _guardarGrupo(context, grupo),
+                      isLoading: _isLoading,
+                    );
+                  }
+
+                  // Mostrar formulario según tipo
+                  return controller.tipoCreditoSeleccionado == TipoCredito.cuotas
+                      ? FormularioCuotas(
+                          creditoInicial: controller.creditoEnProceso,
+                          onCreditoActualizado: controller.actualizarCreditoParcial,
+                          onGuardar: () => _guardarCredito(context, controller),
+                          isLoading: _isLoading,
+                        )
+                      : FormularioPagounico(
+                          creditoInicial: controller.creditoEnProceso,
+                          totalPagado: controller.totalPagado,
+                          onCreditoActualizado: controller.actualizarCreditoParcial,
+                          onGuardar: () => _guardarCredito(context, controller),
+                          isLoading: _isLoading,
+                        );
+                },
+              ),
       ),
     );
   }
-  
+
   Future<void> _guardarCredito(
     BuildContext context,
     CreditoController controller,
   ) async {
-    if (_isLoading) return; // BLOQUEO ANTI-DOBLE-CLICK
+    if (_isLoading) return;
 
     setState(() => _isLoading = true);
-    
+
     try {
       if (controller.creditoEnProceso != null) {
         final credito = controller.creditoEnProceso!;
@@ -117,7 +118,6 @@ class _CreditoPageState extends State<CreditoPage> {
           facturaFile = File(credito.facturaPath!);
         }
 
-        // Capturar referencias ANTES de cualquier operación async
         final navigator = Navigator.of(context);
         final scaffoldMessenger = ScaffoldMessenger.of(context);
 
@@ -191,14 +191,12 @@ class _CreditoPageState extends State<CreditoPage> {
 
         debugPrint('🔵 Llamando controller.guardarCredito...');
         final String? creditId = await controller.guardarCredito(
-          credito, 
-          widget.nombreUsuario, 
+          credito,
+          widget.nombreUsuario,
           facturaArchivo: facturaFile,
         );
         debugPrint('🔵 guardarCredito retornó creditId: $creditId');
 
-        // 🔑 NAVEGACIÓN INMEDIATA: No mostrar diálogo intermedio, navegar directo
-        // Esto evita que un rebuild del Consumer desmonte el formulario
         if (creditId != null) {
           scaffoldMessenger.showSnackBar(
             const SnackBar(
@@ -207,8 +205,6 @@ class _CreditoPageState extends State<CreditoPage> {
               behavior: SnackBarBehavior.floating,
             ),
           );
-          debugPrint('🟢 creditId no es nulo, navegando a DetalleCreditoPage...');
-          // pushReplacement no depende de que esta página siga montada
           navigator.pushReplacement(
             MaterialPageRoute(
               builder: (_) => DetalleCreditoPage(
@@ -217,8 +213,7 @@ class _CreditoPageState extends State<CreditoPage> {
               ),
             ),
           );
-          debugPrint('🟢 pushReplacement ejecutado');
-          return; // Salir sin ejecutar finally/setState
+          return;
         } else {
           scaffoldMessenger.showSnackBar(
             const SnackBar(
@@ -257,22 +252,31 @@ class _CreditoPageState extends State<CreditoPage> {
     setState(() => _isLoading = true);
     try {
       final service = SavingsService();
-      await service.createGrupo(grupo);
-      
+      final nuevoGrupo = await service.createGrupo(grupo);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Grupo de ahorro creado exitosamente'),
+            content: Text('Grupo de ahorro creado exitosamente'),
             backgroundColor: AppColors.success,
+            duration: Duration(seconds: 2),
           ),
         );
-        Navigator.pop(context, true);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => GrupoDashboardPage(
+              grupoId: nuevoGrupo.id!,
+              usuarioNombre: widget.nombreUsuario,
+            ),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Error al crear grupo: $e'),
+            content: Text('Error al crear grupo: $e'),
             backgroundColor: AppColors.error,
           ),
         );

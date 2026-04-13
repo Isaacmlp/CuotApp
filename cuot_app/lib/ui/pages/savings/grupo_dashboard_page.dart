@@ -421,11 +421,15 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
 
     final TextEditingController nameController = TextEditingController();
     final TextEditingController phoneController = TextEditingController();
+    // Campo meta siempre visible (para tipo diferente o simplificar flujo)
+    final TextEditingController metaDialogController = TextEditingController(
+      text: _grupo!.metaAhorro.toStringAsFixed(0),
+    );
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
           title: const Text('Añadir Miembro'),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -471,7 +475,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: results.length,
-                        itemBuilder: (context, index) {
+                        itemBuilder: (_, index) {
                           final c = results[index];
                           return ListTile(
                             title: Text(c['nombre']),
@@ -481,8 +485,10 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                               color: AppColors.primaryGreen,
                             ),
                             onTap: () => _procederAnadir(
+                              dialogContext,
                               c['id'].toString(),
                               c['nombre'],
+                              metaDialogController,
                             ),
                           );
                         },
@@ -495,6 +501,19 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                           style: TextStyle(color: Colors.grey),
                         ),
                       ),
+                    if (_grupo!.tipoAporte == TipoAporte.diferente) ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: metaDialogController,
+                        decoration: InputDecoration(
+                          labelText: 'Meta personal',
+                          prefixText: '\$ ',
+                          border: const OutlineInputBorder(),
+                          helperText: 'Monto que debe aportar este miembro',
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ],
                     const Divider(),
                     TextButton.icon(
                       onPressed: () =>
@@ -519,10 +538,20 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                     TextField(
                       controller: phoneController,
                       decoration: const InputDecoration(
-                        labelText: 'Telefono',
+                        labelText: 'Teléfono',
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: metaDialogController,
+                      decoration: InputDecoration(
+                        labelText: 'Meta',
+                        prefixText: '\$ ',
+                        border: const OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -534,6 +563,9 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                           child: const Text('Volver a buscar'),
                         ),
                         ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryGreen,
+                          ),
                           onPressed: () async {
                             if (nameController.text.isEmpty) return;
                             final id = await _savingsService.createCliente(
@@ -541,9 +573,14 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                               phoneController.text,
                               widget.usuarioNombre,
                             );
-                            _procederAnadir(id, nameController.text);
+                            _procederAnadir(
+                              dialogContext,
+                              id,
+                              nameController.text,
+                              metaDialogController,
+                            );
                           },
-                          child: const Text('Registrar y anhadir'),
+                          child: const Text('Añadir'),
                         ),
                       ],
                     ),
@@ -557,41 +594,13 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     );
   }
 
-  void _procederAnadir(String clienteId, String nombreCliente) async {
-    double metaPersonal = _grupo!.metaAhorro;
-
-    if (_grupo!.tipoAporte == TipoAporte.diferente) {
-      final TextEditingController metaController = TextEditingController(
-        text: _grupo!.metaAhorro.toStringAsFixed(0),
-      );
-      bool? confirm = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Meta para $nombreCliente'),
-          content: TextField(
-            controller: metaController,
-            decoration: InputDecoration(
-              labelText: 'Monto Meta',
-              prefixText: '\$ ',
-            ),
-            keyboardType: TextInputType.number,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Asignar'),
-            ),
-          ],
-        ),
-      );
-      if (confirm != true) return;
-      metaPersonal =
-          double.tryParse(metaController.text) ?? _grupo!.metaAhorro;
-    }
+  void _procederAnadir(
+    BuildContext dialogContext,
+    String clienteId,
+    String nombreCliente,
+    TextEditingController metaController,
+  ) async {
+    double metaPersonal = double.tryParse(metaController.text) ?? _grupo!.metaAhorro;
 
     final miembro = MiembroGrupo(
       grupoId: widget.grupoId,
@@ -602,11 +611,17 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
 
     try {
       await _savingsService.addMiembro(miembro);
+      // Cerrar el diálogo usando su propio context
+      if (dialogContext.mounted) {
+        Navigator.of(dialogContext).pop();
+      }
       if (mounted) {
-        Navigator.pop(context);
         _loadData();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$nombreCliente añadido al grupo')),
+          SnackBar(
+            content: Text('$nombreCliente añadido al grupo'),
+            backgroundColor: AppColors.success,
+          ),
         );
       }
     } catch (e) {

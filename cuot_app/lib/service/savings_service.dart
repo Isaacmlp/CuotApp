@@ -93,6 +93,14 @@ class SavingsService {
         .insert(miembro.toJson());
   }
 
+  Future<void> updateMiembro(MiembroGrupo miembro) async {
+    await _supabase.client
+        .schema('Financiamientos')
+        .from('Miembros_Grupo')
+        .update(miembro.toJson())
+        .eq('id', miembro.id!);
+  }
+
   // --------------------------------------------------------------------------
   // APORTES
   // --------------------------------------------------------------------------

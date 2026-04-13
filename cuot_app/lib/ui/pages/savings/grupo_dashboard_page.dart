@@ -77,6 +77,11 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
             foregroundColor: Colors.white,
             actions: [
               IconButton(
+                icon: const Icon(Icons.shuffle),
+                tooltip: 'Realizar Sorteo',
+                onPressed: _realizarSorteo,
+              ),
+              IconButton(
                 icon: const Icon(Icons.delete_outline),
                 tooltip: 'Eliminar Grupo',
                 onPressed: _confirmDeleteGrupo,
@@ -106,7 +111,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 30),
                       Text(
                         '\$${_grupo!.totalAcumulado.toStringAsFixed(2)}',
                         style: const TextStyle(
@@ -119,6 +124,18 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                         'Total Acumulado',
                         style: TextStyle(color: Colors.white70, fontSize: 14),
                       ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          _getProximoARecibir(),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      )
                     ],
                   ),
                 ),
@@ -141,7 +158,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        '${_miembros.length} Integrantes',
+                        '${_miembros.length}/${_grupo!.cantidadParticipantes} Integrantes',
                         style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       ),
                     ],
@@ -268,11 +285,33 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                             fontSize: 16,
                           ),
                         ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryGreen.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                miembro.numeroTurno != null ? 'Turno ${miembro.numeroTurno}' : 'Sin Turno',
+                                style: const TextStyle(fontSize: 10, color: AppColors.primaryGreen, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Cuota: \$${miembro.montoCuota.toStringAsFixed(0)}',
+                              style: TextStyle(color: Colors.grey.shade700, fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
                         Text(
                           'Aportado: \$${miembro.totalAportado.toStringAsFixed(2)}',
                           style: TextStyle(
                             color: Colors.grey.shade600,
-                            fontSize: 13,
+                            fontSize: 12,
                           ),
                         ),
                       ],
@@ -421,19 +460,42 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
   }
 
   void _showAddMemberDialog() {
+    if (_miembros.length >= _grupo!.cantidadParticipantes && _grupo!.cantidadParticipantes > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ya se ha alcanzado el límite de participantes para este grupo')),
+      );
+      return;
+    }
+
     String query = '';
     List<Map<String, dynamic>> results = [];
     bool isSearching = false;
     bool showCreateForm = false;
 
+    // Calcular turnos disponibles
+    final Set<int> usedTurns = _miembros
+        .where((m) => m.numeroTurno != null)
+        .map((m) => m.numeroTurno!)
+        .toSet();
+    
+    List<int> availableTurns = [];
+    if (_grupo!.cantidadParticipantes > 0) {
+      for (int i = 1; i <= _grupo!.cantidadParticipantes; i++) {
+        if (!usedTurns.contains(i)) availableTurns.add(i);
+      }
+    }
+    
+    int? selectedTurn;
+
     final TextEditingController nameController = TextEditingController();
     final TextEditingController phoneController = TextEditingController();
-    // Campo meta siempre visible
     final TextEditingController metaDialogController = TextEditingController(
       text: _grupo!.metaAhorro.toStringAsFixed(0),
     );
-    // Campo de articulo deseado
     final TextEditingController articuloController = TextEditingController();
+    final TextEditingController cuotaController = TextEditingController(
+      text: _grupo!.cantidadParticipantes > 0 ? (_grupo!.metaAhorro / _grupo!.cantidadParticipantes).toStringAsFixed(2) : '0',
+    );
 
     showDialog(
       context: context,
@@ -499,6 +561,8 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                               c['nombre'],
                               metaDialogController,
                               articuloController,
+                              cuotaController,
+                              selectedTurn,
                             ),
                           );
                         },
@@ -511,19 +575,37 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                           style: TextStyle(color: Colors.grey),
                         ),
                       ),
-                    if (_grupo!.tipoAporte == TipoAporte.diferente) ...[
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: metaDialogController,
-                        decoration: InputDecoration(
-                          labelText: 'Meta personal',
-                          prefixText: '\$ ',
-                          border: const OutlineInputBorder(),
-                          helperText: 'Monto que debe aportar este miembro',
-                        ),
-                        keyboardType: TextInputType.number,
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: cuotaController,
+                      decoration: const InputDecoration(
+                        labelText: 'Monto de Cuota',
+                        prefixText: '\$ ',
+                        border: OutlineInputBorder(),
                       ),
-                    ],
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<int?>(
+                      value: selectedTurn,
+                      decoration: const InputDecoration(
+                        labelText: 'Asignar Turno',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Sortear después'),
+                        ),
+                        ...availableTurns.map((t) => DropdownMenuItem(
+                              value: t,
+                              child: Text('Turno $t'),
+                            )),
+                      ],
+                      onChanged: (val) {
+                        setDialogState(() => selectedTurn = val);
+                      },
+                    ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: articuloController,
@@ -574,6 +656,37 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                     ),
                     const SizedBox(height: 12),
                     TextField(
+                      controller: cuotaController,
+                      decoration: const InputDecoration(
+                        labelText: 'Monto de Cuota',
+                        prefixText: '\$ ',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<int?>(
+                      value: selectedTurn,
+                      decoration: const InputDecoration(
+                        labelText: 'Asignar Turno',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Sortear después'),
+                        ),
+                        ...availableTurns.map((t) => DropdownMenuItem(
+                              value: t,
+                              child: Text('Turno $t'),
+                            )),
+                      ],
+                      onChanged: (val) {
+                        setDialogState(() => selectedTurn = val);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
                       controller: articuloController,
                       decoration: const InputDecoration(
                         labelText: '¿Qué comprará con el ahorro? (Opcional)',
@@ -608,6 +721,8 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                                 nameController.text,
                                 metaDialogController,
                                 articuloController,
+                                cuotaController,
+                                selectedTurn,
                               );
                             } catch (e) {
                               if (dialogContext.mounted) {
@@ -640,8 +755,11 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     String nombreCliente,
     TextEditingController metaController,
     TextEditingController articuloController,
+    TextEditingController cuotaController,
+    int? selectedTurn,
   ) async {
     double metaPersonal = double.tryParse(metaController.text) ?? _grupo!.metaAhorro;
+    double cuota = double.tryParse(cuotaController.text) ?? 0;
     String articulo = articuloController.text.trim();
 
     final miembro = MiembroGrupo(
@@ -650,6 +768,8 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
       montoMetaPersonal: metaPersonal,
       fechaIngreso: DateTime.now(),
       articuloDeseado: articulo.isNotEmpty ? articulo : null,
+      numeroTurno: selectedTurn,
+      montoCuota: cuota,
     );
 
     try {
@@ -769,6 +889,89 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
         ],
       ),
     );
+  }
+
+  String _getProximoARecibir() {
+    if (_grupo == null || _miembros.isEmpty) return 'Sin miembros';
+
+    int diasTotales = DateTime.now().difference(_grupo!.fechaCreacion).inDays;
+    int turnoActual = 1;
+
+    switch (_grupo!.periodo) {
+      case PeriodoAhorro.semanal:
+        turnoActual = (diasTotales / 7).floor() + 1;
+        break;
+      case PeriodoAhorro.quincenal:
+        turnoActual = (diasTotales / 15).floor() + 1;
+        break;
+      case PeriodoAhorro.mensual:
+        turnoActual = (diasTotales / 30).floor() + 1; // Simplificado
+        break;
+    }
+
+    if (turnoActual > _grupo!.cantidadParticipantes && _grupo!.cantidadParticipantes > 0) {
+      return 'Turnos completados';
+    }
+
+    // Buscar si hay alguien con ese turno
+    final miembro = _miembros.where((m) => m.numeroTurno == turnoActual).firstOrNull;
+    if (miembro != null) {
+      return 'Próximo a recibir: ${miembro.nombreCliente} (Turno $turnoActual)';
+    }
+
+    return 'Esperando Sorteo / Turno $turnoActual libre';
+  }
+
+  Future<void> _realizarSorteo() async {
+    final sinTurno = _miembros.where((m) => m.numeroTurno == null).toList();
+    if (sinTurno.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Todos los miembros ya tienen turno asignado')),
+      );
+      return;
+    }
+
+    final occupiedTurns = _miembros.where((m) => m.numeroTurno != null).map((m) => m.numeroTurno!).toSet();
+    List<int> availableTurns = [];
+    for (int i = 1; i <= _grupo!.cantidadParticipantes; i++) {
+      if (!occupiedTurns.contains(i)) {
+        availableTurns.add(i);
+      }
+    }
+
+    if (availableTurns.length < sinTurno.length) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay suficientes turnos disponibles para sortear.')),
+      );
+      return;
+    }
+
+    availableTurns.shuffle();
+
+    setState(() => _isLoading = true);
+    for (int i = 0; i < sinTurno.length; i++) {
+      final miembro = sinTurno[i];
+      final turn = availableTurns[i];
+      final actMiembro = MiembroGrupo(
+        id: miembro.id,
+        grupoId: miembro.grupoId,
+        clienteId: miembro.clienteId,
+        nombreCliente: miembro.nombreCliente,
+        montoMetaPersonal: miembro.montoMetaPersonal,
+        totalAportado: miembro.totalAportado,
+        fechaIngreso: miembro.fechaIngreso,
+        articuloDeseado: miembro.articuloDeseado,
+        numeroTurno: turn,
+        montoCuota: miembro.montoCuota,
+      );
+      await _savingsService.updateMiembro(actMiembro);
+    }
+    await _loadData();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sorteo realizado con éxito'), backgroundColor: AppColors.success),
+      );
+    }
   }
 }
 

@@ -22,6 +22,7 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nombreController = TextEditingController();
   final TextEditingController _metaController = TextEditingController();
+  final TextEditingController _participantesController = TextEditingController();
   
   TipoAporte _tipoAporte = TipoAporte.comun;
   PeriodoAhorro _periodo = PeriodoAhorro.semanal;
@@ -66,6 +67,19 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
                   prefixText: '\$ ',
                   prefixIcon: const Icon(Icons.flag),
                   border: const OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Campo obligatorio' : null,
+              ),
+              const SizedBox(height: 16),
+              
+              TextFormField(
+                controller: _participantesController,
+                decoration: const InputDecoration(
+                  labelText: 'Cantidad de Participantes',
+                  prefixIcon: Icon(Icons.people),
+                  border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) =>
@@ -153,6 +167,7 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
         periodo: _periodo,
         creadoPor: widget.nombreUsuario,
         fechaCreacion: DateTime.now(),
+        cantidadParticipantes: int.parse(_participantesController.text),
       );
       widget.onGuardar(grupo);
     }

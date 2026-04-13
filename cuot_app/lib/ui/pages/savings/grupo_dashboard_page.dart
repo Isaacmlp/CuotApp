@@ -725,6 +725,8 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
         ),
       ),
     );
+  }
+
   void _confirmDeleteGrupo() {
     showDialog(
       context: context,

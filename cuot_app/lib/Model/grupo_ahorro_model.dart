@@ -15,6 +15,7 @@ class GrupoAhorro {
   final DateTime fechaCreacion;
   final EstadoGrupo estado;
   final int cantidadParticipantes;
+  final DateTime? fechaPrimerPago;
 
   GrupoAhorro({
     this.id,
@@ -27,6 +28,7 @@ class GrupoAhorro {
     required this.fechaCreacion,
     this.estado = EstadoGrupo.activo,
     required this.cantidadParticipantes,
+    this.fechaPrimerPago,
   });
 
   factory GrupoAhorro.fromJson(Map<String, dynamic> json) {
@@ -41,6 +43,7 @@ class GrupoAhorro {
       fechaCreacion: DateUt.parsePureDate(json['fecha_creacion']),
       estado: _parseEstado(json['estado']),
       cantidadParticipantes: json['cantidad_participantes'] ?? 0,
+      fechaPrimerPago: json['fecha_primer_pago'] != null ? DateUt.parsePureDate(json['fecha_primer_pago']) : null,
     );
   }
 
@@ -54,6 +57,7 @@ class GrupoAhorro {
     'fecha_creacion': fechaCreacion.toIso8601String(),
     'estado': estado.name,
     'cantidad_participantes': cantidadParticipantes,
+    'fecha_primer_pago': fechaPrimerPago?.toIso8601String().split('T')[0],
   };
 
   static PeriodoAhorro _parsePeriodo(String value) {

@@ -7,6 +7,10 @@ import 'package:cuot_app/widget/creditos/tipo_credito_selector.dart';
 import 'package:cuot_app/ui/pages/detalle_credito_page.dart';
 
 import 'package:flutter/material.dart';
+import 'package:cuot_app/theme/app_colors.dart';
+import 'package:cuot_app/widget/creditos/formulario_grupo.dart';
+import 'package:cuot_app/service/savings_service.dart';
+import 'package:cuot_app/Model/grupo_ahorro_model.dart';
 import 'package:provider/provider.dart';
 
 class CreditoPage extends StatefulWidget {
@@ -67,6 +71,14 @@ class _CreditoPageState extends State<CreditoPage> {
               );
             }
             
+            if (controller.tipoCreditoSeleccionado == TipoCredito.grupal) {
+              return FormularioGrupo(
+                nombreUsuario: widget.nombreUsuario,
+                onGuardar: (grupo) => _guardarGrupo(context, grupo),
+                isLoading: _isLoading,
+              );
+            }
+
             // Mostrar formulario según tipo
             return controller.tipoCreditoSeleccionado == TipoCredito.cuotas
                 ? FormularioCuotas(
@@ -231,6 +243,37 @@ class _CreditoPageState extends State<CreditoPage> {
           SnackBar(
             content: Text('❌ Error al guardar: $e'),
             backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _guardarGrupo(BuildContext context, GrupoAhorro grupo) async {
+    setState(() => _isLoading = true);
+    try {
+      final service = SavingsService();
+      await service.createGrupo(grupo);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Grupo de ahorro creado exitosamente'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error al crear grupo: $e'),
+            backgroundColor: AppColors.error,
           ),
         );
       }

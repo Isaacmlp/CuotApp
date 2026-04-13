@@ -1,4 +1,5 @@
 import 'package:cuot_app/Model/credito_unico_model.dart';
+import 'package:cuot_app/Model/credito_model.dart';
 import 'package:cuot_app/ui/credito_page.dart';
 import 'package:cuot_app/widget/seguimiento/dialogo_pago_cuota_completo.dart';
 import 'package:cuot_app/widget/seguimiento/tarjeta_credito_unico.dart';
@@ -11,7 +12,11 @@ import 'package:cuot_app/service/credit_service.dart';
 import 'package:cuot_app/widget/dashboard/custom_drawer.dart';
 import 'package:cuot_app/ui/pages/dashboard_screen.dart';
 import 'package:cuot_app/ui/pages/detalle_credito_page.dart';
-import 'package:cuot_app/utils/date_utils.dart'; // 👈 NUEVO
+import 'package:cuot_app/utils/date_utils.dart';
+import 'package:cuot_app/Model/grupo_ahorro_model.dart';
+import 'package:cuot_app/service/savings_service.dart';
+import 'package:cuot_app/widget/seguimiento/tarjeta_grupo.dart';
+import 'package:cuot_app/ui/pages/savings/grupo_dashboard_page.dart';
 
 class SeguimientoCreditosPage extends StatefulWidget {
   final String nombreUsuario;
@@ -29,7 +34,9 @@ class SeguimientoCreditosPage extends StatefulWidget {
 class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final CreditService _creditService = CreditService();
+  final SavingsService _savingsService = SavingsService();
   List<dynamic> _financiamientos = [];
+  List<GrupoAhorro> _grupos = [];
   bool _isLoading = true;
 
   Future<void> _loadData() async {
@@ -41,6 +48,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
       // 🚀 OPTIMIZACIÓN: Una sola consulta para traer todo (N+1 fixed)
       final rawCredits =
           await _creditService.getFullCreditsData(widget.nombreUsuario);
+      final rawGroups = await _savingsService.getGrupos(widget.nombreUsuario);
 
       final List<dynamic> processedCredits = [];
 
@@ -161,6 +169,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
 
       setState(() {
         _financiamientos = processedCredits;
+        _grupos = rawGroups;
         _isLoading = false;
       });
       _actualizarEstados();
@@ -662,295 +671,347 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
           );
         }
       },
-      child: Scaffold(
-        key: _scaffoldKey,
-        drawer: CustomDrawer(
-          nombre_usuario: widget.nombreUsuario,
-          ventanaActiva: 'Cuotas Personales',
-        ),
-        appBar: AppBar(
-          title: const Text('Seguimiento de Cuotas'),
-          backgroundColor: AppColors.primaryGreen,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(60),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (value) {
-                  setState(() {
-                    _busqueda = value;
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: 'Buscar por nombre o teléfono...',
-                  hintStyle: const TextStyle(color: Colors.white70),
-                  prefixIcon: const Icon(Icons.search, color: Colors.white),
-                  suffixIcon: _busqueda.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, color: Colors.white),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {
-                              _busqueda = '';
-                            });
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.2),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide.none,
+      child: DefaultTabController(
+        length: 3,
+        child: Scaffold(
+          key: _scaffoldKey,
+          drawer: CustomDrawer(
+            nombre_usuario: widget.nombreUsuario,
+            ventanaActiva: 'Cuotas Personales',
+          ),
+          appBar: AppBar(
+            title: const Text('Seguimiento de Cuotas'),
+            backgroundColor: AppColors.primaryGreen,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(110),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (value) {
+                        setState(() {
+                          _busqueda = value;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Buscar por nombre o teléfono...',
+                        hintStyle: const TextStyle(color: Colors.white70, fontSize: 13),
+                        prefixIcon: const Icon(Icons.search, color: Colors.white, size: 20),
+                        suffixIcon: _busqueda.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, color: Colors.white, size: 20),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() {
+                                    _busqueda = '';
+                                  });
+                                },
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.2),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
                   ),
-                ),
-                style: const TextStyle(color: Colors.white),
+                  const TabBar(
+                    indicatorColor: Colors.white,
+                    indicatorWeight: 3,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white70,
+                    labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                    tabs: [
+                      Tab(text: 'Cuota Simple'),
+                      Tab(text: 'Cuota Fija'),
+                      Tab(text: 'Grupos'),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
-        ),
-        body: Column(
-          children: [
-            _buildFiltros(),
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _financiamientosFiltrados.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.search_off,
-                                size: 64,
-                                color: AppColors.mediumGrey,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No se encontraron resultados',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: AppColors.mediumGrey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : RefreshIndicator(
-                          onRefresh: () => _loadData(),
-                          color: AppColors.primaryGreen,
-                          child: ListView.builder(
-                            padding: const EdgeInsets.only(top: 8, bottom: 80), // Padding extra abajo para que no tape el FAB
-                            physics: const AlwaysScrollableScrollPhysics(), // Necesario para RefreshIndicator cuando hay pocos elementos
-                            itemCount: _financiamientosFiltrados.length,
-                            itemBuilder: (context, index) {
-                              final item = _financiamientosFiltrados[index];
-                              final originalIndex = _financiamientos.indexOf(item);
-
-                              if (item is CreditoUnico) {
-                                return TarjetaCreditoUnico(
-                                  credito: item,
-                                  onPagoRealizado: (pago) =>
-                                      _pagarCreditoUnico(item, pago),
-                                  onEditar: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => CreditoPage(
-                                          nombreUsuario: widget.nombreUsuario,
-                                          creditoIdEditar: item.id.toString(),
-                                        ),
-                                      ),
-                                    ).then((_) => _loadData());
-                                  },
-                                  onEliminar: () => _eliminarCredito(
-                                    item.id,
-                                    item.nombreCliente,
-                                  ),
-                                  onVerDetalle: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => DetalleCreditoPage(
-                                          creditoId: item.id.toString(),
-                                          nombreUsuario: widget.nombreUsuario,
-                                          onEditar: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) => CreditoPage(
-                                                  nombreUsuario: widget.nombreUsuario,
-                                                  creditoIdEditar: item.id.toString(),
-                                                ),
-                                              ),
-                                            ).then((_) => _loadData());
-                                          },
-                                          onEliminar: () => _eliminarCredito(
-                                            item.id,
-                                            item.nombreCliente,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                );
-                              } else if (item is Map<String, dynamic>) {
-                                final totalCuotas = item['cuotas'].length;
-                                final cuotasPagadas = item['pagos'].length;
-                                final cuotasVencidas =
-                                    getCuotasVencidas(originalIndex);
-
-                                return TarjetaFinanciamiento(
-                                  creditoId: item['id']?.toString(),
-                                  nombreCliente: item['nombre'],
-                                  modalidadPago: item['modalidadPago'] ?? 'En Cuotas',
-                                  telefono: item['telefono'],
-                                  estado: item['estado'] ?? 'Pendiente',
-                                  montoCuota: item['montoCuota'],
-                                  totalPagado: item['totalPagado'],
-                                  totalPendiente: item['totalPendiente'] ??
-                                      (item['totalCredito'] -
-                                          item['totalPagado']),
-                                  progreso: item['progreso'] ??
-                                      (item['totalPagado'] /
-                                          item['totalCredito']),
-                                  cuotas: item['cuotas'],
-                                  pagos: item['pagos'],
-                                  cuotasVencidas: cuotasVencidas,
-                                  concepto: item['concepto'] ?? 'Sin concepto',
-                                  totalCredito: item['totalCredito'] ?? 0.0,
-                                  numeroCredito: item['numeroCredito'],
-                                  notas: item['notas'],
-                                  onVerDetalle: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => DetalleCreditoPage(
-                                          creditoId: item['id'].toString(),
-                                          nombreUsuario: widget.nombreUsuario,
-                                          onEditar: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) => CreditoPage(
-                                                  nombreUsuario: widget.nombreUsuario,
-                                                  creditoIdEditar: item['id'].toString(),
-                                                ),
-                                              ),
-                                            ).then((_) => _loadData());
-                                          },
-                                          onEliminar: () => _eliminarCredito(
-                                            item['id'],
-                                            item['nombre'],
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  onEditar: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => CreditoPage(
-                                          nombreUsuario: widget.nombreUsuario,
-                                          creditoIdEditar: item['id'].toString(),
-                                        ),
-                                      ),
-                                    ).then((_) => _loadData());
-                                  },
-                                  onEliminar: () => _eliminarCredito(
-                                    item['id'],
-                                    item['nombre'],
-                                  ),
-                                  onCuotaTap: (numeroCuota) {
-                                    final cuota =
-                                        (item['cuotas'] as List).firstWhere(
-                                      (c) => c.numeroCuota == numeroCuota,
-                                    );
-
-                                    final montoRestante = getMontoRestanteCuota(
-                                      originalIndex,
-                                      numeroCuota,
-                                    );
-
-                                    if (montoRestante <= 0) return;
-
-                                    final esPagoParcialPrevio =
-                                        esCuotaParcialmentePagada(
-                                      originalIndex,
-                                      numeroCuota,
-                                    );
-
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) =>
-                                          DialogoPagoCuotaCompleto(
-                                        numeroCuota: numeroCuota,
-                                        monto: cuota.monto,
-                                        montoRestante: montoRestante,
-                                        fechaVencimiento: cuota.fechaPago,
-                                        nombreCliente: item['nombre'],
-                                        concepto: item['concepto'] ?? 'Préstamo',
-                                        montoPagadoHastaAhora:
-                                            item['totalPagado'],
-                                        totalCredito:
-                                            item['totalCredito'] ?? 500.00,
-                                        totalCuotas: totalCuotas,
-                                        cuotasPagadas: cuotasPagadas,
-                                        esPagoParcial: esPagoParcialPrevio,
-                                        onPagar: (
-                                          monto,
-                                          fechaPago,
-                                          metodoPago,
-                                          referencia,
-                                          observaciones,
-                                          aplicarMora,
-                                          montoMora,
-                                          esPagoParcial,
-                                          comprobantePath, // 👈 NUEVO
-                                        ) {
-                                          _pagarCuotaCompleto(
-                                            originalIndex,
-                                            numeroCuota,
-                                            monto,
-                                            fechaPago,
-                                            metodoPago,
-                                            referencia,
-                                            observaciones,
-                                            aplicarMora,
-                                            montoMora,
-                                            esPagoParcial,
-                                            comprobantePath, // 👈 NUEVO
-                                          );
-                                        },
-                                      ),
-                                    );
-                                  },
-                                );
-                              }
-                              return const SizedBox.shrink();
-                            },
-                          ),
-                        ),
-            ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) =>
-                      CreditoPage(nombreUsuario: widget.nombreUsuario)),
-            ).then((_) => _loadData());
-          },
-          tooltip: 'Nuevo crédito',
-          child: const Icon(Icons.add),
+          body: TabBarView(
+            children: [
+              _buildListado(TipoCredito.unPago),
+              _buildListado(TipoCredito.cuotas),
+              _buildListado(TipoCredito.grupal),
+            ],
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) =>
+                        CreditoPage(nombreUsuario: widget.nombreUsuario)),
+              ).then((_) => _loadData());
+            },
+            tooltip: 'Nuevo crédito',
+            child: const Icon(Icons.add),
+          ),
         ),
       ),
     );
+  }
+
+  Widget _buildListado(TipoCredito tipo) {
+    final List<dynamic> source = (tipo == TipoCredito.grupal) 
+        ? _grupos 
+        : _financiamientosFiltrados;
+
+    final filteredItems = source.where((f) {
+      if (tipo == TipoCredito.unPago) return f is CreditoUnico;
+      if (tipo == TipoCredito.cuotas) return f is Map<String, dynamic>;
+      if (tipo == TipoCredito.grupal) return f is GrupoAhorro;
+      return false;
+    }).toList();
+
+    return Column(
+      children: [
+        _buildFiltros(),
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : filteredItems.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            tipo == TipoCredito.grupal ? Icons.group_off : Icons.search_off,
+                            size: 64,
+                            color: AppColors.mediumGrey,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            tipo == TipoCredito.grupal 
+                              ? 'Aún no tienes grupos creados' 
+                              : 'No hay registros para este tipo',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: AppColors.mediumGrey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () => _loadData(),
+                      color: AppColors.primaryGreen,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.only(top: 8, bottom: 80),
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount: filteredItems.length,
+                        itemBuilder: (context, index) {
+                          final item = filteredItems[index];
+                          final originalIndex = _financiamientos.indexOf(item);
+                          return _buildTarjetaItem(item, originalIndex);
+                        },
+                      ),
+                    ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTarjetaItem(dynamic item, int originalIndex) {
+    if (item is GrupoAhorro) {
+      return TarjetaGrupo(
+        grupo: item,
+        onVerDetalle: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => GrupoDashboardPage(
+                grupoId: item.id!,
+                usuarioNombre: widget.nombreUsuario,
+              ),
+            ),
+          ).then((_) => _loadData());
+        },
+      );
+    }
+    
+    if (item is CreditoUnico) {
+      return TarjetaCreditoUnico(
+        credito: item,
+        onPagoRealizado: (pago) => _pagarCreditoUnico(item, pago),
+        onEditar: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CreditoPage(
+                nombreUsuario: widget.nombreUsuario,
+                creditoIdEditar: item.id.toString(),
+              ),
+            ),
+          ).then((_) => _loadData());
+        },
+        onEliminar: () => _eliminarCredito(
+          item.id,
+          item.nombreCliente,
+        ),
+        onVerDetalle: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DetalleCreditoPage(
+                creditoId: item.id.toString(),
+                nombreUsuario: widget.nombreUsuario,
+                onEditar: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CreditoPage(
+                        nombreUsuario: widget.nombreUsuario,
+                        creditoIdEditar: item.id.toString(),
+                      ),
+                    ),
+                  ).then((_) => _loadData());
+                },
+                onEliminar: () => _eliminarCredito(
+                  item.id,
+                  item.nombreCliente,
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    } else if (item is Map<String, dynamic>) {
+      final totalCuotas = item['cuotas'].length;
+      final cuotasPagadas = item['pagos'].length;
+      final cuotasVencidas = getCuotasVencidas(originalIndex);
+
+      return TarjetaFinanciamiento(
+        creditoId: item['id']?.toString(),
+        nombreCliente: item['nombre'],
+        modalidadPago: item['modalidadPago'] ?? 'En Cuotas',
+        telefono: item['telefono'],
+        estado: item['estado'] ?? 'Pendiente',
+        montoCuota: item['montoCuota'],
+        totalPagado: item['totalPagado'],
+        totalPendiente: item['totalPendiente'] ?? (item['totalCredito'] - item['totalPagado']),
+        progreso: item['progreso'] ?? (item['totalPagado'] / item['totalCredito']),
+        cuotas: item['cuotas'],
+        pagos: item['pagos'],
+        cuotasVencidas: cuotasVencidas,
+        concepto: item['concepto'] ?? 'Sin concepto',
+        totalCredito: item['totalCredito'] ?? 0.0,
+        numeroCredito: item['numeroCredito'],
+        notas: item['notas'],
+        onVerDetalle: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DetalleCreditoPage(
+                creditoId: item['id'].toString(),
+                nombreUsuario: widget.nombreUsuario,
+                onEditar: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CreditoPage(
+                        nombreUsuario: widget.nombreUsuario,
+                        creditoIdEditar: item['id'].toString(),
+                      ),
+                    ),
+                  ).then((_) => _loadData());
+                },
+                onEliminar: () => _eliminarCredito(
+                  item['id'],
+                  item['nombre'],
+                ),
+              ),
+            ),
+          );
+        },
+        onEditar: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CreditoPage(
+                nombreUsuario: widget.nombreUsuario,
+                creditoIdEditar: item['id'].toString(),
+              ),
+            ),
+          ).then((_) => _loadData());
+        },
+        onEliminar: () => _eliminarCredito(
+          item['id'],
+          item['nombre'],
+        ),
+        onCuotaTap: (numeroCuota) {
+          final cuota = (item['cuotas'] as List).firstWhere(
+            (c) => c.numeroCuota == numeroCuota,
+          );
+
+          final montoRestante = getMontoRestanteCuota(
+            originalIndex,
+            numeroCuota,
+          );
+
+          if (montoRestante <= 0) return;
+
+          final esPagoParcialPrevio = esCuotaParcialmentePagada(
+            originalIndex,
+            numeroCuota,
+          );
+
+          showDialog(
+            context: context,
+            builder: (context) => DialogoPagoCuotaCompleto(
+              numeroCuota: numeroCuota,
+              monto: cuota.monto,
+              montoRestante: montoRestante,
+              fechaVencimiento: cuota.fechaPago,
+              nombreCliente: item['nombre'],
+              concepto: item['concepto'] ?? 'Préstamo',
+              montoPagadoHastaAhora: item['totalPagado'],
+              totalCredito: item['totalCredito'] ?? 500.00,
+              totalCuotas: totalCuotas,
+              cuotasPagadas: cuotasPagadas,
+              esPagoParcial: esPagoParcialPrevio,
+              onPagar: (
+                monto,
+                fechaPago,
+                metodoPago,
+                referencia,
+                observaciones,
+                aplicarMora,
+                montoMora,
+                esPagoParcial,
+                comprobantePath,
+              ) {
+                _pagarCuotaCompleto(
+                  originalIndex,
+                  numeroCuota,
+                  monto,
+                  fechaPago,
+                  metodoPago,
+                  referencia,
+                  observaciones,
+                  aplicarMora,
+                  montoMora,
+                  esPagoParcial,
+                  comprobantePath,
+                );
+              },
+            ),
+          );
+        },
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   @override

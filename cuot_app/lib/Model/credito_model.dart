@@ -1,7 +1,7 @@
 import 'package:cuot_app/utils/date_utils.dart';
 import 'package:cuot_app/Model/cuota_personalizada.dart';
 
-enum TipoCredito { cuotas, unPago }
+enum TipoCredito { cuotas, unPago, grupal }
 enum ModalidadPago { diario, semanal, quincenal, mensual, personalizado }
 /// Modelo principal de Crédito
 class Credito {

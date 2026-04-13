@@ -227,9 +227,9 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
     final tasa = await ScrapperUtil.getDolarBcv();
     if (mounted && tasa != null) {
       setState(() {
-        _tasaController.text = tasa.toStringAsFixed(2);
+        _tasaController.text = tasa.toStringAsFixed(4);
         _isLoadingTasa = false;
-        _updateBsFromUsd(); // 👈 NUEVO
+        // _updateBsFromUsd(); // 👈 ELIMINADO para iniciar vacío
       });
     } else if (mounted) {
       setState(() => _isLoadingTasa = false);
@@ -782,7 +782,7 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                               borderSide: BorderSide(color: AppColors.primaryGreen.withOpacity(0.2)),
                             ),
                             filled: true,
-                            fillColor: AppColors.primaryGreen.withOpacity(0.05),
+                            fillColor: Colors.white,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           ),
                           keyboardType: TextInputType.number,

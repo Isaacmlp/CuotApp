@@ -4,7 +4,8 @@ import 'package:cuot_app/Model/credito_model.dart';
 import 'package:cuot_app/widget/creditos/formulario_cuotas.dart';
 import 'package:cuot_app/widget/creditos/formulario_pagounico.dart';
 import 'package:cuot_app/widget/creditos/tipo_credito_selector.dart';
-import 'package:cuot_app/ui/pages/seguimiento_creditos_page.dart';
+import 'package:cuot_app/ui/pages/detalle_credito_page.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -104,17 +105,60 @@ class _CreditoPageState extends State<CreditoPage> {
           facturaFile = File(credito.facturaPath!);
         }
 
+        // Capturar referencias ANTES de cualquier operación async
+        final navigator = Navigator.of(context);
+        final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+        bool creditoDuplicado = await controller.existeCreditoIdentico(credito, widget.nombreUsuario);
+        if (creditoDuplicado) {
+          if (context.mounted) {
+            await showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                title: const Row(
+                  children: [
+                    Icon(Icons.block, color: Colors.red),
+                    SizedBox(width: 10),
+                    Expanded(child: Text('Crédito duplicado')),
+                  ],
+                ),
+                content: const Text('Ya existe un crédito exactamente igual (mismo cliente, concepto y monto).\n\nNo se permite guardar registros repetidos.'),
+                actions: [
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('ENTENDIDO'),
+                  ),
+                ],
+              ),
+            );
+          }
+          setState(() => _isLoading = false);
+          return;
+        }
+
         bool existe = await controller.clienteExisteYEsDiferenteAlActual(credito.nombreCliente, widget.nombreUsuario);
         if (existe) {
           bool? continuar = await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
-              title: const Text('Cliente ya registrado'),
-              content: Text('Ya tienes un registro con el nombre "${credito.nombreCliente}".\n\n¿Deseas continuar y asignarle este crédito a ese cliente?'),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.blue),
+                  SizedBox(width: 10),
+                  Expanded(child: Text('Cliente registrado')),
+                ],
+              ),
+              content: Text('Ya tienes un registro con el nombre "${credito.nombreCliente}".\n\n¿Deseas asignarle este nuevo crédito a ese mismo cliente?'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('MODIFICAR NOMBRE'),
+                  child: const Text('NO, CAMBIAR NOMBRE'),
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(ctx, true),
@@ -133,48 +177,63 @@ class _CreditoPageState extends State<CreditoPage> {
           }
         }
 
-        await controller.guardarCredito(
+        debugPrint('🔵 Llamando controller.guardarCredito...');
+        final String? creditId = await controller.guardarCredito(
           credito, 
           widget.nombreUsuario, 
           facturaArchivo: facturaFile,
         );
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ Crédito guardado exitosamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        debugPrint('🔵 guardarCredito retornó creditId: $creditId');
 
-        // Navegar a SeguimientoCreditosPage
-      
-        if (context.mounted) {
-          if (Navigator.canPop(context)) {
-            Navigator.pop(context, true);
-          } else {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => SeguimientoCreditosPage(nombreUsuario: widget.nombreUsuario),
+        // 🔑 NAVEGACIÓN INMEDIATA: No mostrar diálogo intermedio, navegar directo
+        // Esto evita que un rebuild del Consumer desmonte el formulario
+        if (creditId != null) {
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(
+              content: Text('✅ Crédito guardado exitosamente'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          debugPrint('🟢 creditId no es nulo, navegando a DetalleCreditoPage...');
+          // pushReplacement no depende de que esta página siga montada
+          navigator.pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => DetalleCreditoPage(
+                creditoId: creditId,
+                nombreUsuario: widget.nombreUsuario,
               ),
-            );
-          }
+            ),
+          );
+          debugPrint('🟢 pushReplacement ejecutado');
+          return; // Salir sin ejecutar finally/setState
+        } else {
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(
+              content: Text('⚠️ Guardado, pero el ID retornó nulo. Regresando...'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          navigator.pop(true);
+          return;
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('⚠️ Por favor, completa todos los campos primero'),
             backgroundColor: Colors.orange,
           ),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Error al guardar: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error al guardar: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

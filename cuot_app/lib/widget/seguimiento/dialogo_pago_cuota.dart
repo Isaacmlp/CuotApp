@@ -103,9 +103,9 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
     final tasa = await ScrapperUtil.getDolarBcv();
     if (mounted && tasa != null) {
       setState(() {
-        _tasaController.text = tasa.toStringAsFixed(2);
+        _tasaController.text = tasa.toStringAsFixed(4);
         _isLoadingTasa = false;
-        _updateBsFromUsd();
+        // _updateBsFromUsd(); // 👈 ELIMINADO para iniciar vacío
       });
     } else if (mounted) {
       setState(() => _isLoadingTasa = false);

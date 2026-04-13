@@ -91,8 +91,9 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
     final tasa = await ScrapperUtil.getDolarBcv();
     if (mounted && tasa != null) {
       setState(() {
-        _tasaController.text = tasa.toStringAsFixed(2);
+        _tasaController.text = tasa.toStringAsFixed(4);
         _isLoadingTasa = false;
+        // _updateBsFromUsd(); // 👈 ELIMINADO para iniciar vacío
       });
     } else if (mounted) {
       setState(() => _isLoadingTasa = false);
@@ -509,12 +510,13 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                             borderSide: BorderSide(color: AppColors.primaryGreen.withOpacity(0.2)),
                           ),
                           filled: true,
-                          fillColor: AppColors.primaryGreen.withOpacity(0.05),
+                          fillColor: Colors.white,
                         ),
                         keyboardType: TextInputType.number,
                       ),
 
                       
+                      /* 
                       if (widget.esParcial) ...[
                         const SizedBox(height: 8),
                         Row(
@@ -527,6 +529,7 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
                           ],
                         ),
                       ],
+                      */
 
                       const SizedBox(height: 16),
                       
@@ -827,36 +830,6 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMontoRapido(double porcentaje) {
-    final monto = _maxMonto * porcentaje;
-    final isSelected = (double.tryParse(_montoController.text) ?? 0) == monto;
-    
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _montoController.text = monto.toStringAsFixed(2);
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryGreen : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: Text(
-            '${(porcentaje * 100).toStringAsFixed(0)}%',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: isSelected ? Colors.white : AppColors.darkGrey,
-            ),
-          ),
         ),
       ),
     );

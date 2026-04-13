@@ -6,6 +6,8 @@ import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/ui/pages/formulario_renovacion_page.dart';
 import 'package:cuot_app/utils/date_utils.dart'; // 👈 NUEVO
 import 'package:intl/intl.dart';
+import 'package:cuot_app/service/whatsapp_service.dart'; // 👈 NUEVO
+import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // 👈 NUEVO
 
 extension StringExtension on String {
   String capitalize() {
@@ -70,6 +72,129 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     }
 
     await _loadHistorialRenovaciones();
+  }
+
+  // 👈 NUEVO: Enviar ficha por WhatsApp
+  void _enviarWhatsApp() {
+    try {
+      debugPrint('--- Iniciando _enviarWhatsApp ---');
+      if (_credito == null) {
+        debugPrint('Error: _credito es nulo');
+        return;
+      }
+      
+      final cliente = _credito!['Clientes'] ?? {};
+      final rawCuotas = _credito!['Cuotas'] ?? [];
+      final List<dynamic> renovaciones = _credito?['Renovaciones'] ?? [];
+      final String telefono = cliente['telefono']?.toString() ?? '';
+
+      debugPrint('Datos cliente: ${cliente['nombre']}, Tel: $telefono');
+
+      if (telefono.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⚠️ El cliente no tiene un teléfono registrado.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+      
+      // Identificar última renovación para calcular saldo correctamente
+      DateTime? ultimaRenovacion;
+      if (renovaciones.isNotEmpty) {
+        final sortedRenov = List<dynamic>.from(renovaciones);
+        sortedRenov.sort((a, b) {
+          final dateA = DateUt.parsePureDate(a['created_at'] ?? a['fecha_renovacion']);
+          final dateB = DateUt.parsePureDate(b['created_at'] ?? b['fecha_renovacion']);
+          return dateB.compareTo(dateA);
+        });
+        ultimaRenovacion = DateUt.parsePureDate(sortedRenov.first['created_at'] ?? sortedRenov.first['fecha_renovacion']);
+      }
+
+      double pagosValidos = 0.0;
+      final List<dynamic> todosLosPagos = _credito?['Pagos'] ?? [];
+      for (var pago in todosLosPagos) {
+        final ref = pago['referencia']?.toString() ?? '';
+        final fechaStr = pago['fecha_pago_real'] ?? pago['fecha_pago'];
+        final fechaPago = fechaStr != null ? DateUt.parsePureDate(fechaStr.toString()) : DateUt.nowUtc();
+        
+        if (ref != 'Abono en Renovación') {
+          if (ultimaRenovacion == null || !fechaPago.isBefore(ultimaRenovacion)) {
+            // Conversión segura de monto
+            final montoRaw = pago['monto'];
+            final double monto = (montoRaw is num) ? montoRaw.toDouble() : 0.0;
+            pagosValidos += monto;
+          }
+        }
+      }
+
+      final double costoInversion = ((_credito?['costo_inversion'] as num?)?.toDouble() ?? 0.0);
+      final double margenGanancia = ((_credito?['margen_ganancia'] as num?)?.toDouble() ?? 0.0);
+      final double totalCredito = costoInversion + margenGanancia;
+      final double saldoPendiente = totalCredito - pagosValidos;
+
+      debugPrint('Cálculos: Total=$totalCredito, Pagado=$pagosValidos, Saldo=$saldoPendiente');
+
+      // Determinar tipo de crédito usando el campo tipo_credito de la BD
+      // (no rawCuotas.isNotEmpty, porque incluso pago simple tiene 1 cuota)
+      final String tipoCredito = (_credito?['tipo_credito'] ?? '').toString();
+      final bool esCuotas = tipoCredito != 'unico';
+      
+      debugPrint('Tipo crédito: $tipoCredito, esCuotas: $esCuotas');
+
+      final String mensaje = esCuotas
+        ? WhatsappService.generarFichaCuotas(
+            creditoId: widget.creditoId.toString(),
+            nombreCliente: (cliente['nombre'] ?? 'N/A').toString(),
+            concepto: (_credito?['concepto'] ?? 'N/A').toString(),
+            modalidadPago: (_credito?['modalidad_pago'] ?? 'Cuotas').toString(),
+            montoTotal: totalCredito,
+            totalPagado: pagosValidos,
+            saldoPendiente: saldoPendiente,
+            totalCuotas: rawCuotas.length,
+            cuotasPagadas: rawCuotas.where((c) => c['pagada'] == true).length,
+            cuotasVencidas: 0, 
+            montoCuota: rawCuotas.isNotEmpty 
+                ? ((rawCuotas.first['monto_cuota'] as num?)?.toDouble() ?? 0.0)
+                : 0.0,
+            numeroCredito: _credito?['numero_credito'] != null ? int.tryParse(_credito!['numero_credito'].toString()) : null,
+            notas: _credito?['notas']?.toString(),
+          )
+        : WhatsappService.generarFichaUnico(
+            creditoId: widget.creditoId.toString(),
+            nombreCliente: (cliente['nombre'] ?? 'N/A').toString(),
+            concepto: (_credito?['concepto'] ?? 'N/A').toString(),
+            montoTotal: totalCredito,
+            totalPagado: pagosValidos,
+            saldoPendiente: saldoPendiente,
+            cantidadAbonos: _credito?['Pagos']?.length ?? 0,
+            fechaLimite: _credito?['fecha_vencimiento'] != null 
+                ? DateUt.formatearFecha(DateUt.parsePureDate(_credito!['fecha_vencimiento']))
+                : 'N/A',
+            diasRestantes: _credito?['fecha_vencimiento'] != null
+                ? '${DateUt.parsePureDate(_credito!['fecha_vencimiento']).difference(DateUt.nowUtc()).inDays} días'
+                : 'N/A',
+            numeroCredito: _credito?['numero_credito'] != null ? int.tryParse(_credito!['numero_credito'].toString()) : null,
+            notas: _credito?['notas']?.toString(),
+          );
+
+      debugPrint('Enviando mensaje a: $telefono');
+
+      WhatsappService.abrirWhatsApp(
+        telefono: telefono,
+        mensaje: mensaje,
+      );
+    } catch (e, stack) {
+      debugPrint('Error en _enviarWhatsApp: $e');
+      debugPrint(stack.toString());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Error al intentar enviar WhatsApp: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _loadHistorialRenovaciones() async {
@@ -404,44 +529,58 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                   const Text('Información',
                       style: TextStyle(
                           fontSize: 16, fontWeight: FontWeight.bold)),
-                  if (widget.nombreUsuario != null && !isPagado)
-                    SizedBox(
-                      height: 32,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => FormularioRenovacionPage(
-                                creditoId: widget.creditoId,
-                                nombreUsuario: widget.nombreUsuario!,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed: _enviarWhatsApp,
+                        icon: const FaIcon(
+                          FontAwesomeIcons.whatsapp,
+                          color: Colors.green,
+                          size: 22,
+                        ),
+                        tooltip: 'Enviar ficha por WhatsApp',
+                      ),
+                      if (widget.nombreUsuario != null && !isPagado)
+                        SizedBox(
+                          height: 32,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => FormularioRenovacionPage(
+                                    creditoId: widget.creditoId,
+                                    nombreUsuario: widget.nombreUsuario!,
+                                  ),
+                                ),
+                              ).then((result) {
+                                if (result == true && mounted) {
+                                  _loadDetalle();
+                                }
+                              });
+                            },
+                            icon: const Icon(Icons.refresh, color: Colors.white, size: 16),
+                            label: const Text(
+                              'Renovación',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
                             ),
-                          ).then((result) {
-                            if (result == true && mounted) {
-                              _loadDetalle();
-                            }
-                          });
-                        },
-                        icon: const Icon(Icons.refresh, color: Colors.white, size: 16),
-                        label: const Text(
-                          'Renovación',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade700,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              elevation: 1,
+                            ),
                           ),
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue.shade700,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          elevation: 1,
-                        ),
-                      ),
-                    ),
+                    ],
+                  ),
                 ],
               ),
               const Divider(height: 24),

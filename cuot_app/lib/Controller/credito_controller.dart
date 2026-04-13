@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:cuot_app/Model/credito_model.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cuot_app/core/supabase/supabase_service.dart';
 import 'package:cuot_app/utils/date_utils.dart';
 import 'package:cuot_app/Model/cuota_personalizada.dart';
@@ -122,7 +121,8 @@ class CreditoController extends ChangeNotifier {
     notifyListeners();
   }
   
-  Future<void> guardarCredito(Credito credito, String usuarioNombre, {File? facturaArchivo}) async {
+  Future<String?> guardarCredito(Credito credito, String usuarioNombre, {File? facturaArchivo}) async {
+    debugPrint('🟡 CONTROLLER: guardarCredito iniciado. isEditing=$isEditing');
     try {
       // 1. Subir factura si existe
       String? facturaUrl;
@@ -142,10 +142,12 @@ class CreditoController extends ChangeNotifier {
           .eq('nombre', credito.nombreCliente)
           .eq('usuario_creador', usuarioNombre);
       
+      String? creditId;
+      
       // BUG FIX / SAFETY: Si no hay tipo de crédito seleccionado, abortar para evitar creaciones fantasmales
       if (_tipoCreditoSeleccionado == null && !isEditing) {
         print('⚠️ Intento de guardado sin tipo de crédito seleccionado. Abortando.');
-        return;
+        return null;
       }
 
       String clienteId;
@@ -241,6 +243,7 @@ class CreditoController extends ChangeNotifier {
             }
           }
           await _creditService.updateCreditCuotas(_creditoIdEditar!, updateData, nuevasCuotasPendientes);
+          return _creditoIdEditar;
         }
 
       } else {
@@ -269,12 +272,15 @@ class CreditoController extends ChangeNotifier {
         'estado': 'Pendiente',
         'notas': credito.notas,
         'numero_credito': nextNumber,
-        if (esPagoUnico && credito.fechaLimite != null)
-          'fecha_vencimiento': DateUt.normalizeToUtc(credito.fechaLimite!).toIso8601String(),
       };
 
+      if (esPagoUnico && credito.fechaLimite != null) {
+        dataCredito['fecha_vencimiento'] = DateUt.normalizeToUtc(credito.fechaLimite!).toIso8601String();
+      }
+
       final creditoInsertado = await _supabaseService.insert('Creditos', dataCredito);
-      final String creditId = creditoInsertado['id'];
+      creditId = creditoInsertado['id'].toString();
+      debugPrint('🟡 CONTROLLER: Crédito insertado con ID: $creditId');
 
       // 5. Insertar cuotas
       if (esPagoUnico) {
@@ -343,14 +349,20 @@ class CreditoController extends ChangeNotifier {
               .insert(cuotasData);
         }
       }
-      } // Fin de if(isEditing) else {...}
+      } // Fin del bloque else (creación de nuevo crédito)
+      
+      final String? finalId = isEditing ? _creditoIdEditar : creditId;
+      debugPrint('🟡 CONTROLLER: finalId=$finalId (isEditing=$isEditing, creditoIdEditar=$_creditoIdEditar, creditId=$creditId)');
 
-      // Limpiar estado local
+      // Limpiar estado local SIN notifyListeners
+      // para evitar que el rebuild desmonte CreditoPage antes de navegar
       _creditoEnProceso = null;
       _tipoCreditoSeleccionado = null;
       _creditoIdEditar = null;
       _totalPagado = 0.0;
-      notifyListeners();
+      // NO llamar notifyListeners() aquí — la navegación ocurre en CreditoPage
+      debugPrint('🟡 CONTROLLER: Retornando finalId=$finalId');
+      return finalId;
     } catch (e) {
       print('❌ Error al guardar crédito en Supabase: $e');
       rethrow;
@@ -377,6 +389,36 @@ class CreditoController extends ChangeNotifier {
         .eq('usuario_creador', usuarioNombre);
         
     return clientes.isNotEmpty;
+  }
+
+  Future<bool> existeCreditoIdentico(Credito credito, String usuarioNombre) async {
+    if (isEditing) return false; // Al editar es normal
+    try {
+      final clientes = await _supabaseService.client
+          .schema('Financiamientos')
+          .from('Clientes')
+          .select('id')
+          .eq('nombre', credito.nombreCliente.trim())
+          .eq('usuario_creador', usuarioNombre);
+          
+      if (clientes.isEmpty) return false;
+      
+      final clienteId = clientes.first['id'];
+      
+      final creditosSimilares = await _supabaseService.client
+          .schema('Financiamientos')
+          .from('Creditos')
+          .select('id')
+          .eq('cliente_id', clienteId)
+          .eq('concepto', credito.concepto.trim())
+          .eq('costo_inversion', credito.costeInversion)
+          .eq('numero_cuotas', _tipoCreditoSeleccionado == TipoCredito.unPago ? 1 : credito.numeroCuotas);
+          
+      return creditosSimilares.isNotEmpty;
+    } catch (e) {
+      print('Error al buscar crédito duplicado: $e');
+      return false;
+    }
   }
 
   bool validarCredito(Credito credito) {

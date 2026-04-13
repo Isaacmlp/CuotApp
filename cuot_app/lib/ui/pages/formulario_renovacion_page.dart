@@ -1185,7 +1185,7 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
                           _buildTableCell('Viejo', isBold: true, color: Colors.red.shade900),
                           _buildTableCell(
                             _tipoCredito == 'unico'
-                                ? '${_plazoOriginal > 1 ? _plazoOriginal : "30"} días'
+                                ? '$_plazoDiasOriginal días'
                                 : '$_plazoOriginal cuotas',
                           ),
                           _buildTableCell(

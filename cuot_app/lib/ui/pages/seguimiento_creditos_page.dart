@@ -36,7 +36,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
   final CreditService _creditService = CreditService();
   final SavingsService _savingsService = SavingsService();
   List<dynamic> _financiamientos = [];
-  List<GrupoAhorro> _grupos = [];
+  List<Map<String, dynamic>> _grupos = [];
   bool _isLoading = true;
 
   Future<void> _loadData() async {
@@ -48,7 +48,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
       // 🚀 OPTIMIZACIÓN: Una sola consulta para traer todo (N+1 fixed)
       final rawCredits =
           await _creditService.getFullCreditsData(widget.nombreUsuario);
-      final rawGroups = await _savingsService.getGrupos(widget.nombreUsuario);
+      final rawGroups = await _savingsService.getGruposConMiembros(widget.nombreUsuario);
 
       final List<dynamic> processedCredits = [];
 
@@ -770,8 +770,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
 
     final filteredItems = source.where((f) {
       if (tipo == TipoCredito.unPago) return f is CreditoUnico;
-      if (tipo == TipoCredito.cuotas) return f is Map<String, dynamic>;
-      if (tipo == TipoCredito.grupal) return f is GrupoAhorro;
+      if (tipo == TipoCredito.cuotas) return f is Map<String, dynamic> && f['tipo'] != 'grupal';
+      if (tipo == TipoCredito.grupal) return f is Map<String, dynamic>;
       return false;
     }).toList();
 
@@ -824,15 +824,20 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
   }
 
   Widget _buildTarjetaItem(dynamic item, int originalIndex) {
-    if (item is GrupoAhorro) {
+    if (item is Map<String, dynamic> && item.containsKey('cantidad_participantes')) {
+      final grupo = GrupoAhorro.fromJson(item);
+      final rawMiembros = item['Miembros_Grupo'] as List? ?? [];
+      final miembros = rawMiembros.map((m) => MiembroGrupo.fromJson(m)).toList();
+
       return TarjetaGrupo(
-        grupo: item,
+        grupo: grupo,
+        miembros: miembros,
         onVerDetalle: () {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => GrupoDashboardPage(
-                grupoId: item.id!,
+                grupoId: grupo.id!,
                 usuarioNombre: widget.nombreUsuario,
               ),
             ),

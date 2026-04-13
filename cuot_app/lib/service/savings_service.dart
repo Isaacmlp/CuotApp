@@ -3,6 +3,7 @@ import 'package:cuot_app/Model/grupo_ahorro_model.dart';
 import 'package:cuot_app/Model/miembro_grupo_model.dart';
 import 'package:cuot_app/Model/aporte_grupo_model.dart';
 import 'package:cuot_app/Model/cliente_model.dart';
+import 'package:cuot_app/Model/cuota_ahorro_model.dart';
 
 class SavingsService {
   final SupabaseService _supabase = SupabaseService();
@@ -19,8 +20,10 @@ class SavingsService {
           .select()
           .eq('creado_por', usuarioNombre)
           .order('fecha_creacion', ascending: false);
-      
-      return (response as List).map((json) => GrupoAhorro.fromJson(json)).toList();
+
+      return (response as List)
+          .map((json) => GrupoAhorro.fromJson(json))
+          .toList();
     } catch (e) {
       print('Error en getGrupos: $e');
       return [];
@@ -35,7 +38,7 @@ class SavingsService {
           .select()
           .eq('id', id)
           .single();
-      
+
       return GrupoAhorro.fromJson(response);
     } catch (e) {
       print('Error en getGrupoById: $id -> $e');
@@ -50,7 +53,7 @@ class SavingsService {
         .insert(grupo.toJson())
         .select()
         .single();
-    
+
     return GrupoAhorro.fromJson(response);
   }
 
@@ -78,8 +81,10 @@ class SavingsService {
           .from('Miembros_Grupo')
           .select('*, Clientes(*)')
           .eq('grupo_id', grupoId);
-      
-      return (response as List).map((json) => MiembroGrupo.fromJson(json)).toList();
+
+      return (response as List)
+          .map((json) => MiembroGrupo.fromJson(json))
+          .toList();
     } catch (e) {
       print('Error en getMiembros: $e');
       return [];
@@ -87,10 +92,71 @@ class SavingsService {
   }
 
   Future<void> addMiembro(MiembroGrupo miembro) async {
-    await _supabase.client
+    // 1. Insertar el Miembro y obtener su ID
+    final resMiembro = await _supabase.client
         .schema('Financiamientos')
         .from('Miembros_Grupo')
-        .insert(miembro.toJson());
+        .insert(miembro.toJson())
+        .select()
+        .single();
+    
+    final String miembroId = resMiembro['id'];
+
+    // 2. Obtener datos del grupo para las fechas
+    final grupo = await getGrupoById(miembro.grupoId);
+    if (grupo == null) return;
+
+    final int n = grupo.cantidadParticipantes;
+    final DateTime startDate = grupo.fechaPrimerPago ?? grupo.fechaCreacion;
+    final double montoCuota = miembro.montoCuota;
+
+    // 3. Generar N cuotas
+    List<Map<String, dynamic>> cuotasJson = [];
+    for (int i = 1; i <= n; i++) {
+      DateTime fechaVencimiento;
+      switch (grupo.periodo) {
+        case PeriodoAhorro.semanal:
+          fechaVencimiento = startDate.add(Duration(days: (i - 1) * 7));
+          break;
+        case PeriodoAhorro.quincenal:
+          fechaVencimiento = startDate.add(Duration(days: (i - 1) * 15));
+          break;
+        case PeriodoAhorro.mensual:
+          fechaVencimiento = DateTime(startDate.year, startDate.month + (i - 1), startDate.day);
+          break;
+      }
+
+      cuotasJson.add({
+        'miembro_id': miembroId,
+        'numero_cuota': i,
+        'monto_esperado': montoCuota,
+        'monto_pagado': 0,
+        'fecha_vencimiento': fechaVencimiento.toIso8601String().split('T')[0],
+        'pagada': false,
+      });
+    }
+
+    // 4. Insertar cuotas en bloque
+    await _supabase.client
+        .schema('Financiamientos')
+        .from('Cuotas_Ahorro')
+        .insert(cuotasJson);
+  }
+
+  Future<List<CuotaAhorro>> getCuotasMiembro(String miembroId) async {
+    try {
+      final response = await _supabase.client
+          .schema('Financiamientos')
+          .from('Cuotas_Ahorro')
+          .select()
+          .eq('miembro_id', miembroId)
+          .order('numero_cuota', ascending: true);
+      
+      return (response as List).map((json) => CuotaAhorro.fromJson(json)).toList();
+    } catch (e) {
+      print('Error en getCuotasMiembro: $e');
+      return [];
+    }
   }
 
   Future<void> updateMiembro(MiembroGrupo miembro) async {
@@ -113,15 +179,17 @@ class SavingsService {
           .select()
           .eq('miembro_id', miembroId)
           .order('fecha_aporte', ascending: false);
-      
-      return (response as List).map((json) => AporteGrupo.fromJson(json)).toList();
+
+      return (response as List)
+          .map((json) => AporteGrupo.fromJson(json))
+          .toList();
     } catch (e) {
       print('Error en getAportes: $e');
       return [];
     }
   }
 
-  Future<void> saveAporte(AporteGrupo aporte) async {
+  Future<void> saveAporte(AporteGrupo aporte, {String? cuotaId}) async {
     try {
       // 1. Insertar el aporte
       await _supabase.client
@@ -129,39 +197,61 @@ class SavingsService {
           .from('Aportes_Grupo')
           .insert(aporte.toJson());
 
-      // 2. Actualizar el total del miembro
+      // 2. Si hay cuotaId, actualizar la cuota
+      if (cuotaId != null) {
+        final cuotaData = await _supabase.client
+            .schema('Financiamientos')
+            .from('Cuotas_Ahorro')
+            .select('monto_pagado, monto_esperado')
+            .eq('id', cuotaId)
+            .single();
+        
+        final double nuevoPagado = (cuotaData['monto_pagado'] as num).toDouble() + aporte.monto;
+        final double esperado = (cuotaData['monto_esperado'] as num).toDouble();
+        
+        await _supabase.client
+            .schema('Financiamientos')
+            .from('Cuotas_Ahorro')
+            .update({
+              'monto_pagado': nuevoPagado,
+              'pagada': nuevoPagado >= (esperado - 0.01),
+            })
+            .eq('id', cuotaId);
+      }
+
+      // 3. Actualizar el total del miembro
       final miembroData = await _supabase.client
           .schema('Financiamientos')
           .from('Miembros_Grupo')
           .select('total_aportado, grupo_id')
           .eq('id', aporte.miembroId)
           .single();
-      
-      final double nuevoTotalMiembro = (miembroData['total_aportado'] as num).toDouble() + aporte.monto;
+
+      final double nuevoTotalMiembro =
+          (miembroData['total_aportado'] as num).toDouble() + aporte.monto;
       final String grupoId = miembroData['grupo_id'];
 
       await _supabase.client
           .schema('Financiamientos')
           .from('Miembros_Grupo')
-          .update({'total_aportado': nuevoTotalMiembro})
-          .eq('id', aporte.miembroId);
+          .update({'total_aportado': nuevoTotalMiembro}).eq(
+              'id', aporte.miembroId);
 
-      // 3. Actualizar el total del grupo
+      // 4. Actualizar el total del grupo
       final grupoData = await _supabase.client
           .schema('Financiamientos')
           .from('Grupos_Ahorro')
           .select('total_acumulado')
           .eq('id', grupoId)
           .single();
-      
-      final double nuevoTotalGrupo = (grupoData['total_acumulado'] as num).toDouble() + aporte.monto;
+
+      final double nuevoTotalGrupo =
+          (grupoData['total_acumulado'] as num).toDouble() + aporte.monto;
 
       await _supabase.client
           .schema('Financiamientos')
           .from('Grupos_Ahorro')
-          .update({'total_acumulado': nuevoTotalGrupo})
-          .eq('id', grupoId);
-          
+          .update({'total_acumulado': nuevoTotalGrupo}).eq('id', grupoId);
     } catch (e) {
       print('Error en saveAporte: $e');
       rethrow;
@@ -172,7 +262,8 @@ class SavingsService {
   // CLIENTES (Auxiliar para miembros)
   // --------------------------------------------------------------------------
 
-  Future<List<Map<String, dynamic>>> searchClientes(String query, String usuarioNombre) async {
+  Future<List<Map<String, dynamic>>> searchClientes(
+      String query, String usuarioNombre) async {
     try {
       final response = await _supabase.client
           .schema('Financiamientos')
@@ -181,7 +272,7 @@ class SavingsService {
           .eq('usuario_creador', usuarioNombre)
           .ilike('nombre', '%$query%')
           .limit(10);
-      
+
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       print('Error en searchClientes: $e');
@@ -189,7 +280,8 @@ class SavingsService {
     }
   }
 
-  Future<String> createCliente(String nombre, String telefono, String usuarioNombre) async {
+  Future<String> createCliente(
+      String nombre, String telefono, String usuarioNombre) async {
     final response = await _supabase.client
         .schema('Financiamientos')
         .from('Clientes')
@@ -200,7 +292,7 @@ class SavingsService {
         })
         .select('id')
         .single();
-    
+
     return response['id'].toString();
   }
 }

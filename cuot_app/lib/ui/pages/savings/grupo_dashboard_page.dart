@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cuot_app/Model/grupo_ahorro_model.dart';
 import 'package:cuot_app/Model/miembro_grupo_model.dart';
 import 'package:cuot_app/Model/aporte_grupo_model.dart';
+import 'package:cuot_app/Model/cuota_ahorro_model.dart';
+import 'package:cuot_app/widget/seguimiento/dialogo_pago_cuota.dart';
 import 'package:cuot_app/service/savings_service.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/utils/date_utils.dart';
@@ -25,6 +27,10 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
   GrupoAhorro? _grupo;
   List<MiembroGrupo> _miembros = [];
   bool _isLoading = true;
+  
+  // Caché de cuotas por miembro para evitar recargas constantes
+  final Map<String, List<CuotaAhorro>> _cuotasCache = {};
+  final Map<String, bool> _loadingCuotasCache = {};
 
   @override
   void initState() {
@@ -254,207 +260,200 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: () => _showAportesHistory(miembro),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+      clipBehavior: Clip.antiAlias,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          onExpansionChanged: (expanded) {
+            if (expanded) {
+              _loadCuotasMiembro(miembro.id!);
+            }
+          },
+          leading: CircleAvatar(
+            backgroundColor: AppColors.primaryGreen.withOpacity(0.1),
+            child: Text(
+              (miembro.nombreCliente ?? '?').substring(0, 1).toUpperCase(),
+              style: const TextStyle(
+                color: AppColors.primaryGreen,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          title: Text(
+            miembro.nombreCliente ?? 'Cargando...',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SizedBox(height: 4),
               Row(
                 children: [
-                  CircleAvatar(
-                    backgroundColor: AppColors.primaryGreen.withOpacity(0.1),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                     child: Text(
-                      (miembro.nombreCliente ?? '?').substring(0, 1).toUpperCase(),
-                      style: const TextStyle(
-                        color: AppColors.primaryGreen,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      miembro.numeroTurno != null ? 'Turno ${miembro.numeroTurno}' : 'Sin Turno',
+                      style: const TextStyle(fontSize: 10, color: AppColors.primaryGreen, fontWeight: FontWeight.bold),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          miembro.nombreCliente ?? 'Cargando...',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryGreen.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                miembro.numeroTurno != null ? 'Turno ${miembro.numeroTurno}' : 'Sin Turno',
-                                style: const TextStyle(fontSize: 10, color: AppColors.primaryGreen, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Cuota: \$${miembro.montoCuota.toStringAsFixed(0)}',
-                              style: TextStyle(color: Colors.grey.shade700, fontSize: 11, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Aportado: \$${miembro.totalAportado.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  _buildActionButton(
-                    Icons.add_card,
-                    () => _showAddAporteDialog(miembro),
-                    AppColors.primaryGreen,
+                  const SizedBox(width: 8),
+                  Text(
+                    'Cuota: \$${miembro.montoCuota.toStringAsFixed(0)}',
+                    style: TextStyle(color: Colors.grey.shade700, fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Progreso: ${(miembro.progreso * 100).toStringAsFixed(0)}%',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (_grupo!.tipoAporte == TipoAporte.diferente)
-                        Text(
-                          'Meta: \$${miembro.montoMetaPersonal.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey,
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: miembro.progreso,
-                      backgroundColor: Colors.grey.shade100,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        AppColors.primaryGreen,
-                      ),
-                      minHeight: 6,
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 2),
+              Text(
+                'Aportado: \$${miembro.totalAportado.toStringAsFixed(2)}',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton(IconData icon, VoidCallback onTap, Color color) {
-    return Container(
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: color, size: 20),
-        onPressed: onTap,
-        constraints: const BoxConstraints(),
-        padding: const EdgeInsets.all(8),
-      ),
-    );
-  }
-
-  void _showAddAporteDialog(MiembroGrupo miembro) {
-    final TextEditingController amountController = TextEditingController();
-    final TextEditingController obsController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Aporte: ${miembro.nombreCliente}'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              controller: amountController,
-              decoration: InputDecoration(
-                labelText: 'Monto a aportar',
-                prefixText: '\$ ',
-                border: const OutlineInputBorder(),
-              ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              autofocus: true,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: obsController,
-              decoration: const InputDecoration(
-                labelText: 'Observaciones (opcional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
+            const Divider(height: 1),
+            _buildCuotasList(miembro),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final double? monto = double.tryParse(amountController.text);
-              if (monto == null || monto <= 0) return;
+      ),
+    );
+  }
 
-              final aporte = AporteGrupo(
-                miembroId: miembro.id!,
-                monto: monto,
-                fechaAporte: DateTime.now(),
-                observaciones: obsController.text,
-              );
+  Widget _buildCuotasList(MiembroGrupo miembro) {
+    bool isLoading = _loadingCuotasCache[miembro.id] ?? false;
+    List<CuotaAhorro>? cuotas = _cuotasCache[miembro.id];
 
-              try {
-                await _savingsService.saveAporte(aporte);
-                if (mounted) {
-                  Navigator.pop(context);
-                  _loadData();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Aporte registrado correctamente'),
-                    ),
-                  );
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: $e')),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
+    if (isLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+
+    if (cuotas == null || cuotas.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Center(child: Text('No hay cuotas generadas', style: TextStyle(fontSize: 12, color: Colors.grey))),
+      );
+    }
+
+    return Container(
+      color: Colors.grey.shade50,
+      child: ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: cuotas.length,
+        itemBuilder: (context, index) {
+          final c = cuotas[index];
+          return ListTile(
+            dense: true,
+            leading: CircleAvatar(
+              radius: 12,
+              backgroundColor: c.pagada ? AppColors.success.withOpacity(0.1) : Colors.grey.shade200,
+              child: Text(
+                c.numeroCuota.toString(),
+                style: TextStyle(
+                  fontSize: 10,
+                  color: c.pagada ? AppColors.success : Colors.grey.shade600,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-            child: const Text('Registrar'),
-          ),
-        ],
+            title: Text(
+              'Cuota #${c.numeroCuota}',
+              style: TextStyle(
+                fontWeight: c.pagada ? FontWeight.bold : FontWeight.normal,
+                color: c.pagada ? AppColors.success : Colors.black87,
+              ),
+            ),
+            subtitle: Text(
+              'Vence: ${DateUt.formatearFecha(c.fechaVencimiento)}',
+              style: const TextStyle(fontSize: 11),
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '\$${c.montoEsperado.toStringAsFixed(2)}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                if (!c.pagada)
+                  ElevatedButton(
+                    onPressed: () => _showPayCuotaDialog(miembro, c),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                      minimumSize: const Size(0, 30),
+                      textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                    child: const Text('PAGAR'),
+                  )
+                else
+                  const Icon(Icons.check_circle, color: AppColors.success, size: 20),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _loadCuotasMiembro(String miembroId) async {
+    if (_loadingCuotasCache[miembroId] == true) return;
+
+    setState(() => _loadingCuotasCache[miembroId] = true);
+    final cuotas = await _savingsService.getCuotasMiembro(miembroId);
+    setState(() {
+      _cuotasCache[miembroId] = cuotas;
+      _loadingCuotasCache[miembroId] = false;
+    });
+  }
+
+  void _showPayCuotaDialog(MiembroGrupo miembro, CuotaAhorro cuota) {
+    showDialog(
+      context: context,
+      builder: (context) => DialogoPagoCuota(
+        numeroCuota: cuota.numeroCuota,
+        monto: cuota.pendiente,
+        fechaVencimiento: cuota.fechaVencimiento,
+        nombreCliente: miembro.nombreCliente ?? 'Miembro',
+        onPagar: (monto, fecha, metodo, comprobante) async {
+          final aporte = AporteGrupo(
+            miembroId: miembro.id!,
+            monto: monto,
+            fechaAporte: fecha,
+            metodoPago: metodo,
+            observaciones: 'Pago Cuota #${cuota.numeroCuota}',
+          );
+
+          try {
+            await _savingsService.saveAporte(aporte, cuotaId: cuota.id);
+            if (mounted) {
+              Navigator.pop(context);
+              _loadData(); // Recargar balances globales
+              _loadCuotasMiembro(miembro.id!); // Recargar lista de cuotas específica
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Pago registrado correctamente'), backgroundColor: AppColors.success),
+              );
+            }
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error al registrar pago: $e'), backgroundColor: Colors.red),
+            );
+          }
+        },
       ),
     );
   }

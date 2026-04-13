@@ -23,6 +23,7 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
   final TextEditingController _nombreController = TextEditingController();
   final TextEditingController _metaController = TextEditingController();
   final TextEditingController _participantesController = TextEditingController();
+  DateTime? _fechaPrimerPago;
   
   TipoAporte _tipoAporte = TipoAporte.comun;
   PeriodoAhorro _periodo = PeriodoAhorro.semanal;
@@ -92,10 +93,32 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
               _buildTipoAporteSelector(),
               
               const SizedBox(height: 24),
-              
-              const Text('Frecuencia de Ahorro', style: TextStyle(fontWeight: FontWeight.bold)),
+                            const Text('Frecuencia de Ahorro', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               _buildPeriodoSelector(),
+              
+              const SizedBox(height: 24),
+              
+              const Text('Primer Ciclo de Pago', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              TextFormField(
+                readOnly: true,
+                onTap: _seleccionarFecha,
+                decoration: InputDecoration(
+                  labelText: 'Fecha del Primer Pago',
+                  hintText: 'Selecciona una fecha',
+                  prefixIcon: const Icon(Icons.calendar_month),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: _fechaPrimerPago != null ? const Icon(Icons.check_circle, color: AppColors.primaryGreen) : null,
+                ),
+                controller: TextEditingController(
+                  text: _fechaPrimerPago == null
+                      ? ''
+                      : '${_fechaPrimerPago!.day}/${_fechaPrimerPago!.month}/${_fechaPrimerPago!.year}',
+                ),
+                validator: (value) =>
+                    _fechaPrimerPago == null ? 'Selecciona la fecha inicial' : null,
+              ),
               
               const SizedBox(height: 48),
               
@@ -158,6 +181,31 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
     );
   }
 
+  void _seleccionarFecha() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      locale: const Locale('es', 'ES'),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppColors.primaryGreen,
+              onPrimary: Colors.white,
+              onSurface: AppColors.darkGrey,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _fechaPrimerPago = picked);
+    }
+  }
+
   void _submit() {
     if (_formKey.currentState!.validate()) {
       final grupo = GrupoAhorro(
@@ -168,6 +216,7 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
         creadoPor: widget.nombreUsuario,
         fechaCreacion: DateTime.now(),
         cantidadParticipantes: int.parse(_participantesController.text),
+        fechaPrimerPago: _fechaPrimerPago,
       );
       widget.onGuardar(grupo);
     }

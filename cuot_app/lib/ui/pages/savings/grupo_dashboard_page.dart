@@ -75,6 +75,13 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
             pinned: true,
             backgroundColor: AppColors.primaryGreen,
             foregroundColor: Colors.white,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                tooltip: 'Eliminar Grupo',
+                onPressed: _confirmDeleteGrupo,
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
                 _grupo!.nombre,
@@ -421,10 +428,12 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
 
     final TextEditingController nameController = TextEditingController();
     final TextEditingController phoneController = TextEditingController();
-    // Campo meta siempre visible (para tipo diferente o simplificar flujo)
+    // Campo meta siempre visible
     final TextEditingController metaDialogController = TextEditingController(
       text: _grupo!.metaAhorro.toStringAsFixed(0),
     );
+    // Campo de articulo deseado
+    final TextEditingController articuloController = TextEditingController();
 
     showDialog(
       context: context,
@@ -489,6 +498,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                               c['id'].toString(),
                               c['nombre'],
                               metaDialogController,
+                              articuloController,
                             ),
                           );
                         },
@@ -514,6 +524,15 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                         keyboardType: TextInputType.number,
                       ),
                     ],
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: articuloController,
+                      decoration: const InputDecoration(
+                        labelText: '¿Qué comprará con el ahorro? (Opcional)',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.shopping_bag_outlined),
+                      ),
+                    ),
                     const Divider(),
                     TextButton.icon(
                       onPressed: () =>
@@ -553,6 +572,15 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                       ),
                       keyboardType: TextInputType.number,
                     ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: articuloController,
+                      decoration: const InputDecoration(
+                        labelText: '¿Qué comprará con el ahorro? (Opcional)',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.shopping_bag_outlined),
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -568,17 +596,29 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                           ),
                           onPressed: () async {
                             if (nameController.text.isEmpty) return;
-                            final id = await _savingsService.createCliente(
-                              nameController.text,
-                              phoneController.text,
-                              widget.usuarioNombre,
-                            );
-                            _procederAnadir(
-                              dialogContext,
-                              id,
-                              nameController.text,
-                              metaDialogController,
-                            );
+                            try {
+                              final id = await _savingsService.createCliente(
+                                nameController.text,
+                                phoneController.text,
+                                widget.usuarioNombre,
+                              );
+                              _procederAnadir(
+                                dialogContext,
+                                id,
+                                nameController.text,
+                                metaDialogController,
+                                articuloController,
+                              );
+                            } catch (e) {
+                              if (dialogContext.mounted) {
+                                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Error al crear cliente: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
                           },
                           child: const Text('Añadir'),
                         ),
@@ -599,14 +639,17 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     String clienteId,
     String nombreCliente,
     TextEditingController metaController,
+    TextEditingController articuloController,
   ) async {
     double metaPersonal = double.tryParse(metaController.text) ?? _grupo!.metaAhorro;
+    String articulo = articuloController.text.trim();
 
     final miembro = MiembroGrupo(
       grupoId: widget.grupoId,
       clienteId: clienteId,
       montoMetaPersonal: metaPersonal,
       fechaIngreso: DateTime.now(),
+      articuloDeseado: articulo.isNotEmpty ? articulo : null,
     );
 
     try {
@@ -682,5 +725,48 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
         ),
       ),
     );
+  void _confirmDeleteGrupo() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar Grupo'),
+        content: const Text('¿Estás seguro de que deseas eliminar este grupo de ahorro? Esta acción no se puede deshacer y borrará todos los aportes de los miembros.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(context); // Cerrar diálogo
+              try {
+                await _savingsService.deleteGrupo(widget.grupoId);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Grupo eliminado exitosamente'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                  Navigator.pop(context, true); // Regresar y recargar listado en SeguimientoCreditosPage
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error al eliminar grupo: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
   }
 }
+

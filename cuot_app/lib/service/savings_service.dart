@@ -54,6 +54,19 @@ class SavingsService {
     return GrupoAhorro.fromJson(response);
   }
 
+  Future<void> deleteGrupo(String id) async {
+    try {
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Grupos_Ahorro')
+          .delete()
+          .eq('id', id);
+    } catch (e) {
+      print('Error al eliminar grupo $id: $e');
+      rethrow;
+    }
+  }
+
   // --------------------------------------------------------------------------
   // MIEMBROS
   // --------------------------------------------------------------------------
@@ -157,7 +170,7 @@ class SavingsService {
           .schema('Financiamientos')
           .from('Clientes')
           .select()
-          .eq('usuario_nombre', usuarioNombre)
+          .eq('usuario_creador', usuarioNombre)
           .ilike('nombre', '%$query%')
           .limit(10);
       
@@ -175,7 +188,7 @@ class SavingsService {
         .insert({
           'nombre': nombre,
           'telefono': telefono,
-          'usuario_nombre': usuarioNombre,
+          'usuario_creador': usuarioNombre,
         })
         .select('id')
         .single();

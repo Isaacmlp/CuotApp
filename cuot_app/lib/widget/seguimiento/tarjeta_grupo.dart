@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/Model/grupo_ahorro_model.dart';
+import 'package:cuot_app/Model/miembro_grupo_model.dart';
+import 'package:cuot_app/utils/ahorro_logic_helper.dart';
 
 class TarjetaGrupo extends StatelessWidget {
   final GrupoAhorro grupo;
+  final List<MiembroGrupo>? miembros;
   final VoidCallback onVerDetalle;
   final VoidCallback? onEditar;
   final VoidCallback? onEliminar;
@@ -12,6 +15,7 @@ class TarjetaGrupo extends StatelessWidget {
     super.key,
     required this.grupo,
     required this.onVerDetalle,
+    this.miembros,
     this.onEditar,
     this.onEliminar,
   });
@@ -153,9 +157,91 @@ class TarjetaGrupo extends StatelessWidget {
                   ),
                 ],
               ),
+              
+              // 🚀 NUEVA SECCIÓN: Próximo Turno (Estética Premium)
+              if (miembros != null && miembros!.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+                _buildProximoTurnoInfo(),
+              ],
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildProximoTurnoInfo() {
+    final info = AhorroLogicHelper.getTurnoInformacion(grupo, miembros!);
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.primaryGreen.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primaryGreen.withOpacity(0.1)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primaryGreen.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.timer_outlined,
+              color: AppColors.primaryGreen,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Próximo turno',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'En ${info.diasRestantes} días',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppColors.warning,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  info.nombreProximo,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

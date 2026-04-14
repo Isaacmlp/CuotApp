@@ -12,17 +12,23 @@ class SavingsService {
   // GRUPOS
   // --------------------------------------------------------------------------
 
-  Future<List<GrupoAhorro>> getGrupos(String usuarioNombre) async {
+  Future<List<Map<String, dynamic>>> getGruposConMiembros(String usuarioNombre) async {
     try {
       final response = await _supabase.client
           .schema('Financiamientos')
           .from('Grupos_Ahorro')
-          .select()
+          .select('*, Miembros_Grupo(*, Clientes(*))')
           .eq('creado_por', usuarioNombre)
           .order('fecha_creacion', ascending: false);
 
-      return (response as List)
-          .map((json) => GrupoAhorro.fromJson(json))
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Error en getGruposConMiembros: $e');
+      return [];
+    }
+  }
+
+  Future<List<GrupoAhorro>> getGrupos(String usuarioNombre) async {
           .toList();
     } catch (e) {
       print('Error en getGrupos: $e');
@@ -102,45 +108,57 @@ class SavingsService {
     
     final String miembroId = resMiembro['id'];
 
-    // 2. Obtener datos del grupo para las fechas
-    final grupo = await getGrupoById(miembro.grupoId);
-    if (grupo == null) return;
+    try {
+      // 2. Obtener datos del grupo para las fechas
+      final grupo = await getGrupoById(miembro.grupoId);
+      if (grupo == null) throw Exception('No se encontró el grupo');
 
-    final int n = grupo.cantidadParticipantes;
-    final DateTime startDate = grupo.fechaPrimerPago ?? grupo.fechaCreacion;
-    final double montoCuota = miembro.montoCuota;
+      final int n = grupo.cantidadParticipantes;
+      final DateTime startDate = grupo.fechaPrimerPago ?? grupo.fechaCreacion;
+      final double montoCuota = miembro.montoCuota;
 
-    // 3. Generar N cuotas
-    List<Map<String, dynamic>> cuotasJson = [];
-    for (int i = 1; i <= n; i++) {
-      DateTime fechaVencimiento;
-      switch (grupo.periodo) {
-        case PeriodoAhorro.semanal:
-          fechaVencimiento = startDate.add(Duration(days: (i - 1) * 7));
-          break;
-        case PeriodoAhorro.quincenal:
-          fechaVencimiento = startDate.add(Duration(days: (i - 1) * 15));
-          break;
-        case PeriodoAhorro.mensual:
-          fechaVencimiento = DateTime(startDate.year, startDate.month + (i - 1), startDate.day);
-          break;
+      // 3. Generar N cuotas
+      List<Map<String, dynamic>> cuotasJson = [];
+      for (int i = 1; i <= n; i++) {
+        DateTime fechaVencimiento;
+        switch (grupo.periodo) {
+          case PeriodoAhorro.semanal:
+            fechaVencimiento = startDate.add(Duration(days: (i - 1) * 7));
+            break;
+          case PeriodoAhorro.quincenal:
+            fechaVencimiento = startDate.add(Duration(days: (i - 1) * 15));
+            break;
+          case PeriodoAhorro.mensual:
+            fechaVencimiento =
+                DateTime(startDate.year, startDate.month + (i - 1), startDate.day);
+            break;
+        }
+
+        cuotasJson.add({
+          'miembro_id': miembroId,
+          'numero_cuota': i,
+          'monto_esperado': montoCuota,
+          'monto_pagado': 0,
+          'fecha_vencimiento': fechaVencimiento.toIso8601String().split('T')[0],
+          'pagada': false,
+        });
       }
 
-      cuotasJson.add({
-        'miembro_id': miembroId,
-        'numero_cuota': i,
-        'monto_esperado': montoCuota,
-        'monto_pagado': 0,
-        'fecha_vencimiento': fechaVencimiento.toIso8601String().split('T')[0],
-        'pagada': false,
-      });
+      // 4. Insertar cuotas en bloque
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Cuotas_Ahorro')
+          .insert(cuotasJson);
+    } catch (e) {
+      // 5. ROLLBACK MANUAL: Si fallan las cuotas, borramos al miembro para no dejar basura
+      print('Fallo al crear cuotas, borrando miembro $miembroId: $e');
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Miembros_Grupo')
+          .delete()
+          .eq('id', miembroId);
+      rethrow;
     }
-
-    // 4. Insertar cuotas en bloque
-    await _supabase.client
-        .schema('Financiamientos')
-        .from('Cuotas_Ahorro')
-        .insert(cuotasJson);
   }
 
   Future<List<CuotaAhorro>> getCuotasMiembro(String miembroId) async {

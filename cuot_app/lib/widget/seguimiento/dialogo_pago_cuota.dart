@@ -173,11 +173,12 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
               ),
             ],
           ),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+          child: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 // Título con diseño mejorado
                 Stack(
                   children: [

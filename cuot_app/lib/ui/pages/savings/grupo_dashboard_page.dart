@@ -7,6 +7,7 @@ import 'package:cuot_app/widget/seguimiento/dialogo_pago_cuota.dart';
 import 'package:cuot_app/service/savings_service.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/utils/date_utils.dart';
+import 'package:cuot_app/utils/ahorro_logic_helper.dart';
 
 class GrupoDashboardPage extends StatefulWidget {
   final String grupoId;
@@ -347,6 +348,9 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
       );
     }
 
+    // Identificar el índice de la primera cuota NO pagada
+    int primerIndicePendiente = cuotas.indexWhere((c) => !c.pagada);
+
     return Container(
       color: Colors.grey.shade50,
       child: ListView.builder(
@@ -390,15 +394,19 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                 const SizedBox(width: 8),
                 if (!c.pagada)
                   ElevatedButton(
-                    onPressed: () => _showPayCuotaDialog(miembro, c),
+                    onPressed: index == primerIndicePendiente
+                        ? () => _showPayCuotaDialog(miembro, c)
+                        : null, // BLOQUEADO si no es el turno
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryGreen,
+                      disabledBackgroundColor: Colors.grey.shade300,
                       foregroundColor: Colors.white,
+                      disabledForegroundColor: Colors.grey.shade500,
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
                       minimumSize: const Size(0, 30),
                       textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                     ),
-                    child: const Text('PAGAR'),
+                    child: Text(index == primerIndicePendiente ? 'PAGAR' : 'BLOQU.'),
                   )
                 else
                   const Icon(Icons.check_circle, color: AppColors.success, size: 20),
@@ -757,6 +765,22 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     TextEditingController cuotaController,
     int? selectedTurn,
   ) async {
+    // Verificación estricta de cupo antes de proceder
+    if (_miembros.length >= _grupo!.cantidadParticipantes) {
+      if (dialogContext.mounted) {
+        Navigator.of(dialogContext).pop();
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: El grupo ya alcanzó el límite de participantes'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
     double metaPersonal = double.tryParse(metaController.text) ?? _grupo!.metaAhorro;
     double cuota = double.tryParse(cuotaController.text) ?? 0;
     String articulo = articuloController.text.trim();
@@ -893,20 +917,18 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
   String _getProximoARecibir() {
     if (_grupo == null || _miembros.isEmpty) return 'Sin miembros';
 
-    int diasTotales = DateTime.now().difference(_grupo!.fechaCreacion).inDays;
-    int turnoActual = 1;
+    final info = AhorroLogicHelper.getTurnoInformacion(_grupo!, _miembros);
 
-    switch (_grupo!.periodo) {
-      case PeriodoAhorro.semanal:
-        turnoActual = (diasTotales / 7).floor() + 1;
-        break;
-      case PeriodoAhorro.quincenal:
-        turnoActual = (diasTotales / 15).floor() + 1;
-        break;
-      case PeriodoAhorro.mensual:
-        turnoActual = (diasTotales / 30).floor() + 1; // Simplificado
-        break;
+    if (info.turnoActual > _grupo!.cantidadParticipantes && _grupo!.cantidadParticipantes > 0) {
+      return 'Turnos completados';
     }
+
+    if (info.nombreProximo.contains('Turno')) {
+      return 'Esperando Sorteo / ${info.nombreProximo}';
+    }
+
+    return 'Próximo a recibir: ${info.nombreProximo} (en ${info.diasRestantes} días)';
+  }
 
     if (turnoActual > _grupo!.cantidadParticipantes && _grupo!.cantidadParticipantes > 0) {
       return 'Turnos completados';

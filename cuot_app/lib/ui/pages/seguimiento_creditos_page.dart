@@ -17,6 +17,7 @@ import 'package:cuot_app/Model/grupo_ahorro_model.dart';
 import 'package:cuot_app/service/savings_service.dart';
 import 'package:cuot_app/widget/seguimiento/tarjeta_grupo.dart';
 import 'package:cuot_app/ui/pages/savings/grupo_dashboard_page.dart';
+import 'package:cuot_app/Model/miembro_grupo_model.dart';
 
 class SeguimientoCreditosPage extends StatefulWidget {
   final String nombreUsuario;

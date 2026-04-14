@@ -791,6 +791,7 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
               ],
             ),
           ),
+          ),
         ),
       ),
     );

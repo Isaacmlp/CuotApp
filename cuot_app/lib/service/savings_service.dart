@@ -29,6 +29,16 @@ class SavingsService {
   }
 
   Future<List<GrupoAhorro>> getGrupos(String usuarioNombre) async {
+    try {
+      final response = await _supabase.client
+          .schema('Financiamientos')
+          .from('Grupos_Ahorro')
+          .select()
+          .eq('creado_por', usuarioNombre)
+          .order('fecha_creacion', ascending: false);
+
+      return (response as List)
+          .map((json) => GrupoAhorro.fromJson(json))
           .toList();
     } catch (e) {
       print('Error en getGrupos: $e');

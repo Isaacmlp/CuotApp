@@ -931,19 +931,6 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     return 'Próximo a recibir: ${info.nombreProximo} (en ${info.diasRestantes} días)';
   }
 
-    if (turnoActual > _grupo!.cantidadParticipantes && _grupo!.cantidadParticipantes > 0) {
-      return 'Turnos completados';
-    }
-
-    // Buscar si hay alguien con ese turno
-    final miembro = _miembros.where((m) => m.numeroTurno == turnoActual).firstOrNull;
-    if (miembro != null) {
-      return 'Próximo a recibir: ${miembro.nombreCliente} (Turno $turnoActual)';
-    }
-
-    return 'Esperando Sorteo / Turno $turnoActual libre';
-  }
-
   Future<void> _realizarSorteo() async {
     final sinTurno = _miembros.where((m) => m.numeroTurno == null).toList();
     if (sinTurno.isEmpty) {

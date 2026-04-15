@@ -41,6 +41,9 @@ class AhorroLogicHelper {
       periodosPasados = 0;
     } else {
       switch (grupo.periodo) {
+        case PeriodoAhorro.diario:
+          periodosPasados = diasDesdeInicio;
+          break;
         case PeriodoAhorro.semanal:
           periodosPasados = (diasDesdeInicio / 7).floor();
           break;
@@ -60,10 +63,10 @@ class AhorroLogicHelper {
     // Calcular fecha del próximo turno
     DateTime fechaProxima;
     switch (grupo.periodo) {
+      case PeriodoAhorro.diario:
+        fechaProxima = startDate.add(Duration(days: turnoActual - 1));
+        break;
       case PeriodoAhorro.semanal:
-        fechaProxima = startDate.add(Duration(days: periodosPasados * 7));
-        // Si ya pasó la fecha de este turno (porque estamos a mitad de semana), pasamos al siguiente si ya es tarde
-        // Pero el usuario pidió "próximo turno", así que calculamos el de turnoActual
         fechaProxima = startDate.add(Duration(days: (turnoActual - 1) * 7));
         break;
       case PeriodoAhorro.quincenal:

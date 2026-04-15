@@ -867,6 +867,13 @@ class _FormularioCuotasState extends State<FormularioCuotas> {
   /// 📌 GUARDAR CRÉDITO (con validaciones MEJORADAS)
   void _guardarCredito() {
     if (!(_formKey.currentState?.validate() ?? false)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ Por favor, revisa los campos marcados en rojo arriba.'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
       return;
     }
 

@@ -96,11 +96,12 @@ class TarjetaGrupo extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildStat('Acumulado', '\$${grupo.totalAcumulado.toStringAsFixed(2)}', AppColors.primaryGreen),
-                  _buildStat('Meta', '\$${grupo.metaAhorro.toStringAsFixed(2)}', AppColors.darkGrey),
+                  _buildStat('Recaudado', '\$${grupo.totalAcumulado.toStringAsFixed(2)}', AppColors.primaryGreen),
+                  _buildStat('Recaudación por turno', '\$${grupo.metaAhorro.toStringAsFixed(2)}', AppColors.darkGrey),
                 ],
               ),
               const SizedBox(height: 12),
+              // Barra de progreso desplazada hacia abajo (Requerimiento 6)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -145,7 +146,7 @@ class TarjetaGrupo extends StatelessWidget {
                   ElevatedButton.icon(
                     onPressed: onVerDetalle,
                     icon: const Icon(Icons.visibility_outlined, size: 18),
-                    label: const Text('Ver Grupo'),
+                    label: const Text('Ver'), // REQUERIMIENTO 5
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.info.withOpacity(0.1),
                       foregroundColor: AppColors.info,

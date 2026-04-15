@@ -509,6 +509,13 @@ class _FormularioPagounicoState extends State<FormularioPagounico> {
   void _guardarCredito() {
     // Validar formulario básico
     if (!(_formKey.currentState?.validate() ?? false)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ Por favor, revisa los campos marcados en rojo arriba.'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
       return;
     }
 

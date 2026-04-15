@@ -5,19 +5,21 @@ import 'package:cuot_app/Model/miembro_grupo_model.dart';
 import 'package:cuot_app/Model/aporte_grupo_model.dart';
 import 'package:cuot_app/Model/cuota_ahorro_model.dart';
 import 'package:cuot_app/widget/seguimiento/dialogo_pago_cuota.dart';
-import 'package:cuot_app/service/savings_service.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/utils/date_utils.dart';
 import 'package:cuot_app/utils/ahorro_logic_helper.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class GrupoDashboardPage extends StatefulWidget {
   final String grupoId;
   final String usuarioNombre;
+  final bool autoOpenAddMember; // Requerimiento 4
 
   const GrupoDashboardPage({
     super.key,
     required this.grupoId,
     required this.usuarioNombre,
+    this.autoOpenAddMember = false,
   });
 
   @override
@@ -28,7 +30,9 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
   final SavingsService _savingsService = SavingsService();
   GrupoAhorro? _grupo;
   List<MiembroGrupo> _miembros = [];
+  List<MiembroGrupo> _miembrosTemporales = []; // Requerimiento 8: Registro local
   bool _isLoading = true;
+  bool _isSavingMembers = false;
   
   // Caché de cuotas por miembro para evitar recargas constantes
   final Map<String, List<CuotaAhorro>> _cuotasCache = {};
@@ -37,7 +41,13 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadData().then((_) {
+      if (widget.autoOpenAddMember) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showAddMemberDialog();
+        });
+      }
+    });
   }
 
   Future<void> _loadData() async {
@@ -129,7 +139,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                         ),
                       ),
                       const Text(
-                        'Total Acumulado',
+                        'Total Recaudado', // TERMINOLOGÍA ACTUALIZADA
                         style: TextStyle(color: Colors.white70, fontSize: 14),
                       ),
                       const SizedBox(height: 8),
@@ -172,22 +182,30 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _miembros.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _miembros.length,
-                          itemBuilder: (context, index) {
-                            return _buildMiembroItem(_miembros[index]);
-                          },
-                        ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+                   _miembros.isEmpty && _miembrosTemporales.isEmpty
+                       ? _buildEmptyState()
+                       : Column(
+                           children: [
+                             if (_miembrosTemporales.isNotEmpty) ...[
+                               _buildSeccionTemporales(),
+                               const Divider(height: 32),
+                             ],
+                             ListView.builder(
+                               shrinkWrap: true,
+                               physics: const NeverScrollableScrollPhysics(),
+                               itemCount: _miembros.length,
+                               itemBuilder: (context, index) {
+                                 return _buildMiembroItem(_miembros[index]);
+                               },
+                             ),
+                           ],
+                         ),
+                 ],
+               ),
+             ),
+           ),
+         ],
+       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddMemberDialog,
         icon: const Icon(Icons.person_add_alt_1),
@@ -207,7 +225,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildStatItem(
-              'Meta Grupal',
+              'Recaudación por turno', // TERMINOLOGÍA ACTUALIZADA
               '\$${_grupo!.metaAhorro.toStringAsFixed(0)}',
               Icons.flag_outlined,
             ),
@@ -313,14 +331,19 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                 ],
               ),
               const SizedBox(height: 2),
-              Text(
-                'Aportado: \$${miembro.totalAportado.toStringAsFixed(2)}',
+               Text(
+                'Recaudado: \$${miembro.totalAportado.toStringAsFixed(2)}', // TERMINOLOGÍA ACTUALIZADA
                 style: TextStyle(
                   color: Colors.grey.shade600,
                   fontSize: 12,
                 ),
               ),
             ],
+          ),
+          trailing: IconButton(
+            icon: const Icon(Icons.share, color: Colors.blue),
+            onPressed: () => _enviarWhatsAppMiembro(miembro),
+            tooltip: 'Enviar Ficha WhatsApp',
           ),
           children: [
             const Divider(height: 1),
@@ -329,6 +352,58 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
         ),
       ),
     );
+  }
+
+  // 🚀 REQUERIMIENTO 11: ENVÍO DE WHATSAPP
+  void _enviarWhatsAppMiembro(MiembroGrupo miembro) async {
+    final int pagadas = (_cuotasCache[miembro.id]?.where((c) => c.pagada).length ?? 0);
+    final int total = _grupo!.cantidadParticipantes;
+    final int pendientes = total - pagadas;
+    
+    // Obtener fecha de turno si existe
+    String fechaRecepcion = 'A sorteo';
+    if (miembro.numeroTurno != null) {
+      final startDate = _grupo!.fechaPrimerPago ?? _grupo!.fechaCreacion;
+      DateTime dt;
+      switch (_grupo!.periodo) {
+        case PeriodoAhorro.diario: dt = startDate.add(Duration(days: miembro.numeroTurno! - 1)); break;
+        case PeriodoAhorro.semanal: dt = startDate.add(Duration(days: (miembro.numeroTurno! - 1) * 7)); break;
+        case PeriodoAhorro.quincenal: dt = startDate.add(Duration(days: (miembro.numeroTurno! - 1) * 15)); break;
+        case PeriodoAhorro.mensual: dt = DateTime(startDate.year, startDate.month + (miembro.numeroTurno! - 1), startDate.day); break;
+      }
+      fechaRecepcion = DateUt.formatearFecha(dt);
+    }
+
+    String mensaje = 
+      "*Ficha de Participante - Grupo Ahorro*\n\n"
+      "Participante: *${miembro.nombreCliente}*\n"
+      "Nombre del grupo: *${_grupo!.nombre}*\n\n"
+      "*Información del Susu* 📋\n"
+      "Frecuencia: *${_grupo!.periodo.name.toUpperCase()}*\n"
+      "Moneda: *USD-BCV*\n"
+      "Valor objetivo: *\$${_grupo!.metaAhorro.toStringAsFixed(0)}*\n\n"
+      "*Compromiso del Participante* 💰\n"
+      "Cuota a pagar: *\$${miembro.montoCuota.toStringAsFixed(0)} ${_grupo!.periodo.name}*\n"
+      "Total de cuotas a pagar: *${_grupo!.cantidadParticipantes}*\n"
+      "Turno a recibir: *#${miembro.numeroTurno ?? '?'}*\n"
+      "Fecha de recepción: *${fechaRecepcion}* ✅\n\n"
+      "*Estado de Pagos de las cuotas* 🚨\n"
+      "Pagadas: *$pagadas/$total*\n"
+      "No pagadas: *0*\n"
+      "Pendientes: *$pendientes*";
+
+    // Requerimiento 9: La nota del objetivo que se vea en el registro del miembro
+    if (_grupo?.descripcion != null && _grupo!.descripcion!.isNotEmpty) {
+      mensaje = "*Ficha de Participante - Grupo Ahorro*\n"
+                "Objetivo: *${_grupo!.descripcion}*\n\n" + mensaje.replaceFirst("*Ficha de Participante - Grupo Ahorro*\n\n", "");
+    }
+
+    final Uri url = Uri.parse("whatsapp://send?text=${Uri.encodeComponent(mensaje)}");
+    final String urlStr = "https://wa.me/?text=${Uri.encodeComponent(mensaje)}";
+    
+    if (!await launchUrl(url)) {
+      await launchUrl(Uri.parse(urlStr), mode: LaunchMode.externalApplication);
+    }
   }
 
   Widget _buildCuotasList(MiembroGrupo miembro) {
@@ -352,65 +427,81 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     // Identificar el índice de la primera cuota NO pagada
     int primerIndicePendiente = cuotas.indexWhere((c) => !c.pagada);
 
+    // 🚀 REQUERIMIENTO 10: ORGANIZACIÓN HORIZONTAL (Scrolleable a la derecha)
     return Container(
+      height: 120, // Altura fija para el contenedor horizontal
       color: Colors.grey.shade50,
       child: ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: cuotas.length,
         itemBuilder: (context, index) {
           final c = cuotas[index];
-          return ListTile(
-            dense: true,
-            leading: CircleAvatar(
-              radius: 12,
-              backgroundColor: c.pagada ? AppColors.success.withOpacity(0.1) : Colors.grey.shade200,
-              child: Text(
-                c.numeroCuota.toString(),
-                style: TextStyle(
-                  fontSize: 10,
-                  color: c.pagada ? AppColors.success : Colors.grey.shade600,
-                  fontWeight: FontWeight.bold,
-                ),
+          return Container(
+            width: 160,
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: c.pagada ? AppColors.success.withOpacity(0.3) : Colors.grey.shade200,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.02),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                )
+              ],
             ),
-            title: Text(
-              'Cuota #${c.numeroCuota}',
-              style: TextStyle(
-                fontWeight: c.pagada ? FontWeight.bold : FontWeight.normal,
-                color: c.pagada ? AppColors.success : Colors.black87,
-              ),
-            ),
-            subtitle: Text(
-              'Vence: ${DateUt.formatearFecha(c.fechaVencimiento)}',
-              style: const TextStyle(fontSize: 11),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  '\$${c.montoEsperado.toStringAsFixed(2)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(width: 8),
-                if (!c.pagada)
-                  ElevatedButton(
-                    onPressed: index == primerIndicePendiente
-                        ? () => _showPayCuotaDialog(miembro, c)
-                        : null, // BLOQUEADO si no es el turno
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      disabledBackgroundColor: Colors.grey.shade300,
-                      foregroundColor: Colors.white,
-                      disabledForegroundColor: Colors.grey.shade500,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                      minimumSize: const Size(0, 30),
-                      textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Cuota #${c.numeroCuota}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: c.pagada ? AppColors.success : Colors.black87,
+                      ),
                     ),
-                    child: Text(index == primerIndicePendiente ? 'PAGAR' : 'BLOQU.'),
-                  )
-                else
-                  const Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                    if (c.pagada)
+                      const Icon(Icons.check_circle, color: AppColors.success, size: 16),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  DateUt.formatearFecha(c.fechaVencimiento),
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
+                const Spacer(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '\$${c.montoEsperado.toStringAsFixed(0)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    if (!c.pagada)
+                      TextButton(
+                        onPressed: index == primerIndicePendiente
+                            ? () => _showPayCuotaDialog(miembro, c)
+                            : null,
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(50, 24),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          foregroundColor: AppColors.primaryGreen,
+                        ),
+                        child: Text(index == primerIndicePendiente ? 'PAGAR' : 'BLOQ.', style: const TextStyle(fontSize: 10)),
+                      ),
+                  ],
+                ),
               ],
             ),
           );
@@ -519,6 +610,28 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (_grupo?.descripcion != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Objetivo: ${_grupo!.descripcion}',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   if (!showCreateForm) ...[
                     TextField(
                       decoration: const InputDecoration(
@@ -789,6 +902,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     final miembro = MiembroGrupo(
       grupoId: widget.grupoId,
       clienteId: clienteId,
+      nombreCliente: nombreCliente, // Guardar nombre para vista local
       montoMetaPersonal: metaPersonal,
       fechaIngreso: DateTime.now(),
       articuloDeseado: articulo.isNotEmpty ? articulo : null,
@@ -796,29 +910,80 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
       montoCuota: cuota,
     );
 
-    try {
-      await _savingsService.addMiembro(miembro);
-      // Cerrar el diálogo usando su propio context
-      if (dialogContext.mounted) {
-        Navigator.of(dialogContext).pop();
-      }
-      if (mounted) {
-        _loadData();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$nombreCliente añadido al grupo'),
-            backgroundColor: AppColors.success,
+    // 🚀 REQUERIMIENTO 8: REGISTRO LOCAL
+    setState(() {
+      _miembrosTemporales.add(miembro);
+    });
+    
+    Navigator.of(dialogContext).pop();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Miembro añadido a la lista de espera'),
+        backgroundColor: Colors.blue,
+      ),
+    );
+  }
+
+  Widget _buildSeccionTemporales() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Pendientes de Registro',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orange),
+            ),
+            ElevatedButton.icon(
+              onPressed: _isSavingMembers ? null : _registrarMiembrosEnLote,
+              icon: _isSavingMembers 
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.save),
+              label: const Text('REGISTRAR TODO'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ..._miembrosTemporales.map((m) => Card(
+          color: Colors.orange.shade50,
+          child: ListTile(
+            title: Text(m.nombreCliente ?? 'Cliente'),
+            subtitle: Text('Turno: ${m.numeroTurno ?? '?'}, Cuota: \$${m.montoCuota}'),
+            trailing: IconButton(
+              icon: const Icon(Icons.close, color: Colors.red),
+              onPressed: () => setState(() => _miembrosTemporales.remove(m)),
+            ),
           ),
-        );
+        )),
+      ],
+    );
+  }
+
+  Future<void> _registrarMiembrosEnLote() async {
+    setState(() => _isSavingMembers = true);
+    try {
+      for (var m in _miembrosTemporales) {
+        await _savingsService.addMiembro(m);
       }
+      setState(() {
+        _miembrosTemporales.clear();
+        _isSavingMembers = false;
+      });
+      _loadData();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Todos los miembros han sido registrados'), backgroundColor: AppColors.success),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al añadir miembro: $e')),
-        );
-      }
+      setState(() => _isSavingMembers = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al registrar miembros: $e'), backgroundColor: Colors.red),
+      );
     }
   }
+
 
   void _showAportesHistory(MiembroGrupo miembro) async {
     final aportes = await _savingsService.getAportes(miembro.id!);

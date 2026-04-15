@@ -132,6 +132,9 @@ class SavingsService {
       for (int i = 1; i <= n; i++) {
         DateTime fechaVencimiento;
         switch (grupo.periodo) {
+          case PeriodoAhorro.diario:
+            fechaVencimiento = startDate.add(Duration(days: i - 1));
+            break;
           case PeriodoAhorro.semanal:
             fechaVencimiento = startDate.add(Duration(days: (i - 1) * 7));
             break;

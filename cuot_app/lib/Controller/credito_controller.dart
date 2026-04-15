@@ -135,11 +135,13 @@ class CreditoController extends ChangeNotifier {
       }
 
       // 2. Buscar o crear cliente
+      final String nombreNormalizado = credito.nombreCliente.trim();
+      
       final clientes = await _supabaseService.client
           .schema('Financiamientos')
           .from('Clientes')
           .select()
-          .eq('nombre', credito.nombreCliente)
+          .eq('nombre', nombreNormalizado)
           .eq('usuario_creador', usuarioNombre);
       
       String? creditId;
@@ -249,14 +251,21 @@ class CreditoController extends ChangeNotifier {
       } else {
         // [CÓDIGO ORIGINAL PARA INSERTAR UN NUEVO CRÉDITO...]
         
-        // Calcular número de crédito secuencial por usuario
-        final countResponse = await _supabaseService.client
+        // Calcular número de crédito secuencial por usuario (Garantiza unicidad tras borrados)
+        final lastCreditResponse = await _supabaseService.client
             .schema('Financiamientos')
             .from('Creditos')
-            .select('id')
-            .eq('usuario_nombre', usuarioNombre);
+            .select('numero_credito')
+            .eq('usuario_nombre', usuarioNombre)
+            .order('numero_credito', ascending: false)
+            .limit(1)
+            .maybeSingle();
         
-        final int nextNumber = countResponse.length;
+        // Si no hay créditos previos, empezamos en 0 o 1 (aquí seguiremos la lógica previa de índice)
+        final int nextNumber = (lastCreditResponse != null) 
+            ? (lastCreditResponse['numero_credito'] as int) + 1 
+            : 0; 
+
 
         final dataCredito = {
         'cliente_id': clienteId,

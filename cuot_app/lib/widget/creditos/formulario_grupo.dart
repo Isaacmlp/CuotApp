@@ -23,9 +23,9 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
   final TextEditingController _nombreController = TextEditingController();
   final TextEditingController _metaController = TextEditingController();
   final TextEditingController _participantesController = TextEditingController();
+  final TextEditingController _descripcionController = TextEditingController(); // Nueva nota
   DateTime? _fechaPrimerPago;
   
-  TipoAporte _tipoAporte = TipoAporte.comun;
   PeriodoAhorro _periodo = PeriodoAhorro.semanal;
 
   @override
@@ -63,11 +63,11 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
               
               TextFormField(
                 controller: _metaController,
-                decoration: InputDecoration(
-                  labelText: 'Meta de Ahorro Grupal',
+                decoration: const InputDecoration(
+                  labelText: 'Recaudación por turno', // TERMINOLOGÍA ACTUALIZADA
                   prefixText: '\$ ',
-                  prefixIcon: const Icon(Icons.flag),
-                  border: const OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.flag),
+                  border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) =>
@@ -86,20 +86,27 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
                 validator: (value) =>
                     value == null || value.isEmpty ? 'Campo obligatorio' : null,
               ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _descripcionController,
+                decoration: const InputDecoration(
+                  labelText: 'Nota del objetivo', // REQUERIMIENTO 9
+                  prefixIcon: Icon(Icons.notes),
+                  border: OutlineInputBorder(),
+                  hintText: 'Ej: Ahorro para electrodomésticos',
+                ),
+                maxLines: 2,
+              ),
               const SizedBox(height: 24),
               
-              const Text('Tipo de Aporte', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              _buildTipoAporteSelector(),
-              
-              const SizedBox(height: 24),
-                            const Text('Frecuencia de Ahorro', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Frecuencia de Ahorro', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               _buildPeriodoSelector(),
               
               const SizedBox(height: 24),
               
-              const Text('Primer Ciclo de Pago', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Fecha inicio de pago', style: TextStyle(fontWeight: FontWeight.bold)), // REQUERIMIENTO 2
               const SizedBox(height: 8),
               TextFormField(
                 readOnly: true,
@@ -146,36 +153,26 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
     );
   }
 
-  Widget _buildTipoAporteSelector() {
-    return Row(
-      children: [
-        Expanded(
-          child: ChoiceChip(
-            label: const Text('Común (Todos igual)'),
-            selected: _tipoAporte == TipoAporte.comun,
-            onSelected: (val) => setState(() => _tipoAporte = TipoAporte.comun),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ChoiceChip(
-            label: const Text('Diferente (Meta pers.)'),
-            selected: _tipoAporte == TipoAporte.diferente,
-            onSelected: (val) => setState(() => _tipoAporte = TipoAporte.diferente),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildPeriodoSelector() {
     return Wrap(
       spacing: 8,
       children: PeriodoAhorro.values.map((p) {
+        String label = p.name.toUpperCase();
+        // Traducción rápida para UI
+        if (p == PeriodoAhorro.diario) label = 'DIARIO';
+        if (p == PeriodoAhorro.semanal) label = 'SEMANAL';
+        if (p == PeriodoAhorro.quincenal) label = 'QUINCENAL';
+        if (p == PeriodoAhorro.mensual) label = 'MENSUAL';
+
         return ChoiceChip(
-          label: Text(p.name.toUpperCase()),
+          label: Text(label),
           selected: _periodo == p,
           onSelected: (val) => setState(() => _periodo = p),
+          selectedColor: AppColors.primaryGreen.withOpacity(0.2),
+          labelStyle: TextStyle(
+            color: _periodo == p ? AppColors.primaryGreen : Colors.black87,
+            fontWeight: _periodo == p ? FontWeight.bold : FontWeight.normal,
+          ),
         );
       }).toList(),
     );
@@ -185,7 +182,7 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now().add(const Duration(days: 1)),
-      firstDate: DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 30)), // Permitir un poco de retroceso por si acaso
       lastDate: DateTime.now().add(const Duration(days: 365)),
       locale: const Locale('es', 'ES'),
       builder: (context, child) {
@@ -211,12 +208,13 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
       final grupo = GrupoAhorro(
         nombre: _nombreController.text,
         metaAhorro: double.parse(_metaController.text),
-        tipoAporte: _tipoAporte,
+        tipoAporte: TipoAporte.comun, // Por defecto común como se pidió quitar el selector
         periodo: _periodo,
         creadoPor: widget.nombreUsuario,
         fechaCreacion: DateTime.now(),
         cantidadParticipantes: int.parse(_participantesController.text),
         fechaPrimerPago: _fechaPrimerPago,
+        descripcion: _descripcionController.text.trim(),
       );
       widget.onGuardar(grupo);
     }

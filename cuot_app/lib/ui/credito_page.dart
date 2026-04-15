@@ -109,6 +109,9 @@ class _CreditoPageState extends State<CreditoPage> {
 
     setState(() => _isLoading = true);
 
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     try {
       if (controller.creditoEnProceso != null) {
         final credito = controller.creditoEnProceso!;
@@ -117,9 +120,6 @@ class _CreditoPageState extends State<CreditoPage> {
         if (credito.facturaPath != null && !credito.facturaPath!.startsWith('http')) {
           facturaFile = File(credito.facturaPath!);
         }
-
-        final navigator = Navigator.of(context);
-        final scaffoldMessenger = ScaffoldMessenger.of(context);
 
         bool creditoDuplicado = await controller.existeCreditoIdentico(credito, widget.nombreUsuario);
         if (creditoDuplicado) {
@@ -217,15 +217,16 @@ class _CreditoPageState extends State<CreditoPage> {
         } else {
           scaffoldMessenger.showSnackBar(
             const SnackBar(
-              content: Text('⚠️ Guardado, pero el ID retornó nulo. Regresando...'),
-              backgroundColor: Colors.orange,
+              content: Text('❌ Error: No se pudo confirmar el guardado. Revisa los datos e intenta de nuevo.'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
             ),
           );
-          navigator.pop(true);
+          // Se mantiene en la pantalla para no perder los datos
           return;
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           const SnackBar(
             content: Text('⚠️ Por favor, completa todos los campos primero'),
             backgroundColor: Colors.orange,
@@ -268,6 +269,7 @@ class _CreditoPageState extends State<CreditoPage> {
             builder: (_) => GrupoDashboardPage(
               grupoId: nuevoGrupo.id!,
               usuarioNombre: widget.nombreUsuario,
+              autoOpenAddMember: true, // REQUERIMIENTO 4
             ),
           ),
         );

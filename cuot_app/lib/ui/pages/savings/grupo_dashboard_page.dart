@@ -9,6 +9,7 @@ import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/utils/date_utils.dart';
 import 'package:cuot_app/utils/ahorro_logic_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class GrupoDashboardPage extends StatefulWidget {
   final String grupoId;
@@ -341,9 +342,9 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
             ],
           ),
           trailing: IconButton(
-            icon: const Icon(Icons.share, color: Colors.blue),
+            icon: const Icon(FontAwesomeIcons.whatsapp, color: Colors.green),
             onPressed: () => _enviarWhatsAppMiembro(miembro),
-            tooltip: 'Enviar Ficha WhatsApp',
+            tooltip: 'Enviar vía WhatsApp',
           ),
           children: [
             const Divider(height: 1),
@@ -398,11 +399,26 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                 "Objetivo: *${_grupo!.descripcion}*\n\n" + mensaje.replaceFirst("*Ficha de Participante - Grupo Ahorro*\n\n", "");
     }
 
-    final Uri url = Uri.parse("whatsapp://send?text=${Uri.encodeComponent(mensaje)}");
-    final String urlStr = "https://wa.me/?text=${Uri.encodeComponent(mensaje)}";
+    // Limpiar teléfono del miembro
+    String? telefono = miembro.telefonoCliente;
+    if (telefono != null) {
+      telefono = telefono.replaceAll(RegExp(r'[^0-9]'), '');
+      // Si el teléfono no tiene código de país y parece ser local (ej: 10 dígitos o similar), 
+      // podrías prepender el código de tu país si es necesario, pero wa.me suele manejarlo si está completo.
+    }
+
+    final String urlStr = telefono != null && telefono.isNotEmpty
+        ? "https://wa.me/$telefono?text=${Uri.encodeComponent(mensaje)}"
+        : "https://wa.me/?text=${Uri.encodeComponent(mensaje)}";
     
-    if (!await launchUrl(url)) {
-      await launchUrl(Uri.parse(urlStr), mode: LaunchMode.externalApplication);
+    final Uri url = Uri.parse(urlStr);
+    
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo abrir WhatsApp')),
+        );
+      }
     }
   }
 
@@ -680,6 +696,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                               dialogContext,
                               c['id'].toString(),
                               c['nombre'],
+                              c['telefono'], // Pasar teléfono
                               metaDialogController,
                               articuloController,
                               cuotaController,
@@ -831,15 +848,16 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                           onPressed: () async {
                             if (nameController.text.isEmpty) return;
                             try {
-                              final id = await _savingsService.createCliente(
+                              final String clientId = await _savingsService.createCliente(
                                 nameController.text,
                                 phoneController.text,
                                 widget.usuarioNombre,
                               );
                               _procederAnadir(
                                 dialogContext,
-                                id,
+                                clientId,
                                 nameController.text,
+                                phoneController.text, // Pasar teléfono nuevo
                                 metaDialogController,
                                 articuloController,
                                 cuotaController,
@@ -874,6 +892,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     BuildContext dialogContext,
     String clienteId,
     String nombreCliente,
+    String? telefonoCliente,
     TextEditingController metaController,
     TextEditingController articuloController,
     TextEditingController cuotaController,
@@ -903,6 +922,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
       grupoId: widget.grupoId,
       clienteId: clienteId,
       nombreCliente: nombreCliente, // Guardar nombre para vista local
+      telefonoCliente: telefonoCliente, // Guardar teléfono para vista local
       montoMetaPersonal: metaPersonal,
       fechaIngreso: DateTime.now(),
       articuloDeseado: articulo.isNotEmpty ? articulo : null,

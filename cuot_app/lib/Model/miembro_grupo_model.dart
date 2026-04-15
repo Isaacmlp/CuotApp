@@ -5,6 +5,7 @@ class MiembroGrupo {
   final String grupoId;
   final String clienteId;
   final String? nombreCliente; // Para UI
+  final String? telefonoCliente; // Para WhatsApp directo
   final double montoMetaPersonal;
   final double totalAportado;
   final DateTime fechaIngreso;
@@ -17,6 +18,7 @@ class MiembroGrupo {
     required this.grupoId,
     required this.clienteId,
     this.nombreCliente,
+    this.telefonoCliente,
     this.montoMetaPersonal = 0,
     this.totalAportado = 0,
     required this.fechaIngreso,
@@ -31,6 +33,7 @@ class MiembroGrupo {
       grupoId: json['grupo_id'],
       clienteId: json['cliente_id'],
       nombreCliente: json['Clientes'] != null ? json['Clientes']['nombre'] : null,
+      telefonoCliente: json['Clientes'] != null ? json['Clientes']['telefono'] : null,
       montoMetaPersonal: (json['monto_meta_personal'] as num).toDouble(),
       totalAportado: (json['total_aportado'] as num).toDouble(),
       fechaIngreso: DateUt.parsePureDate(json['fecha_ingreso']),

@@ -24,9 +24,20 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
   final TextEditingController _metaController = TextEditingController();
   final TextEditingController _participantesController = TextEditingController();
   final TextEditingController _descripcionController = TextEditingController(); // Nueva nota
+  final TextEditingController _fechaController = TextEditingController(); // Controlador para la fecha
   DateTime? _fechaPrimerPago;
   
   PeriodoAhorro _periodo = PeriodoAhorro.semanal;
+
+  @override
+  void dispose() {
+    _nombreController.dispose();
+    _metaController.dispose();
+    _participantesController.dispose();
+    _descripcionController.dispose();
+    _fechaController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,11 +129,7 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
                   border: const OutlineInputBorder(),
                   suffixIcon: _fechaPrimerPago != null ? const Icon(Icons.check_circle, color: AppColors.primaryGreen) : null,
                 ),
-                controller: TextEditingController(
-                  text: _fechaPrimerPago == null
-                      ? ''
-                      : '${_fechaPrimerPago!.day}/${_fechaPrimerPago!.month}/${_fechaPrimerPago!.year}',
-                ),
+                controller: _fechaController,
                 validator: (value) =>
                     _fechaPrimerPago == null ? 'Selecciona la fecha inicial' : null,
               ),
@@ -199,7 +206,10 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
       },
     );
     if (picked != null) {
-      setState(() => _fechaPrimerPago = picked);
+      setState(() {
+        _fechaPrimerPago = picked;
+        _fechaController.text = '${picked.day}/${picked.month}/${picked.year}';
+      });
     }
   }
 

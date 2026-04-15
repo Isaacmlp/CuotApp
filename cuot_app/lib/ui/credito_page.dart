@@ -60,43 +60,69 @@ class _CreditoPageState extends State<CreditoPage> {
         appBar: AppBar(
           title: Text(widget.creditoIdEditar != null ? 'Editar Financiamiento' : 'Gestión de Cuotas'),
           centerTitle: true,
+          bottom: _isLoading ? const PreferredSize(
+            preferredSize: Size.fromHeight(4),
+            child: LinearProgressIndicator(backgroundColor: Colors.transparent),
+          ) : null,
         ),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : Consumer<CreditoController>(
-                builder: (context, controller, child) {
-                  // Si no hay tipo seleccionado, mostrar selector
-                  if (controller.tipoCreditoSeleccionado == null) {
-                    return TipoCreditoSelector(
-                      onTipoSeleccionado: controller.seleccionarTipoCredito,
-                    );
-                  }
+        body: Stack(
+          children: [
+            Consumer<CreditoController>(
+              builder: (context, controller, child) {
+                // Si no hay tipo seleccionado, mostrar selector
+                if (controller.tipoCreditoSeleccionado == null) {
+                  return TipoCreditoSelector(
+                    onTipoSeleccionado: controller.seleccionarTipoCredito,
+                  );
+                }
 
-                  if (controller.tipoCreditoSeleccionado == TipoCredito.grupal) {
-                    return FormularioGrupo(
-                      nombreUsuario: widget.nombreUsuario,
-                      onGuardar: (grupo) => _guardarGrupo(context, grupo),
-                      isLoading: _isLoading,
-                    );
-                  }
+                if (controller.tipoCreditoSeleccionado == TipoCredito.grupal) {
+                  return FormularioGrupo(
+                    nombreUsuario: widget.nombreUsuario,
+                    onGuardar: (grupo) => _guardarGrupo(context, grupo),
+                    isLoading: _isLoading,
+                  );
+                }
 
-                  // Mostrar formulario según tipo
-                  return controller.tipoCreditoSeleccionado == TipoCredito.cuotas
-                      ? FormularioCuotas(
-                          creditoInicial: controller.creditoEnProceso,
-                          onCreditoActualizado: controller.actualizarCreditoParcial,
-                          onGuardar: () => _guardarCredito(context, controller),
-                          isLoading: _isLoading,
-                        )
-                      : FormularioPagounico(
-                          creditoInicial: controller.creditoEnProceso,
-                          totalPagado: controller.totalPagado,
-                          onCreditoActualizado: controller.actualizarCreditoParcial,
-                          onGuardar: () => _guardarCredito(context, controller),
-                          isLoading: _isLoading,
-                        );
-                },
+                // Mostrar formulario según tipo
+                return controller.tipoCreditoSeleccionado == TipoCredito.cuotas
+                    ? FormularioCuotas(
+                        creditoInicial: controller.creditoEnProceso,
+                        onCreditoActualizado: controller.actualizarCreditoParcial,
+                        onGuardar: () => _guardarCredito(context, controller),
+                        isLoading: _isLoading,
+                      )
+                    : FormularioPagounico(
+                        creditoInicial: controller.creditoEnProceso,
+                        totalPagado: controller.totalPagado,
+                        onCreditoActualizado: controller.actualizarCreditoParcial,
+                        onGuardar: () => _guardarCredito(context, controller),
+                        isLoading: _isLoading,
+                      );
+              },
+            ),
+            if (_isLoading)
+              Container(
+                color: Colors.white.withOpacity(0.3),
+                child: const Center(
+                  child: Card(
+                    elevation: 4,
+                    child: Padding(
+                      padding: EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 16),
+                          Text('Procesando...', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
+          ],
+        ),
       ),
     );
   }

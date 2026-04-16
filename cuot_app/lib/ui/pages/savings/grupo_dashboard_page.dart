@@ -217,37 +217,86 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
   }
 
   Widget _buildStatsRow() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            InkWell(
-              onTap: () => _mostrarDesglosePagos(),
-              borderRadius: BorderRadius.circular(8),
-              child: _buildStatItem(
-                'Total', // TERMINOLOGÍA ACTUALIZADA
-                '\$${_grupo!.totalAcumulado.toStringAsFixed(0)}', // Mostrar recaudación real
-                Icons.flag,
-              ),
+    String nombreRecibe = 'Pendiente';
+    final m = _miembros.where((m) => m.numeroTurno == _grupo!.turnoActual).firstOrNull;
+    if (m != null) nombreRecibe = m.nombreCliente ?? 'N/A';
+
+    return Column(
+      children: [
+        Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                InkWell(
+                  onTap: () => _mostrarDesglosePagos(),
+                  borderRadius: BorderRadius.circular(8),
+                  child: _buildStatItem(
+                    'Recaudado', // POR TURNO
+                    '\$${_grupo!.recaudadoTurno.toStringAsFixed(0)}',
+                    Icons.payments_outlined,
+                  ),
+                ),
+                Container(width: 1, height: 40, color: Colors.grey.shade200),
+                _buildStatItem(
+                  'Meta Turno',
+                  '\$${_grupo!.metaAhorro.toStringAsFixed(0)}',
+                  Icons.flag,
+                ),
+                Container(width: 1, height: 40, color: Colors.grey.shade200),
+                _buildStatItem(
+                  'Turno',
+                  '#${_grupo!.turnoActual}',
+                  Icons.tag,
+                ),
+              ],
             ),
-            Container(width: 1, height: 40, color: Colors.grey.shade200),
-            _buildStatItem(
-              'Periodo',
-              _grupo!.periodo.name.toUpperCase(),
-              Icons.calendar_today_outlined,
-            ),
-            Container(width: 1, height: 40, color: Colors.grey.shade200),
-            _buildStatItem(
-              'Tipo',
-              _grupo!.tipoAporte == TipoAporte.comun ? 'FIJO' : 'VAR.',
-              Icons.widgets_outlined,
-            ),
-          ],
+          ),
         ),
+        const SizedBox(height: 12),
+        // BOTÓN ENTREGAR NUMERO (REQUERIMIENTO 12)
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () => _showEntregarTurnoConfirm(),
+            icon: const Icon(Icons.handshake_outlined),
+            label: Text('Entregar Turno #${_grupo!.turnoActual} a $nombreRecibe'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showEntregarTurnoConfirm() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Entregar Recaudación'),
+        content: Text('¿Confirmas que ya entregaste el dinero al beneficiario del Turno #${_grupo!.turnoActual}? \n\nEsto reiniciará el contador de la tarjeta para el próximo turno.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _savingsService.entregarTurno(_grupo!.id!);
+              _loadData();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Turno entregado. Iniciando nuevo ciclo.'), backgroundColor: AppColors.success),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryGreen, foregroundColor: Colors.white),
+            child: const Text('CONFIRMAR ENTREGA'),
+          ),
+        ],
       ),
     );
   }

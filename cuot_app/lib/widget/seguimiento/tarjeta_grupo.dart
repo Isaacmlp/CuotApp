@@ -22,26 +22,28 @@ class TarjetaGrupo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double progreso = grupo.metaAhorro > 0 
-        ? (grupo.totalAcumulado / grupo.metaAhorro).clamp(0.0, 1.0) 
+    // Buscar quién tiene este turno (para mostrar quién recibe)
+    String nombreRecibe = 'Pendiente';
+    if (miembros != null) {
+      final m = miembros!.where((m) => m.numeroTurno == grupo.turnoActual).firstOrNull;
+      if (m != null) nombreRecibe = m.nombreCliente ?? 'N/A';
+    }
+
+    final double progresoTurno = grupo.metaAhorro > 0 
+        ? (grupo.recaudadoTurno / grupo.metaAhorro).clamp(0.0, 1.0) 
         : 0.0;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Colors.white,
-              AppColors.primaryGreen.withOpacity(0.05),
-            ],
+            colors: [Colors.white, AppColors.primaryGreen.withOpacity(0.03)],
           ),
         ),
         child: Padding(
@@ -49,163 +51,133 @@ class TarjetaGrupo extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // CABECERA: Nombre y Estado
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      grupo.nombre,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      grupo.estado.name.toUpperCase(),
+                      style: const TextStyle(color: AppColors.primaryGreen, fontSize: 9, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              
+              // INFO TURNOS Y FRECUENCIA
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          grupo.nombre,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
                           'Frecuencia: ${grupo.periodo.name.toUpperCase()}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
+                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.person_pin_circle_outlined, size: 14, color: AppColors.primaryGreen),
+                            const SizedBox(width: 4),
+                            Text(
+                              'A recibir: ',
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                            ),
+                            Text(
+                              nombreRecibe,
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: AppColors.darkGrey.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'Turno #${grupo.turnoActual}',
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      grupo.estado.name.toUpperCase(),
-                      style: const TextStyle(
-                        color: AppColors.primaryGreen,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  _buildStat('En Caja', '\$${grupo.recaudadoTurno.toStringAsFixed(0)}', AppColors.primaryGreen),
                 ],
               ),
-              const SizedBox(height: 16),
+              
+              const SizedBox(height: 20),
+              
+              // BARRA AL FONDO CON BOTÓN DE OJO (REQUERIMIENTO NUEVO)
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildStat('En Caja', '\$${grupo.totalAcumulado.toStringAsFixed(2)}', AppColors.primaryGreen),
-                  _buildStat('Total', '\$${grupo.metaAhorro.toStringAsFixed(2)}', AppColors.darkGrey),
-                ],
-              ),
-              const SizedBox(height: 24),
-              // Barra de progreso interactiva (REQUERIMIENTO 6 + NUEVO: DINÁMICA)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   LayoutBuilder(
-                    builder: (context, constraints) {
-                      final double leftOffset = (constraints.maxWidth * progreso) - 20;
-                      return Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          // La Barra
-                          Container(
-                            height: 10,
-                            width: constraints.maxWidth,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                            child: FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: progreso,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [AppColors.primaryGreen, AppColors.lightGreen],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            return Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  height: 8,
+                                  width: constraints.maxWidth,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(4),
                                   ),
-                                  borderRadius: BorderRadius.circular(5),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primaryGreen.withOpacity(0.3),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
+                                  child: FractionallySizedBox(
+                                    alignment: Alignment.centerLeft,
+                                    widthFactor: progresoTurno,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(colors: [AppColors.primaryGreen, AppColors.lightGreen]),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          // El Indicador Móvil (Recaudado)
-                          if (progreso > 0.05)
-                            Positioned(
-                              left: leftOffset < 0 ? 0 : (leftOffset > constraints.maxWidth - 60 ? constraints.maxWidth - 60 : leftOffset),
-                              top: -22,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryGreen,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  '\$${grupo.totalAcumulado.toStringAsFixed(0)}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${(progreso * 100).toStringAsFixed(1)}% completado',
-                        style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        'Faltan: \$${(grupo.metaAhorro - grupo.totalAcumulado).clamp(0, double.infinity).toStringAsFixed(0)}',
-                        style: TextStyle(fontSize: 10, color: AppColors.error.withOpacity(0.7), fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (onEliminar != null)
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
-                      onPressed: onEliminar,
+                              ],
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${(progresoTurno * 100).toStringAsFixed(0)}% de la meta por turno',
+                          style: const TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
-                  if (onEditar != null)
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined, color: AppColors.mediumGrey, size: 20),
-                      onPressed: onEditar,
-                    ),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: onVerDetalle,
-                    icon: const Icon(Icons.visibility_outlined, size: 18),
-                    label: const Text('Ver'), // REQUERIMIENTO 5
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.info.withOpacity(0.1),
-                      foregroundColor: AppColors.info,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  ),
+                  const SizedBox(width: 16),
+                  // BOTÓN DEL OJITO (VER) AL FINAL A LA DERECHA
+                  InkWell(
+                    onTap: onVerDetalle,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryGreen.withOpacity(0.1),
+                        shape: BoxShape.circle,
                       ),
+                      child: const Icon(Icons.visibility_outlined, size: 20, color: AppColors.primaryGreen),
                     ),
                   ),
                 ],

@@ -285,23 +285,54 @@ class SavingsService {
           .update({'total_aportado': nuevoTotalMiembro}).eq(
               'id', aporte.miembroId);
 
-      // 4. Actualizar el total del grupo
+      // 4. Actualizar el total del grupo y recaudado_turno
       final grupoData = await _supabase.client
           .schema('Financiamientos')
           .from('Grupos_Ahorro')
-          .select('total_acumulado')
+          .select('total_acumulado, recaudado_turno')
           .eq('id', grupoId)
           .single();
 
       final double nuevoTotalGrupo =
           (grupoData['total_acumulado'] as num).toDouble() + aporte.monto;
+      final double nuevoRecaudadoTurno = 
+          ((grupoData['recaudado_turno'] ?? 0) as num).toDouble() + aporte.monto;
 
       await _supabase.client
           .schema('Financiamientos')
           .from('Grupos_Ahorro')
-          .update({'total_acumulado': nuevoTotalGrupo}).eq('id', grupoId);
+          .update({
+            'total_acumulado': nuevoTotalGrupo,
+            'recaudado_turno': nuevoRecaudadoTurno,
+          })
+          .eq('id', grupoId);
     } catch (e) {
       print('Error en saveAporte: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> entregarTurno(String grupoId) async {
+    try {
+      final grupoData = await _supabase.client
+          .schema('Financiamientos')
+          .from('Grupos_Ahorro')
+          .select('turno_actual')
+          .eq('id', grupoId)
+          .single();
+
+      final int nuevoTurno = (grupoData['turno_actual'] ?? 1) + 1;
+
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Grupos_Ahorro')
+          .update({
+            'turno_actual': nuevoTurno,
+            'recaudado_turno': 0, // Reiniciar contador de recaudación
+          })
+          .eq('id', grupoId);
+    } catch (e) {
+      print('Error en entregarTurno: $e');
       rethrow;
     }
   }

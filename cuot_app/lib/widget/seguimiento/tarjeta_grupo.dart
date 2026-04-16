@@ -23,8 +23,8 @@ class TarjetaGrupo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Buscar quién tiene este turno (para mostrar quién recibe)
-    String nombreRecibe = 'Pendiente';
-    if (miembros != null) {
+    String nombreRecibe = (miembros == null || miembros!.isEmpty) ? '...' : 'Sin asignar';
+    if (miembros != null && miembros!.isNotEmpty) {
       final m = miembros!.where((m) => m.numeroTurno == grupo.turnoActual).firstOrNull;
       if (m != null) nombreRecibe = m.nombreCliente ?? 'N/A';
     }

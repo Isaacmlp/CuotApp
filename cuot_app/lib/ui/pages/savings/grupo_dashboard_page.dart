@@ -217,9 +217,12 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
   }
 
   Widget _buildStatsRow() {
-    String nombreRecibe = 'Pendiente';
-    final m = _miembros.where((m) => m.numeroTurno == _grupo!.turnoActual).firstOrNull;
-    if (m != null) nombreRecibe = m.nombreCliente ?? 'N/A';
+    // Buscar quién tiene este turno (para mostrar quién recibe)
+    String nombreRecibe = (_miembros.isEmpty) ? '...' : 'Sin asignar';
+    if (_miembros.isNotEmpty) {
+      final m = _miembros.where((m) => m.numeroTurno == _grupo!.turnoActual).firstOrNull;
+      if (m != null) nombreRecibe = m.nombreCliente ?? 'N/A';
+    }
 
     return Column(
       children: [
@@ -596,12 +599,24 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                     itemBuilder: (context, idx) {
                       final a = docs[idx];
                       final m = a['Miembros_Grupo'];
+                      
+                      // Extraer nombre (puede venir como objeto o lista dependiendo del join)
+                      String nombre = 'Miembro desacoplado';
+                      if (m != null && m['Clientes'] != null) {
+                        final cli = m['Clientes'];
+                        if (cli is List && cli.isNotEmpty) {
+                          nombre = cli[0]['nombre'] ?? nombre;
+                        } else if (cli is Map) {
+                          nombre = cli['nombre'] ?? nombre;
+                        }
+                      }
+
                       return ListTile(
                         leading: CircleAvatar(
                           backgroundColor: AppColors.primaryGreen.withOpacity(0.1),
                           child: const Icon(Icons.receipt_long, color: AppColors.primaryGreen),
                         ),
-                        title: Text(m?['nombre_cliente'] ?? 'Miembro desacoplado', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        title: Text(nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text('${DateUt.formatearFecha(DateTime.parse(a['fecha_aporte']))} - ${a['metodo_pago']}'),
                         trailing: Text(
                           '\$${(a['monto'] as num).toStringAsFixed(2)}',

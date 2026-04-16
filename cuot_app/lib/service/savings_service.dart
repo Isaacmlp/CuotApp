@@ -225,8 +225,8 @@ class SavingsService {
       final response = await _supabase.client
           .schema('Financiamientos')
           .from('Aportes_Grupo')
-           // Seleccionamos datos del aporte y el nombre del miembro via join
-          .select('*, Miembros_Grupo!inner(nombre_cliente, grupo_id)')
+           // Seleccionamos datos del aporte y el nombre del miembro via join con Miembros y Clientes
+          .select('*, Miembros_Grupo!inner(grupo_id, Clientes(nombre))')
           .eq('Miembros_Grupo.grupo_id', grupoId)
           .order('fecha_aporte', ascending: false);
 

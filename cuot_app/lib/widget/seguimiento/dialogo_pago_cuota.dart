@@ -11,7 +11,7 @@ class DialogoPagoCuota extends StatefulWidget {
   final double monto;
   final DateTime fechaVencimiento;
   final String nombreCliente;
-  final Function(double, DateTime, String, String?) onPagar; // 👈 ACTUALIZADO: String? comprobantePath
+  final Future<void> Function(double, DateTime, String, String?) onPagar; // 👈 ACTUALIZADO: Future<void>
 
   const DialogoPagoCuota({
     super.key,
@@ -740,7 +740,7 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
                               }
                             }
 
-                            widget.onPagar(
+                            await widget.onPagar(
                               monto, 
                               _combinarFechaConHoraActual(_fechaPago), 
                               _metodoPago,

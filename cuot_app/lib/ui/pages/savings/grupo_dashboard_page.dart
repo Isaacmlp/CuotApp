@@ -225,10 +225,14 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildStatItem(
-              'Recaudación por turno', // TERMINOLOGÍA ACTUALIZADA
-              '\$${_grupo!.metaAhorro.toStringAsFixed(0)}',
-              Icons.flag_outlined,
+            InkWell(
+              onTap: () => _mostrarDesglosePagos(),
+              borderRadius: BorderRadius.circular(8),
+              child: _buildStatItem(
+                'Total', // TERMINOLOGÍA ACTUALIZADA
+                '\$${_grupo!.totalAcumulado.toStringAsFixed(0)}', // Mostrar recaudación real
+                Icons.flag,
+              ),
             ),
             Container(width: 1, height: 40, color: Colors.grey.shade200),
             _buildStatItem(
@@ -440,13 +444,8 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
       );
     }
 
-    // Identificar el índice de la primera cuota NO pagada
-    int primerIndicePendiente = cuotas.indexWhere((c) => !c.pagada);
-
-    // 🚀 REQUERIMIENTO 10: ORGANIZACIÓN HORIZONTAL (Scrolleable a la derecha)
-    return Container(
-      height: 120, // Altura fija para el contenedor horizontal
-      color: Colors.grey.shade50,
+    return SizedBox(
+      height: 110, // Un poco más compacto
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -454,74 +453,119 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
         itemBuilder: (context, index) {
           final c = cuotas[index];
           return Container(
-            width: 160,
+            width: 100, // MÁS PEQUEÑO Y BONITO
             margin: const EdgeInsets.only(right: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              color: c.pagada ? AppColors.success.withOpacity(0.05) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: c.pagada ? AppColors.success.withOpacity(0.3) : Colors.grey.shade200,
+                color: c.pagada ? AppColors.success.withOpacity(0.4) : Colors.grey.shade200,
+                width: c.pagada ? 2 : 1,
               ),
               boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.02),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                )
+                if (!c.pagada)
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
               ],
             ),
             padding: const EdgeInsets.all(8),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Cuota #${c.numeroCuota}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: c.pagada ? AppColors.success : Colors.black87,
-                      ),
-                    ),
-                    if (c.pagada)
-                      const Icon(Icons.check_circle, color: AppColors.success, size: 16),
-                  ],
-                ),
-                const SizedBox(height: 4),
                 Text(
-                  DateUt.formatearFecha(c.fechaVencimiento),
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  '#${c.numeroCuota}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: c.pagada ? AppColors.success : Colors.black87,
+                  ),
+                ),
+                Text(
+                  '\$${c.montoEsperado.toStringAsFixed(0)}',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
                 ),
                 const Spacer(),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '\$${c.montoEsperado.toStringAsFixed(0)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                if (c.pagada)
+                  const Icon(Icons.check_circle, color: AppColors.success, size: 20)
+                else
+                  TextButton(
+                    onPressed: () => _showPayCuotaDialog(miembro, c), // 🔓 DESBLOQUEADO: PAGO LIBRE
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(60, 24),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      backgroundColor: AppColors.primaryGreen.withOpacity(0.1),
+                      foregroundColor: AppColors.primaryGreen,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    if (!c.pagada)
-                      TextButton(
-                        onPressed: index == primerIndicePendiente
-                            ? () => _showPayCuotaDialog(miembro, c)
-                            : null,
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: const Size(50, 24),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          foregroundColor: AppColors.primaryGreen,
-                        ),
-                        child: Text(index == primerIndicePendiente ? 'PAGAR' : 'BLOQ.', style: const TextStyle(fontSize: 10)),
-                      ),
-                  ],
-                ),
+                    child: const Text('PAGAR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _mostrarDesglosePagos() async {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('Historial de Aportes', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            ),
+            Expanded(
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: _savingsService.getAportesGrupo(widget.grupoId),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final docs = snapshot.data ?? [];
+                  if (docs.isEmpty) {
+                    return const Center(child: Text('No hay aportes todavía'));
+                  }
+                  return ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    itemCount: docs.length,
+                    itemBuilder: (context, idx) {
+                      final a = docs[idx];
+                      final m = a['Miembros_Grupo'];
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: AppColors.primaryGreen.withOpacity(0.1),
+                          child: const Icon(Icons.receipt_long, color: AppColors.primaryGreen),
+                        ),
+                        title: Text(m?['nombre_cliente'] ?? 'Miembro desacoplado', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('${DateUt.formatearFecha(DateTime.parse(a['fecha_aporte']))} - ${a['metodo_pago']}'),
+                        trailing: Text(
+                          '\$${(a['monto'] as num).toStringAsFixed(2)}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryGreen, fontSize: 15),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -557,17 +601,28 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
           try {
             await _savingsService.saveAporte(aporte, cuotaId: cuota.id);
             if (mounted) {
-              Navigator.pop(context);
-              _loadData(); // Recargar balances globales
-              _loadCuotasMiembro(miembro.id!); // Recargar lista de cuotas específica
+              // ACTUALIZACIÓN OPTIMISTA LOCAL
+              setState(() {
+                final cached = _cuotasCache[miembro.id!];
+                if (cached != null) {
+                  final idx = cached.indexWhere((c) => c.id == cuota.id);
+                  if (idx != -1) {
+                    cached[idx] = cached[idx].copyWith(pagada: true, montoPagado: monto);
+                  }
+                }
+              });
+
+              _loadData(); // Recargar balances globales en segundo plano
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Pago registrado correctamente'), backgroundColor: AppColors.success),
               );
             }
           } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error al registrar pago: $e'), backgroundColor: Colors.red),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error al registrar pago: $e'), backgroundColor: Colors.red),
+              );
+            }
           }
         },
       ),

@@ -220,6 +220,23 @@ class SavingsService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getAportesGrupo(String grupoId) async {
+    try {
+      final response = await _supabase.client
+          .schema('Financiamientos')
+          .from('Aportes_Grupo')
+           // Seleccionamos datos del aporte y el nombre del miembro via join
+          .select('*, Miembros_Grupo!inner(nombre_cliente, grupo_id)')
+          .eq('Miembros_Grupo.grupo_id', grupoId)
+          .order('fecha_aporte', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Error en getAportesGrupo: $e');
+      return [];
+    }
+  }
+
   Future<void> saveAporte(AporteGrupo aporte, {String? cuotaId}) async {
     try {
       // 1. Insertar el aporte

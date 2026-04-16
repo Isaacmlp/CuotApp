@@ -41,4 +41,24 @@ class CuotaAhorro {
   };
 
   double get pendiente => montoEsperado - montoPagado;
+
+  CuotaAhorro copyWith({
+    String? id,
+    String? miembroId,
+    int? numeroCuota,
+    double? montoEsperado,
+    double? montoPagado,
+    DateTime? fechaVencimiento,
+    bool? pagada,
+  }) {
+    return CuotaAhorro(
+      id: id ?? this.id,
+      miembroId: miembroId ?? this.miembroId,
+      numeroCuota: numeroCuota ?? this.numeroCuota,
+      montoEsperado: montoEsperado ?? this.montoEsperado,
+      montoPagado: montoPagado ?? this.montoPagado,
+      fechaVencimiento: fechaVencimiento ?? this.fechaVencimiento,
+      pagada: pagada ?? this.pagada,
+    );
+  }
 }

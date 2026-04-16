@@ -96,33 +96,85 @@ class TarjetaGrupo extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildStat('Recaudado', '\$${grupo.totalAcumulado.toStringAsFixed(2)}', AppColors.primaryGreen),
-                  _buildStat('Recaudación por turno', '\$${grupo.metaAhorro.toStringAsFixed(2)}', AppColors.darkGrey),
+                  _buildStat('En Caja', '\$${grupo.totalAcumulado.toStringAsFixed(2)}', AppColors.primaryGreen),
+                  _buildStat('Total Recaudación', '\$${grupo.metaAhorro.toStringAsFixed(2)}', AppColors.darkGrey),
                 ],
               ),
-              const SizedBox(height: 12),
-              // Barra de progreso desplazada hacia abajo (Requerimiento 6)
+              const SizedBox(height: 24),
+              // Barra de progreso interactiva (REQUERIMIENTO 6 + NUEVO: DINÁMICA)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  LinearProgressIndicator(
-                    value: progreso,
-                    backgroundColor: Colors.grey.shade200,
-                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
-                    minHeight: 8,
-                    borderRadius: BorderRadius.circular(4),
+                   LayoutBuilder(
+                    builder: (context, constraints) {
+                      final double leftOffset = (constraints.maxWidth * progreso) - 20;
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // La Barra
+                          Container(
+                            height: 10,
+                            width: constraints.maxWidth,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: progreso,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [AppColors.primaryGreen, AppColors.lightGreen],
+                                  ),
+                                  borderRadius: BorderRadius.circular(5),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primaryGreen.withOpacity(0.3),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          // El Indicador Móvil (Recaudado)
+                          if (progreso > 0.05)
+                            Positioned(
+                              left: leftOffset < 0 ? 0 : (leftOffset > constraints.maxWidth - 60 ? constraints.maxWidth - 60 : leftOffset),
+                              top: -22,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryGreen,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '\$${grupo.totalAcumulado.toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${(progreso * 100).toStringAsFixed(1)}%',
+                        '${(progreso * 100).toStringAsFixed(1)}% completado',
                         style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        'Faltan: \$${(grupo.metaAhorro - grupo.totalAcumulado).clamp(0, double.infinity).toStringAsFixed(2)}',
-                        style: TextStyle(fontSize: 10, color: Colors.grey.shade700, fontWeight: FontWeight.bold),
+                        'Faltan: \$${(grupo.metaAhorro - grupo.totalAcumulado).clamp(0, double.infinity).toStringAsFixed(0)}',
+                        style: TextStyle(fontSize: 10, color: AppColors.error.withOpacity(0.7), fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),

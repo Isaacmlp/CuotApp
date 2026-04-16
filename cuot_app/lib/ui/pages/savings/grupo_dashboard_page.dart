@@ -586,6 +586,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     List<Map<String, dynamic>> results = [];
     bool isSearching = false;
     bool showCreateForm = false;
+    Map<String, dynamic>? selectedClientData;
 
     // Calcular turnos disponibles
     final Set<int> usedTurns = _miembros
@@ -616,7 +617,9 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('Añadir Miembro'),
+          title: Text(showCreateForm 
+            ? 'Nuevo Cliente' 
+            : (selectedClientData != null ? 'Configurar Miembro' : 'Añadir Miembro')),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -626,7 +629,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (_grupo?.descripcion != null) ...[
+                  if (_grupo?.descripcion != null && !showCreateForm && selectedClientData == null) ...[
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
@@ -648,241 +651,234 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                     ),
                     const SizedBox(height: 16),
                   ],
+
+                  // 1. SELECCIÓN DE CLIENTE O BUSCADOR
                   if (!showCreateForm) ...[
-                    TextField(
-                      decoration: const InputDecoration(
-                        labelText: 'Buscar cliente...',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (val) async {
-                        if (val.length < 2) {
+                    if (selectedClientData == null) ...[
+                      TextField(
+                        decoration: const InputDecoration(
+                          labelText: 'Buscar cliente...',
+                          prefixIcon: Icon(Icons.search),
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (val) async {
+                          if (val.length < 2) {
+                            setDialogState(() {
+                              results = [];
+                              query = val;
+                            });
+                            return;
+                          }
+                          setDialogState(() => isSearching = true);
+                          final res = await _savingsService.searchClientes(
+                            val,
+                            widget.usuarioNombre,
+                          );
                           setDialogState(() {
-                            results = [];
+                            results = res;
+                            isSearching = false;
                             query = val;
                           });
-                          return;
-                        }
-                        setDialogState(() => isSearching = true);
-                        final res = await _savingsService.searchClientes(
-                          val,
-                          widget.usuarioNombre,
-                        );
-                        setDialogState(() {
-                          results = res;
-                          isSearching = false;
-                          query = val;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    if (isSearching)
-                      const Center(child: CircularProgressIndicator())
-                    else if (results.isNotEmpty)
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: results.length,
-                        itemBuilder: (_, index) {
-                          final c = results[index];
-                          return ListTile(
-                            title: Text(c['nombre']),
-                            subtitle: Text(c['telefono'] ?? 'Sin telefono'),
-                            trailing: const Icon(
-                              Icons.person_add_alt_1,
-                              color: AppColors.primaryGreen,
-                            ),
-                            onTap: () => _procederAnadir(
-                              dialogContext,
-                              c['id'].toString(),
-                              c['nombre'],
-                              c['telefono'], // Pasar teléfono
-                              metaDialogController,
-                              articuloController,
-                              cuotaController,
-                              selectedTurn,
-                            ),
-                          );
                         },
-                      )
-                    else if (query.length >= 2)
-                      const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text(
-                          'No se encontraron clientes',
-                          style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 12),
+                      if (isSearching)
+                        const Center(child: CircularProgressIndicator())
+                      else if (results.isNotEmpty)
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: results.length,
+                          itemBuilder: (_, index) {
+                            final c = results[index];
+                            return ListTile(
+                              leading: const Icon(Icons.person_outline),
+                              title: Text(c['nombre']),
+                              subtitle: Text(c['telefono'] ?? 'Sin telefono'),
+                              trailing: const Icon(Icons.add_circle_outline, color: AppColors.primaryGreen),
+                              onTap: () {
+                                setDialogState(() {
+                                  selectedClientData = c;
+                                  results = [];
+                                  query = '';
+                                });
+                              },
+                            );
+                          },
+                        )
+                      else if (query.length >= 2)
+                        const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text(
+                            'No se encontraron clientes',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                      
+                      const Divider(),
+                      TextButton.icon(
+                        onPressed: () => setDialogState(() => showCreateForm = true),
+                        icon: const Icon(Icons.person_add_alt),
+                        label: const Text('CREAR NUEVO CLIENTE'),
+                      ),
+                    ] else ...[
+                      // Cliente seleccionado
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryGreen.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.primaryGreen.withOpacity(0.2)),
+                        ),
+                        child: Row(
+                          children: [
+                            const CircleAvatar(
+                              backgroundColor: AppColors.primaryGreen,
+                              radius: 16,
+                              child: Icon(Icons.person, color: Colors.white, size: 16),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    selectedClientData!['nombre'],
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    selectedClientData!['telefono'] ?? 'Sin teléfono',
+                                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 20),
+                              onPressed: () => setDialogState(() => selectedClientData = null),
+                            ),
+                          ],
                         ),
                       ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: cuotaController,
-                      decoration: const InputDecoration(
-                        labelText: 'Monto de Cuota',
-                        prefixText: '\$ ',
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<int?>(
-                      value: selectedTurn,
-                      decoration: const InputDecoration(
-                        labelText: 'Asignar Turno',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: [
-                        const DropdownMenuItem(
-                          value: null,
-                          child: Text('Sortear después'),
-                        ),
-                        ...availableTurns.map((t) => DropdownMenuItem(
-                              value: t,
-                              child: Text('Turno $t'),
-                            )),
-                      ],
-                      onChanged: (val) {
-                        setDialogState(() => selectedTurn = val);
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: articuloController,
-                      decoration: const InputDecoration(
-                        labelText: '¿Qué comprará con el ahorro? (Opcional)',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.shopping_bag_outlined),
-                      ),
-                    ),
-                    const Divider(),
-                    TextButton.icon(
-                      onPressed: () =>
-                          setDialogState(() => showCreateForm = true),
-                      icon: const Icon(Icons.add),
-                      label: const Text('CREAR NUEVO CLIENTE'),
-                    ),
+                    ],
                   ] else ...[
-                    const Text(
-                      'Registrar y añadir nuevo cliente',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 16),
+                    // FORMULARIO NUEVO CLIENTE
+                    const Text('Datos del Nuevo Cliente', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
                     TextField(
                       controller: nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nombre Completo',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Nombre Completo', border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: phoneController,
-                      decoration: const InputDecoration(
-                        labelText: 'Teléfono',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Teléfono', border: OutlineInputBorder()),
                       keyboardType: TextInputType.phone,
                     ),
                     const SizedBox(height: 12),
+                    TextButton.icon(
+                      onPressed: () => setDialogState(() => showCreateForm = false),
+                      icon: const Icon(Icons.arrow_back, size: 16),
+                      label: const Text('Volver a buscar'),
+                    ),
+                  ],
+
+                  // 2. CONFIGURACIÓN DEL MIEMBRO (Solo si hay cliente o es nuevo)
+                  if (selectedClientData != null || showCreateForm) ...[
+                    const Divider(height: 32),
+                    const Row(
+                      children: [
+                        Icon(Icons.settings_outlined, size: 16, color: Colors.grey),
+                        SizedBox(width: 8),
+                        Text('Configuración del Suzú', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: metaDialogController,
-                      decoration: InputDecoration(
-                        labelText: 'Meta',
-                        prefixText: '\$ ',
-                        border: const OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Meta Personal', prefixText: '\$ ', border: OutlineInputBorder()),
                       keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: cuotaController,
-                      decoration: const InputDecoration(
-                        labelText: 'Monto de Cuota',
-                        prefixText: '\$ ',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Monto de Cuota', prefixText: '\$ ', border: OutlineInputBorder()),
                       keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<int?>(
                       value: selectedTurn,
-                      decoration: const InputDecoration(
-                        labelText: 'Asignar Turno',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Asignar Turno', border: OutlineInputBorder()),
                       items: [
-                        const DropdownMenuItem(
-                          value: null,
-                          child: Text('Sortear después'),
-                        ),
-                        ...availableTurns.map((t) => DropdownMenuItem(
-                              value: t,
-                              child: Text('Turno $t'),
-                            )),
+                        const DropdownMenuItem(value: null, child: Text('Sorteo Pendiente')),
+                        ...availableTurns.map((t) => DropdownMenuItem(value: t, child: Text('Turno $t'))),
                       ],
-                      onChanged: (val) {
-                        setDialogState(() => selectedTurn = val);
-                      },
+                      onChanged: (val) => setDialogState(() => selectedTurn = val),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: articuloController,
                       decoration: const InputDecoration(
-                        labelText: '¿Qué comprará con el ahorro? (Opcional)',
+                        labelText: '¿Qué comprará? (Nota)',
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.shopping_bag_outlined),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () =>
-                              setDialogState(() => showCreateForm = false),
-                          child: const Text('Volver a buscar'),
-                        ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryGreen,
-                          ),
-                          onPressed: () async {
-                            if (nameController.text.isEmpty) return;
-                            try {
-                              final String clientId = await _savingsService.createCliente(
-                                nameController.text,
-                                phoneController.text,
-                                widget.usuarioNombre,
-                              );
-                              _procederAnadir(
-                                dialogContext,
-                                clientId,
-                                nameController.text,
-                                phoneController.text, // Pasar teléfono nuevo
-                                metaDialogController,
-                                articuloController,
-                                cuotaController,
-                                selectedTurn,
-                              );
-                            } catch (e) {
-                              if (dialogContext.mounted) {
-                                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Error al crear cliente: $e'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                          child: const Text('Añadir'),
-                        ),
-                      ],
                     ),
                   ],
                 ],
               ),
             ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('CANCELAR'),
+            ),
+            if (selectedClientData != null || showCreateForm)
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryGreen, foregroundColor: Colors.white),
+                onPressed: () async {
+                  if (showCreateForm) {
+                    if (nameController.text.isEmpty) return;
+                    try {
+                      final String clientId = await _savingsService.createCliente(
+                        nameController.text,
+                        phoneController.text,
+                        widget.usuarioNombre,
+                      );
+                      _procederAnadir(
+                        dialogContext,
+                        clientId,
+                        nameController.text,
+                        phoneController.text,
+                        metaDialogController,
+                        articuloController,
+                        cuotaController,
+                        selectedTurn,
+                      );
+                    } catch (e) {
+                      if (dialogContext.mounted) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                        );
+                      }
+                    }
+                  } else if (selectedClientData != null) {
+                    _procederAnadir(
+                      dialogContext,
+                      selectedClientData!['id'].toString(),
+                      selectedClientData!['nombre'],
+                      selectedClientData!['telefono'],
+                      metaDialogController,
+                      articuloController,
+                      cuotaController,
+                      selectedTurn,
+                    );
+                  }
+                },
+                child: const Text('AÑADIR A LISTA'),
+              ),
+          ],
         ),
       ),
     );
@@ -968,13 +964,41 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
         ),
         const SizedBox(height: 8),
         ..._miembrosTemporales.map((m) => Card(
-          color: Colors.orange.shade50,
+          elevation: 1,
+          margin: const EdgeInsets.only(bottom: 8),
+          color: Colors.orange.shade50.withOpacity(0.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.orange.withOpacity(0.2)),
+          ),
           child: ListTile(
-            title: Text(m.nombreCliente ?? 'Cliente'),
-            subtitle: Text('Turno: ${m.numeroTurno ?? '?'}, Cuota: \$${m.montoCuota}'),
-            trailing: IconButton(
-              icon: const Icon(Icons.close, color: Colors.red),
-              onPressed: () => setState(() => _miembrosTemporales.remove(m)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            leading: CircleAvatar(
+              backgroundColor: Colors.orange.shade100,
+              child: const Icon(Icons.person_add, color: Colors.orange),
+            ),
+            title: Text(
+              m.nombreCliente ?? 'Cliente',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text(
+              'Turno: ${m.numeroTurno ?? 'Pend.'} • Cuota: \$${m.montoCuota.toStringAsFixed(0)}',
+              style: TextStyle(fontSize: 12, color: Colors.orange.shade900),
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(FontAwesomeIcons.whatsapp, color: Colors.green, size: 20),
+                  onPressed: () => _enviarWhatsAppMiembro(m),
+                  tooltip: 'Enviar ficha previa',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent, size: 20),
+                  onPressed: () => setState(() => _miembrosTemporales.remove(m)),
+                  tooltip: 'Quitar de la lista',
+                ),
+              ],
             ),
           ),
         )),

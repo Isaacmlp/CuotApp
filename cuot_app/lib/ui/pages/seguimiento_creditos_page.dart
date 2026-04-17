@@ -62,15 +62,6 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         final List<dynamic> rawCuotas = c['Cuotas'] ?? [];
         final List<dynamic> rawPagos = c['Pagos'] ?? [];
 
-        final List<CuotaPersonalizada> cuotas = rawCuotas
-            .map((cq) => CuotaPersonalizada(
-                  numeroCuota: cq['numero_cuota'],
-                  fechaPago: DateUt.parsePureDate(cq['fecha_pago']),
-                  monto: (cq['monto'] as num).toDouble(),
-                  pagada: cq['pagada'] ?? false,
-                ))
-            .toList();
-
         // Identificar la última renovación para saber si hay historial viejo que ocultar
         final List<dynamic> renovaciones = c['Renovaciones'] ?? [];
         DateTime? ultimaRenovacion;
@@ -85,6 +76,23 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
           final last = sortedRenov.first;
           ultimaRenovacion = DateUt.parsePureDate(last['created_at'] ?? last['fecha_renovacion']);
         }
+
+        final List<CuotaPersonalizada> cuotas = rawCuotas
+            .where((cq) {
+              if (esPagoUnico) return true;
+              if (ultimaRenovacion != null && cq['created_at'] != null) {
+                final created = DateUt.parsePureDate(cq['created_at']);
+                if (created.isBefore(ultimaRenovacion)) return false;
+              }
+              return true;
+            })
+            .map((cq) => CuotaPersonalizada(
+                  numeroCuota: cq['numero_cuota'],
+                  fechaPago: DateUt.parsePureDate(cq['fecha_pago']),
+                  monto: (cq['monto'] as num).toDouble(),
+                  pagada: cq['pagada'] ?? false,
+                ))
+            .toList();
 
         // Ordenar cuotas por número (menor a mayor)
         cuotas.sort((a, b) => a.numeroCuota.compareTo(b.numeroCuota));

@@ -609,10 +609,6 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
         },
       ),
     );
-          );
-        },
-      ),
-    );
   }
 
   void _mostrarDesglosePagos() async {
@@ -757,6 +753,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     List<Map<String, dynamic>> results = [];
     bool isSearching = false;
     bool showCreateForm = false;
+    bool isSaving = false; // Estado de carga
     Map<String, dynamic>? selectedClientData;
 
     // Calcular turnos disponibles
@@ -787,7 +784,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     showDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
+        builder: (stateContext, setDialogState) => AlertDialog(
           title: Text(showCreateForm 
             ? 'Nuevo Cliente' 
             : (selectedClientData != null ? 'Configurar Miembro' : 'Añadir Miembro')),
@@ -1002,52 +999,72 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
+              onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
               child: const Text('CANCELAR'),
             ),
             if (selectedClientData != null || showCreateForm)
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryGreen, foregroundColor: Colors.white),
-                onPressed: () async {
-                  if (showCreateForm) {
-                    if (nameController.text.isEmpty) return;
-                    try {
-                      final String clientId = await _savingsService.createCliente(
-                        nameController.text,
-                        phoneController.text,
-                        widget.usuarioNombre,
-                      );
-                      _procederAnadir(
-                        dialogContext,
-                        clientId,
-                        nameController.text,
-                        phoneController.text,
-                        metaDialogController,
-                        articuloController,
-                        cuotaController,
-                        selectedTurn,
-                      );
-                    } catch (e) {
-                      if (dialogContext.mounted) {
-                        ScaffoldMessenger.of(dialogContext).showSnackBar(
-                          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-                        );
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(120, 40),
+                ),
+                onPressed: isSaving 
+                  ? null 
+                  : () async {
+                      setDialogState(() => isSaving = true);
+                      try {
+                        if (showCreateForm) {
+                          if (nameController.text.isEmpty) {
+                            setDialogState(() => isSaving = false);
+                            return;
+                          }
+                          final String clientId = await _savingsService.createCliente(
+                            nameController.text,
+                            phoneController.text,
+                            widget.usuarioNombre,
+                          );
+                          await _procederAnadir(
+                            dialogContext,
+                            clientId,
+                            nameController.text,
+                            phoneController.text,
+                            metaDialogController,
+                            articuloController,
+                            cuotaController,
+                            selectedTurn,
+                          );
+                        } else if (selectedClientData != null) {
+                          await _procederAnadir(
+                            dialogContext,
+                            selectedClientData!['id'].toString(),
+                            selectedClientData!['nombre'],
+                            selectedClientData!['telefono'],
+                            metaDialogController,
+                            articuloController,
+                            cuotaController,
+                            selectedTurn,
+                          );
+                        }
+                      } catch (e) {
+                        if (stateContext.mounted) {
+                          ScaffoldMessenger.of(stateContext).showSnackBar(
+                            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                          );
+                        }
+                      } finally {
+                        if (stateContext.mounted) {
+                          setDialogState(() => isSaving = false);
+                        }
                       }
-                    }
-                  } else if (selectedClientData != null) {
-                    _procederAnadir(
-                      dialogContext,
-                      selectedClientData!['id'].toString(),
-                      selectedClientData!['nombre'],
-                      selectedClientData!['telefono'],
-                      metaDialogController,
-                      articuloController,
-                      cuotaController,
-                      selectedTurn,
-                    );
-                  }
-                },
-                child: const Text('AÑADIR A LISTA'),
+                    },
+                child: isSaving 
+                  ? const SizedBox(
+                      width: 20, 
+                      height: 20, 
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+                    ) 
+                  : const Text('AÑADIR A LISTA'),
               ),
           ],
         ),
@@ -1055,7 +1072,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     );
   }
 
-  void _procederAnadir(
+  Future<void> _procederAnadir(
     BuildContext dialogContext,
     String clienteId,
     String nombreCliente,
@@ -1098,57 +1115,76 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     );
 
     // REGISTRO INMEDIATO (REQUERIMIENTO ACTUALIZADO)
-    try {
-      await _savingsService.addMiembro(miembro);
-      
-      if (dialogContext.mounted) {
-        Navigator.of(dialogContext).pop();
-      }
-      
-      _loadData();
-      
+    await _savingsService.addMiembro(miembro);
+    
+    if (dialogContext.mounted) {
+      Navigator.of(dialogContext).pop();
+    }
+    
+    _loadData();
+    
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Miembro registrado correctamente'),
           backgroundColor: AppColors.success,
         ),
       );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al registrar miembro: $e'), backgroundColor: Colors.red),
-        );
-      }
     }
   }
 
   void _confirmDeleteMiembro(MiembroGrupo miembro) {
+    bool isDeleting = false;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminar Miembro'),
-        content: Text('¿Estás seguro de que deseas eliminar a ${miembro.nombreCliente} del grupo? \n\nEsta acción eliminará también sus cuotas asociadas.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                await _savingsService.deleteMiembro(miembro.id!);
-                _loadData();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Miembro eliminado'), backgroundColor: AppColors.success),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error al eliminar: $e'), backgroundColor: Colors.red),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-            child: const Text('ELIMINAR'),
-          ),
-        ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Eliminar Miembro'),
+          content: Text('¿Estás seguro de que deseas eliminar a ${miembro.nombreCliente} del grupo? \n\nEsta acción eliminará también sus cuotas asociadas.'),
+          actions: [
+            TextButton(
+              onPressed: isDeleting ? null : () => Navigator.pop(context), 
+              child: const Text('CANCELAR')
+            ),
+            ElevatedButton(
+              onPressed: isDeleting 
+                ? null 
+                : () async {
+                    setDialogState(() => isDeleting = true);
+                    try {
+                      await _savingsService.deleteMiembro(miembro.id!);
+                      if (context.mounted) Navigator.pop(context);
+                      _loadData();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Miembro eliminado'), backgroundColor: AppColors.success),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error al eliminar: $e'), backgroundColor: Colors.red),
+                        );
+                      }
+                    } finally {
+                      if (context.mounted) setDialogState(() => isDeleting = false);
+                    }
+                  },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, 
+                foregroundColor: Colors.white,
+                minimumSize: const Size(100, 40),
+              ),
+              child: isDeleting 
+                ? const SizedBox(
+                    width: 20, 
+                    height: 20, 
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+                  )
+                : const Text('ELIMINAR'),
+            ),
+          ],
+        ),
       ),
     );
   }

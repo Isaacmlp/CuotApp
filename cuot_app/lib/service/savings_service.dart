@@ -116,7 +116,7 @@ class SavingsService {
         .select()
         .single();
     
-    final String miembroId = resMiembro['id'];
+    final String miembroId = resMiembro['id'].toString();
 
     try {
       // 2. Obtener datos del grupo para las fechas

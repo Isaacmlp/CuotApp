@@ -248,8 +248,32 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     }
 
     final cliente = _credito!['Clientes'] ?? {};
+    
+    // Identificar última renovación para excluir pagos y cuotas pasados
+    final List<dynamic> renovaciones = _credito?['Renovaciones'] ?? [];
+    DateTime? ultimaRenovacion;
+    if (renovaciones.isNotEmpty) {
+      final sortedRenov = List<dynamic>.from(renovaciones);
+      sortedRenov.sort((a, b) {
+        final dateA = DateUt.parsePureDate(a['created_at'] ?? a['fecha_renovacion']);
+        final dateB = DateUt.parsePureDate(b['created_at'] ?? b['fecha_renovacion']);
+        return dateB.compareTo(dateA);
+      });
+      ultimaRenovacion = DateUt.parsePureDate(sortedRenov.first['created_at'] ?? sortedRenov.first['fecha_renovacion']);
+    }
+
+    final bool esUnico = _credito!['tipo_credito'] == 'unico';
     final List<dynamic> rawPagos = _credito!['Pagos'] ?? [];
-    final List<dynamic> rawCuotas = _credito!['Cuotas'] ?? [];
+    
+    // Filtrar cuotas: Si es en cuotas y hay renovación, ocultar las creadadas antes
+    final List<dynamic> rawCuotas = (_credito!['Cuotas'] ?? []).where((cq) {
+      if (esUnico) return true;
+      if (ultimaRenovacion != null && cq['created_at'] != null) {
+        final created = DateUt.parsePureDate(cq['created_at']);
+        if (created.isBefore(ultimaRenovacion)) return false;
+      }
+      return true;
+    }).toList();
 
     double costoInversion = (_credito!['costo_inversion'] as num).toDouble();
     double margenGanancia = (_credito!['margen_ganancia'] as num).toDouble();
@@ -260,6 +284,13 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
       // Excluir abonos registrados durante la renovación
       final referencia = pago['referencia']?.toString() ?? '';
       if (referencia == 'Abono en Renovación') continue;
+      
+      final fechaStr = pago['fecha_pago_real'] ?? pago['fecha_pago'];
+      final fechaPago = fechaStr != null ? DateUt.parsePureDate(fechaStr.toString()) : DateUt.nowUtc();
+      
+      if (ultimaRenovacion != null && fechaPago.isBefore(ultimaRenovacion)) {
+        continue;
+      }
       totalPagado += (pago['monto'] as num).toDouble();
     }
     double saldoPendiente = totalPrestamo - totalPagado;

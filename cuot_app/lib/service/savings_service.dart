@@ -198,6 +198,27 @@ class SavingsService {
         .eq('id', miembro.id!);
   }
 
+  Future<void> deleteMiembro(String miembroId) async {
+    try {
+      // 1. Eliminar cuotas primero para evitar conflictos de integridad (si no hay cascade)
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Cuotas_Ahorro')
+          .delete()
+          .eq('miembro_id', miembroId);
+      
+      // 2. Eliminar el miembro
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Miembros_Grupo')
+          .delete()
+          .eq('id', miembroId);
+    } catch (e) {
+      print('Error en deleteMiembro: $e');
+      rethrow;
+    }
+  }
+
   // --------------------------------------------------------------------------
   // APORTES
   // --------------------------------------------------------------------------

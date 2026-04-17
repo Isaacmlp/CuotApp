@@ -31,9 +31,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
   final SavingsService _savingsService = SavingsService();
   GrupoAhorro? _grupo;
   List<MiembroGrupo> _miembros = [];
-  List<MiembroGrupo> _miembrosTemporales = []; // Requerimiento 8: Registro local
   bool _isLoading = true;
-  bool _isSavingMembers = false;
   
   // Caché de cuotas por miembro para evitar recargas constantes
   final Map<String, List<CuotaAhorro>> _cuotasCache = {};
@@ -183,23 +181,15 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                   _miembros.isEmpty && _miembrosTemporales.isEmpty
+                   _miembros.isEmpty
                        ? _buildEmptyState()
-                       : Column(
-                           children: [
-                             if (_miembrosTemporales.isNotEmpty) ...[
-                               _buildSeccionTemporales(),
-                               const Divider(height: 32),
-                             ],
-                             ListView.builder(
-                               shrinkWrap: true,
-                               physics: const NeverScrollableScrollPhysics(),
-                               itemCount: _miembros.length,
-                               itemBuilder: (context, index) {
-                                 return _buildMiembroItem(_miembros[index]);
-                               },
-                             ),
-                           ],
+                       : ListView.builder(
+                           shrinkWrap: true,
+                           physics: const NeverScrollableScrollPhysics(),
+                           itemCount: _miembros.length,
+                           itemBuilder: (context, index) {
+                             return _buildMiembroItem(_miembros[index]);
+                           },
                          ),
                  ],
                ),
@@ -397,10 +387,27 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
               ),
             ],
           ),
-          trailing: IconButton(
-            icon: const Icon(FontAwesomeIcons.whatsapp, color: Colors.green),
-            onPressed: () => _enviarWhatsAppMiembro(miembro),
-            tooltip: 'Enviar vía WhatsApp',
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.delete_outline, 
+                  color: miembro.totalAportado > 0 ? Colors.grey.shade400 : Colors.red.shade400
+                ),
+                onPressed: miembro.totalAportado > 0 
+                  ? () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('No se puede eliminar un miembro que ya tiene abonos registrados'))
+                    )
+                  : () => _confirmDeleteMiembro(miembro),
+                tooltip: 'Eliminar Miembro',
+              ),
+              IconButton(
+                icon: const Icon(FontAwesomeIcons.whatsapp, color: Colors.green),
+                onPressed: () => _enviarWhatsAppMiembro(miembro),
+                tooltip: 'Enviar vía WhatsApp',
+              ),
+            ],
           ),
           children: [
             const Divider(height: 1),
@@ -497,66 +504,111 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     }
 
     return SizedBox(
-      height: 110, // Un poco más compacto
+      height: 130, // Más espacio para la estética
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: cuotas.length,
         itemBuilder: (context, index) {
           final c = cuotas[index];
+          final bool tieneSaldo = c.pendiente > 0.01;
+          
           return Container(
-            width: 100, // MÁS PEQUEÑO Y BONITO
+            width: 140, // Un poco más ancho para albergar el texto
             margin: const EdgeInsets.only(right: 12),
             decoration: BoxDecoration(
-              color: c.pagada ? AppColors.success.withOpacity(0.05) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              gradient: c.pagada 
+                ? LinearGradient(
+                    colors: [AppColors.success.withOpacity(0.1), AppColors.success.withOpacity(0.05)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+              color: c.pagada ? null : Colors.white,
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: c.pagada ? AppColors.success.withOpacity(0.4) : Colors.grey.shade200,
-                width: c.pagada ? 2 : 1,
+                color: c.pagada ? AppColors.success.withOpacity(0.3) : Colors.grey.shade200,
+                width: 1.5,
               ),
               boxShadow: [
-                if (!c.pagada)
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  )
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                )
               ],
             ),
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(12),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'CUOTA #${c.numeroCuota}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        letterSpacing: 1,
+                        fontWeight: FontWeight.bold,
+                        color: c.pagada ? AppColors.success : Colors.grey.shade500,
+                      ),
+                    ),
+                    if (c.pagada)
+                      const Icon(Icons.verified, color: AppColors.success, size: 14),
+                  ],
+                ),
+                const SizedBox(height: 8),
                 Text(
-                  '#${c.numeroCuota}',
+                  tieneSaldo ? 'RESTAN' : 'PAGADO',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 9,
+                    color: tieneSaldo ? Colors.red.shade400 : AppColors.success,
                     fontWeight: FontWeight.bold,
-                    color: c.pagada ? AppColors.success : Colors.black87,
                   ),
                 ),
                 Text(
-                  '\$${c.montoEsperado.toStringAsFixed(0)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                  '\$${(tieneSaldo ? c.pendiente : c.montoPagado).toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: tieneSaldo ? Colors.black87 : AppColors.success,
+                  ),
                 ),
                 const Spacer(),
-                if (c.pagada)
-                  const Icon(Icons.check_circle, color: AppColors.success, size: 20)
-                else
-                  TextButton(
-                    onPressed: () => _showPayCuotaDialog(miembro, c), // 🔓 DESBLOQUEADO: PAGO LIBRE
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(60, 24),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      backgroundColor: AppColors.primaryGreen.withOpacity(0.1),
-                      foregroundColor: AppColors.primaryGreen,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                if (tieneSaldo)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 28,
+                    child: ElevatedButton(
+                      onPressed: () => _showPayCuotaDialog(miembro, c),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.zero,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text('PAGAR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                     ),
-                    child: const Text('PAGAR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                  )
+                else
+                  Row(
+                    children: [
+                      const Icon(Icons.check_circle, color: AppColors.success, size: 12),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Al día',
+                        style: TextStyle(fontSize: 10, color: AppColors.success, fontWeight: FontWeight.w600),
+                      ),
+                    ],
                   ),
               ],
             ),
+          );
+        },
+      ),
+    );
           );
         },
       ),
@@ -1036,8 +1088,8 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     final miembro = MiembroGrupo(
       grupoId: widget.grupoId,
       clienteId: clienteId,
-      nombreCliente: nombreCliente, // Guardar nombre para vista local
-      telefonoCliente: telefonoCliente, // Guardar teléfono para vista local
+      nombreCliente: nombreCliente,
+      telefonoCliente: telefonoCliente,
       montoMetaPersonal: metaPersonal,
       fechaIngreso: DateTime.now(),
       articuloDeseado: articulo.isNotEmpty ? articulo : null,
@@ -1045,107 +1097,63 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
       montoCuota: cuota,
     );
 
-    // 🚀 REQUERIMIENTO 8: REGISTRO LOCAL
-    setState(() {
-      _miembrosTemporales.add(miembro);
-    });
-    
-    Navigator.of(dialogContext).pop();
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Miembro añadido a la lista de espera'),
-        backgroundColor: Colors.blue,
+    // REGISTRO INMEDIATO (REQUERIMIENTO ACTUALIZADO)
+    try {
+      await _savingsService.addMiembro(miembro);
+      
+      if (dialogContext.mounted) {
+        Navigator.of(dialogContext).pop();
+      }
+      
+      _loadData();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Miembro registrado correctamente'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al registrar miembro: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _confirmDeleteMiembro(MiembroGrupo miembro) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar Miembro'),
+        content: Text('¿Estás seguro de que deseas eliminar a ${miembro.nombreCliente} del grupo? \n\nEsta acción eliminará también sus cuotas asociadas.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                await _savingsService.deleteMiembro(miembro.id!);
+                _loadData();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Miembro eliminado'), backgroundColor: AppColors.success),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error al eliminar: $e'), backgroundColor: Colors.red),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('ELIMINAR'),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSeccionTemporales() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Pendientes de Registro',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orange),
-            ),
-            ElevatedButton.icon(
-              onPressed: _isSavingMembers ? null : _registrarMiembrosEnLote,
-              icon: _isSavingMembers 
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.save),
-              label: const Text('REGISTRAR TODO'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        ..._miembrosTemporales.map((m) => Card(
-          elevation: 1,
-          margin: const EdgeInsets.only(bottom: 8),
-          color: Colors.orange.shade50.withOpacity(0.5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.orange.withOpacity(0.2)),
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            leading: CircleAvatar(
-              backgroundColor: Colors.orange.shade100,
-              child: const Icon(Icons.person_add, color: Colors.orange),
-            ),
-            title: Text(
-              m.nombreCliente ?? 'Cliente',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(
-              'Turno: ${m.numeroTurno ?? 'Pend.'} • Cuota: \$${m.montoCuota.toStringAsFixed(0)}',
-              style: TextStyle(fontSize: 12, color: Colors.orange.shade900),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(FontAwesomeIcons.whatsapp, color: Colors.green, size: 20),
-                  onPressed: () => _enviarWhatsAppMiembro(m),
-                  tooltip: 'Enviar ficha previa',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent, size: 20),
-                  onPressed: () => setState(() => _miembrosTemporales.remove(m)),
-                  tooltip: 'Quitar de la lista',
-                ),
-              ],
-            ),
-          ),
-        )),
-      ],
-    );
-  }
 
-  Future<void> _registrarMiembrosEnLote() async {
-    setState(() => _isSavingMembers = true);
-    try {
-      for (var m in _miembrosTemporales) {
-        await _savingsService.addMiembro(m);
-      }
-      setState(() {
-        _miembrosTemporales.clear();
-        _isSavingMembers = false;
-      });
-      _loadData();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Todos los miembros han sido registrados'), backgroundColor: AppColors.success),
-      );
-    } catch (e) {
-      setState(() => _isSavingMembers = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al registrar miembros: $e'), backgroundColor: Colors.red),
-      );
-    }
-  }
 
 
   void _showAportesHistory(MiembroGrupo miembro) async {

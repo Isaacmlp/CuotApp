@@ -19,6 +19,7 @@ class GrupoAhorro {
   final int cantidadParticipantes;
   final int turnoActual; // Turno en curso
   final double recaudadoTurno; // Lo recaudado solo para el turno actual
+  final bool usuarioRecibeNoPaga;
 
   GrupoAhorro({
     this.id,
@@ -35,6 +36,7 @@ class GrupoAhorro {
     this.descripcion,
     this.turnoActual = 1,
     this.recaudadoTurno = 0,
+    this.usuarioRecibeNoPaga = false,
   });
 
   factory GrupoAhorro.fromJson(Map<String, dynamic> json) {
@@ -53,6 +55,7 @@ class GrupoAhorro {
       descripcion: json['descripcion'],
       turnoActual: json['turno_actual'] ?? 1,
       recaudadoTurno: (json['recaudado_turno'] as num?)?.toDouble() ?? 0,
+      usuarioRecibeNoPaga: json['usuario_recibe_no_paga'] == true,
     );
   }
 
@@ -70,6 +73,7 @@ class GrupoAhorro {
     'descripcion': descripcion,
     'turno_actual': turnoActual,
     'recaudado_turno': recaudadoTurno,
+    'usuario_recibe_no_paga': usuarioRecibeNoPaga,
   };
 
   static PeriodoAhorro _parsePeriodo(String? value) {

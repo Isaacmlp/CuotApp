@@ -94,11 +94,6 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
             foregroundColor: Colors.white,
             actions: [
               IconButton(
-                icon: const Icon(Icons.shuffle),
-                tooltip: 'Realizar Sorteo',
-                onPressed: _realizarSorteo,
-              ),
-              IconButton(
                 icon: const Icon(Icons.delete_outline),
                 tooltip: 'Eliminar Grupo',
                 onPressed: _confirmDeleteGrupo,
@@ -107,6 +102,8 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
                 _grupo!.nombre,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -165,7 +162,10 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildStatsRow(),
+                  if (_grupo!.fechaPrimerPago == null)
+                    _buildIniciarSusuBanner()
+                  else
+                    _buildStatsRow(),
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -234,10 +234,14 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                   ),
                 ),
                 Container(width: 1, height: 40, color: Colors.grey.shade200),
-                _buildStatItem(
-                  'Meta Turno',
-                  '\$${_grupo!.metaAhorro.toStringAsFixed(0)}',
-                  Icons.flag,
+                InkWell(
+                  onTap: () => _realizarSorteo(),
+                  borderRadius: BorderRadius.circular(8),
+                  child: _buildStatItem(
+                    'Sorteo',
+                    'Asignar',
+                    FontAwesomeIcons.dice,
+                  ),
                 ),
                 Container(width: 1, height: 40, color: Colors.grey.shade200),
                 _buildStatItem(
@@ -249,24 +253,144 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        // BOTÓN ENTREGAR NUMERO (REQUERIMIENTO 12)
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () => _showEntregarTurnoConfirm(),
-            icon: const Icon(Icons.handshake_outlined),
-            label: Text('Entregar Turno #${_grupo!.turnoActual} a $nombreRecibe'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        if (_grupo!.fechaPrimerPago != null) ...[
+          const SizedBox(height: 12),
+          // BOTÓN ENTREGAR NUMERO (REQUERIMIENTO 12)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _showEntregarTurnoConfirm(),
+              icon: const Icon(Icons.handshake_outlined),
+              label: Text('Entregar Turno #${_grupo!.turnoActual} a $nombreRecibe'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             ),
-          ),
-        ),
+          )
+        ],
       ],
     );
+  }
+
+  Widget _buildIniciarSusuBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.shade300),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.rocket_launch, color: Colors.orange, size: 40),
+          const SizedBox(height: 12),
+          const Text(
+            'Susu en Espera',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orange),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Añade todos los participantes y asegúrate de que tengan un turno asignado. Cuando estés listo, arranca el Susu.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.black87),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () => _showIniciarSusuDialog(context),
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('INICIAR SUSU', style: TextStyle(fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  void _showIniciarSusuDialog(BuildContext context) {
+    if (_miembros.isEmpty || _miembros.length < _grupo!.cantidadParticipantes) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Acción denegada: Faltan miembros por agregar. Hay ${_miembros.length} de ${_grupo!.cantidadParticipantes}.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_miembros.any((m) => m.numeroTurno == null)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Acción denegada: Hay miembros con "Sorteo Pendiente". Por favor, haz el sorteo primero.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Iniciar Susu'),
+        content: const Text('¿Deseas que el primer pago correspondiente al ciclo 1 comience exactamente hoy o prefieres elegir un día en específico del calendario?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now(),
+                firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+              );
+              if (picked != null) {
+                _ejecutarInicio(picked);
+              }
+            },
+            child: const Text('Elegir Fecha'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _ejecutarInicio(DateTime.now());
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryGreen, foregroundColor: Colors.white),
+            child: const Text('Comenzar Hoy'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _ejecutarInicio(DateTime fechaInicio) async {
+    setState(() => _isLoading = true);
+    try {
+      await _savingsService.iniciarSusu(_grupo!.id!, fechaInicio);
+      await _loadData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('¡Susu iniciado con éxito!'), backgroundColor: AppColors.success),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al iniciar: $e'), backgroundColor: Colors.red),
+        );
+      }
+      setState(() => _isLoading = false);
+    }
   }
 
   void _showEntregarTurnoConfirm() {
@@ -323,6 +447,20 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     );
   }
 
+  String? _getFechaCobro(MiembroGrupo miembro) {
+    if (_grupo!.fechaPrimerPago == null || miembro.numeroTurno == null) return null;
+    DateTime startDate = _grupo!.fechaPrimerPago!;
+    int i = miembro.numeroTurno!;
+    DateTime fechaVencimiento;
+    switch (_grupo!.periodo) {
+      case PeriodoAhorro.diario: fechaVencimiento = startDate.add(Duration(days: i - 1)); break;
+      case PeriodoAhorro.semanal: fechaVencimiento = startDate.add(Duration(days: (i - 1) * 7)); break;
+      case PeriodoAhorro.quincenal: fechaVencimiento = startDate.add(Duration(days: (i - 1) * 15)); break;
+      case PeriodoAhorro.mensual: fechaVencimiento = DateTime(startDate.year, startDate.month + (i - 1), startDate.day); break;
+    }
+    return '${fechaVencimiento.day.toString().padLeft(2, '0')}/${fechaVencimiento.month.toString().padLeft(2, '0')}/${fechaVencimiento.year}';
+  }
+
   Widget _buildMiembroItem(MiembroGrupo miembro) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -339,7 +477,9 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
           leading: CircleAvatar(
             backgroundColor: AppColors.primaryGreen.withOpacity(0.1),
             child: Text(
-              (miembro.nombreCliente ?? '?').substring(0, 1).toUpperCase(),
+              miembro.numeroTurno != null 
+                  ? '#${miembro.numeroTurno}'
+                  : (miembro.nombreCliente ?? '?').substring(0, 1).toUpperCase(),
               style: const TextStyle(
                 color: AppColors.primaryGreen,
                 fontWeight: FontWeight.bold,
@@ -385,6 +525,13 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                   fontSize: 12,
                 ),
               ),
+              if (_getFechaCobro(miembro) != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Fecha de cobro: ${_getFechaCobro(miembro)}',
+                  style: TextStyle(color: Colors.orange.shade800, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ],
             ],
           ),
           trailing: Row(

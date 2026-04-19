@@ -127,41 +127,50 @@ class SavingsService {
       final DateTime startDate = grupo.fechaPrimerPago ?? grupo.fechaCreacion;
       final double montoCuota = miembro.montoCuota;
 
-      // 3. Generar N cuotas
-      List<Map<String, dynamic>> cuotasJson = [];
-      for (int i = 1; i <= n; i++) {
-        DateTime fechaVencimiento;
-        switch (grupo.periodo) {
-          case PeriodoAhorro.diario:
-            fechaVencimiento = startDate.add(Duration(days: i - 1));
-            break;
-          case PeriodoAhorro.semanal:
-            fechaVencimiento = startDate.add(Duration(days: (i - 1) * 7));
-            break;
-          case PeriodoAhorro.quincenal:
-            fechaVencimiento = startDate.add(Duration(days: (i - 1) * 15));
-            break;
-          case PeriodoAhorro.mensual:
-            fechaVencimiento =
-                DateTime(startDate.year, startDate.month + (i - 1), startDate.day);
-            break;
+      // 3. Generar N cuotas SÓLO si el Susu ya inició
+      if (grupo.fechaPrimerPago != null) {
+        List<Map<String, dynamic>> cuotasJson = [];
+        for (int i = 1; i <= n; i++) {
+          // REGLA: El usuario que recibe no paga
+          if (grupo.usuarioRecibeNoPaga == true && i == miembro.numeroTurno) {
+            continue; // Se salta esta cuota
+          }
+
+          DateTime fechaVencimiento;
+          switch (grupo.periodo) {
+            case PeriodoAhorro.diario:
+              fechaVencimiento = startDate.add(Duration(days: i - 1));
+              break;
+            case PeriodoAhorro.semanal:
+              fechaVencimiento = startDate.add(Duration(days: (i - 1) * 7));
+              break;
+            case PeriodoAhorro.quincenal:
+              fechaVencimiento = startDate.add(Duration(days: (i - 1) * 15));
+              break;
+            case PeriodoAhorro.mensual:
+              fechaVencimiento =
+                  DateTime(startDate.year, startDate.month + (i - 1), startDate.day);
+              break;
+          }
+
+          cuotasJson.add({
+            'miembro_id': miembroId,
+            'numero_cuota': i,
+            'monto_esperado': montoCuota,
+            'monto_pagado': 0,
+            'fecha_vencimiento': fechaVencimiento.toIso8601String().split('T')[0],
+            'pagada': false,
+          });
         }
 
-        cuotasJson.add({
-          'miembro_id': miembroId,
-          'numero_cuota': i,
-          'monto_esperado': montoCuota,
-          'monto_pagado': 0,
-          'fecha_vencimiento': fechaVencimiento.toIso8601String().split('T')[0],
-          'pagada': false,
-        });
+        if (cuotasJson.isNotEmpty) {
+          // 4. Insertar cuotas en bloque
+          await _supabase.client
+              .schema('Financiamientos')
+              .from('Cuotas_Ahorro')
+              .insert(cuotasJson);
+        }
       }
-
-      // 4. Insertar cuotas en bloque
-      await _supabase.client
-          .schema('Financiamientos')
-          .from('Cuotas_Ahorro')
-          .insert(cuotasJson);
     } catch (e) {
       // 5. ROLLBACK MANUAL: Si fallan las cuotas, borramos al miembro para no dejar basura
       print('Fallo al crear cuotas, borrando miembro $miembroId: $e');
@@ -271,7 +280,7 @@ class SavingsService {
         final cuotaData = await _supabase.client
             .schema('Financiamientos')
             .from('Cuotas_Ahorro')
-            .select('monto_pagado, monto_esperado')
+            .select('monto_pagado, monto_esperado, numero_cuota')
             .eq('id', cuotaId)
             .single();
         
@@ -310,14 +319,28 @@ class SavingsService {
       final grupoData = await _supabase.client
           .schema('Financiamientos')
           .from('Grupos_Ahorro')
-          .select('total_acumulado, recaudado_turno')
+          .select('total_acumulado, recaudado_turno, turno_actual')
           .eq('id', grupoId)
           .single();
 
       final double nuevoTotalGrupo =
           (grupoData['total_acumulado'] as num).toDouble() + aporte.monto;
-      final double nuevoRecaudadoTurno = 
-          ((grupoData['recaudado_turno'] ?? 0) as num).toDouble() + aporte.monto;
+
+      // REGLA: Sólo sumar a recaudado_turno si la cuota pagada pertenece al turno actual
+      bool isCurrentTurn = true;
+      if (cuotaId != null) {
+        final cuotaData = await _supabase.client
+            .schema('Financiamientos')
+            .from('Cuotas_Ahorro')
+            .select('numero_cuota')
+            .eq('id', cuotaId)
+            .single();
+        isCurrentTurn = cuotaData['numero_cuota'] == grupoData['turno_actual'];
+      }
+
+      final double nuevoRecaudadoTurno = isCurrentTurn
+          ? ((grupoData['recaudado_turno'] ?? 0) as num).toDouble() + aporte.monto
+          : ((grupoData['recaudado_turno'] ?? 0) as num).toDouble();
 
       await _supabase.client
           .schema('Financiamientos')
@@ -344,12 +367,31 @@ class SavingsService {
 
       final int nuevoTurno = (grupoData['turno_actual'] ?? 1) + 1;
 
+      // Calcular lo que ya se abonó por adelantado para este nuevoTurno:
+      // Primero encontramos todos los miembros del grupo
+      final miembros = await getMiembros(grupoId);
+      final miembrosIds = miembros.map((e) => e.id!).toList();
+
+      double totalAdelantado = 0;
+      if (miembrosIds.isNotEmpty) {
+        final cuotasAdelantadas = await _supabase.client
+            .schema('Financiamientos')
+            .from('Cuotas_Ahorro')
+            .select('monto_pagado')
+            .inFilter('miembro_id', miembrosIds)
+            .eq('numero_cuota', nuevoTurno);
+            
+        for (var row in cuotasAdelantadas) {
+           totalAdelantado += (row['monto_pagado'] as num).toDouble();
+        }
+      }
+
       await _supabase.client
           .schema('Financiamientos')
           .from('Grupos_Ahorro')
           .update({
             'turno_actual': nuevoTurno,
-            'recaudado_turno': 0, // Reiniciar contador de recaudación
+            'recaudado_turno': totalAdelantado, // Configurar suma adelantada en vez de 0
           })
           .eq('id', grupoId);
     } catch (e) {
@@ -394,5 +436,85 @@ class SavingsService {
         .single();
 
     return response['id'].toString();
+  }
+
+  // --------------------------------------------------------------------------
+  // INICIO DESFASADO DEL SUSU Y REASIGNACIÓN DE CUOTAS
+  // --------------------------------------------------------------------------
+  Future<void> iniciarSusu(String grupoId, DateTime fechaInicio) async {
+    try {
+      // 1. Obtener grupo y validar
+      final grupo = await getGrupoById(grupoId);
+      if (grupo == null) throw Exception('Grupo no encontrado');
+
+      // 2. Establecer fecha de inicio en el backend
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Grupos_Ahorro')
+          .update({
+            'fecha_primer_pago': fechaInicio.toIso8601String().split('T')[0]
+          })
+          .eq('id', grupoId);
+
+      // 3. Obtener todos los miembros inscritos
+      final miembros = await getMiembros(grupoId);
+      if (miembros.isEmpty) return; // Nada que hacer
+
+      // 4. Limpiar cualquier cuota "basura" existente de estos miembros
+      final miembrosIds = miembros.map((e) => e.id!).toList();
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Cuotas_Ahorro')
+          .delete()
+          .inFilter('miembro_id', miembrosIds);
+
+      // 5. Generar y asignar las cuotas organizadas
+      List<Map<String, dynamic>> todasLasCuotas = [];
+      final int n = grupo.cantidadParticipantes;
+
+      for (var miembro in miembros) {
+        for (int i = 1; i <= n; i++) {
+          // REGLA: El usuario que recibe no paga
+          if (grupo.usuarioRecibeNoPaga == true && i == miembro.numeroTurno) {
+            continue; 
+          }
+
+          DateTime fechaVencimiento;
+          switch (grupo.periodo) {
+            case PeriodoAhorro.diario:
+              fechaVencimiento = fechaInicio.add(Duration(days: i - 1));
+              break;
+            case PeriodoAhorro.semanal:
+              fechaVencimiento = fechaInicio.add(Duration(days: (i - 1) * 7));
+              break;
+            case PeriodoAhorro.quincenal:
+              fechaVencimiento = fechaInicio.add(Duration(days: (i - 1) * 15));
+              break;
+            case PeriodoAhorro.mensual:
+              fechaVencimiento = DateTime(fechaInicio.year, fechaInicio.month + (i - 1), fechaInicio.day);
+              break;
+          }
+
+          todasLasCuotas.add({
+            'miembro_id': miembro.id,
+            'numero_cuota': i,
+            'monto_esperado': miembro.montoCuota,
+            'monto_pagado': 0,
+            'fecha_vencimiento': fechaVencimiento.toIso8601String().split('T')[0],
+            'pagada': false,
+          });
+        }
+      }
+
+      if (todasLasCuotas.isNotEmpty) {
+        await _supabase.client
+            .schema('Financiamientos')
+            .from('Cuotas_Ahorro')
+            .insert(todasLasCuotas);
+      }
+    } catch (e) {
+      print('Error al iniciar el susu y regenerar cuotas: $e');
+      rethrow;
+    }
   }
 }

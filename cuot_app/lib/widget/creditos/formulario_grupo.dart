@@ -24,10 +24,17 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
   final TextEditingController _metaController = TextEditingController();
   final TextEditingController _participantesController = TextEditingController();
   final TextEditingController _descripcionController = TextEditingController(); // Nueva nota
-  final TextEditingController _fechaController = TextEditingController(); // Controlador para la fecha
-  DateTime? _fechaPrimerPago;
+  
+  bool _usuarioRecibeNoPaga = false;
   
   PeriodoAhorro _periodo = PeriodoAhorro.semanal;
+
+  @override
+  void initState() {
+    super.initState();
+    _participantesController.addListener(() { setState(() {}); });
+    _metaController.addListener(() { setState(() {}); });
+  }
 
   @override
   void dispose() {
@@ -35,7 +42,6 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
     _metaController.dispose();
     _participantesController.dispose();
     _descripcionController.dispose();
-    _fechaController.dispose();
     super.dispose();
   }
 
@@ -84,6 +90,18 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
                 validator: (value) =>
                     value == null || value.isEmpty ? 'Campo obligatorio' : null,
               ),
+              const SizedBox(height: 8),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('El Usuario que recibe no Paga', style: TextStyle(fontSize: 14)),
+                subtitle: const Text('Los participantes están exentos de aportar su propia cuota cuando reclaman el turno.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                value: _usuarioRecibeNoPaga,
+                activeColor: AppColors.primaryGreen,
+                onChanged: (val) {
+                  setState(() => _usuarioRecibeNoPaga = val ?? false);
+                },
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
               const SizedBox(height: 16),
               
               TextFormField(
@@ -117,24 +135,9 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
               
               const SizedBox(height: 24),
               
-              const Text('Fecha inicio de pago', style: TextStyle(fontWeight: FontWeight.bold)), // REQUERIMIENTO 2
-              const SizedBox(height: 8),
-              TextFormField(
-                readOnly: true,
-                onTap: _seleccionarFecha,
-                decoration: InputDecoration(
-                  labelText: 'Fecha del Primer Pago',
-                  hintText: 'Selecciona una fecha',
-                  prefixIcon: const Icon(Icons.calendar_month),
-                  border: const OutlineInputBorder(),
-                  suffixIcon: _fechaPrimerPago != null ? const Icon(Icons.check_circle, color: AppColors.primaryGreen) : null,
-                ),
-                controller: _fechaController,
-                validator: (value) =>
-                    _fechaPrimerPago == null ? 'Selecciona la fecha inicial' : null,
-              ),
-              
-              const SizedBox(height: 48),
+              _buildResumenDinamico(),
+
+              const SizedBox(height: 32),
               
               ElevatedButton(
                 onPressed: widget.isLoading ? null : _submit,
@@ -185,32 +188,91 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
     );
   }
 
-  void _seleccionarFecha() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now().add(const Duration(days: 1)),
-      firstDate: DateTime.now().subtract(const Duration(days: 30)), // Permitir un poco de retroceso por si acaso
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-      locale: const Locale('es', 'ES'),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: AppColors.primaryGreen,
-              onPrimary: Colors.white,
-              onSurface: AppColors.darkGrey,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
-      setState(() {
-        _fechaPrimerPago = picked;
-        _fechaController.text = '${picked.day}/${picked.month}/${picked.year}';
-      });
+  Widget _buildResumenDinamico() {
+    final metaAhorro = double.tryParse(_metaController.text) ?? 0;
+    final int participantes = int.tryParse(_participantesController.text) ?? 0;
+    
+    // Cálculo condicional de cuotas y montos
+    final divisor = _usuarioRecibeNoPaga ? (participantes - 1) : participantes;
+    final cuotaEstimada = (participantes > (_usuarioRecibeNoPaga ? 1 : 0)) 
+        ? metaAhorro / divisor 
+        : 0.0;
+        
+    final numeroPagos = _usuarioRecibeNoPaga && participantes > 0 
+        ? participantes - 1 
+        : participantes;
+
+    double meses = 0;
+    if (participantes > 0) {
+      switch (_periodo) {
+        case PeriodoAhorro.diario: meses = participantes / 30; break;
+        case PeriodoAhorro.semanal: meses = participantes / 4; break;
+        case PeriodoAhorro.quincenal: meses = participantes / 2; break;
+        case PeriodoAhorro.mensual: meses = participantes.toDouble(); break;
+      }
     }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.primaryGreen.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primaryGreen.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: AppColors.primaryGreen, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Resumen del Susu',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryGreen,
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 24),
+          _buildInfoRow('Duración estimada:', meses > 0 ? '${meses.toStringAsFixed(1)} meses aprox.' : '-'),
+          _buildInfoRow('Participantes:', participantes > 0 ? '$participantes miembros' : '-'),
+          _buildInfoRow('Pagos por persona:', numeroPagos > 0 ? '$numeroPagos cuotas' : '-'),
+          const SizedBox(height: 4),
+          _buildInfoRow('Frecuencia:', _periodo.name.toUpperCase()),
+          const Divider(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Monto por cuota:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                cuotaEstimada > 0 ? '\$${cuotaEstimada.toStringAsFixed(2)}' : '-',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryGreen,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.black87)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
   }
 
   void _submit() {
@@ -223,8 +285,9 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
         creadoPor: widget.nombreUsuario,
         fechaCreacion: DateTime.now(),
         cantidadParticipantes: int.parse(_participantesController.text),
-        fechaPrimerPago: _fechaPrimerPago,
+        fechaPrimerPago: null, // Pendiente para botón de inicio en dashboard
         descripcion: _descripcionController.text.trim(),
+        usuarioRecibeNoPaga: _usuarioRecibeNoPaga,
       );
       widget.onGuardar(grupo);
     }

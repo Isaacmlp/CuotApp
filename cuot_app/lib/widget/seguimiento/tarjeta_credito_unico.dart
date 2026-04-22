@@ -1,4 +1,5 @@
 // lib/widget/seguimiento/tarjeta_credito_unico.dart
+import 'package:cuot_app/utils/date_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:cuot_app/Model/credito_unico_model.dart';
 import 'package:cuot_app/Model/pago_model.dart';
@@ -56,11 +57,10 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
   }
 
   int get _diasRestantes {
-    final hoy = DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-    final fechaLimite = DateTime.utc(widget.credito.fechaLimite.year, widget.credito.fechaLimite.month, widget.credito.fechaLimite.day);
+    final hoy = DateUt.nowUtc();
+    final fechaLimite = DateUt.normalizeToUtc(widget.credito.fechaLimite);
     if (fechaLimite.isBefore(hoy)) return 0;
-    final diferencia = fechaLimite.difference(hoy).inDays + 1; // +1 para ser inclusive
-    return diferencia > 0 ? diferencia : 0;
+    return fechaLimite.difference(hoy).inDays + 1; // +1 para ser inclusive
   }
 
   int get _diasAtrasoTotal {

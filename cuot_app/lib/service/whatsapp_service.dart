@@ -149,19 +149,29 @@ Días restantes: *$diasText*''';
     required String telefono,
     required String mensaje,
   }) async {
-    // Limpiar el número de teléfono
+    // Limpiar el número de teléfono pero mantener el + si existe
     String numero = telefono.replaceAll(RegExp(r'[^0-9+]'), '');
     
-    // Si no tiene código de país, agregar código de Venezuela
-    if (!numero.startsWith('+') && !numero.startsWith('58')) {
-      if (numero.startsWith('0')) {
-        numero = '58${numero.substring(1)}';
-      } else {
-        numero = '58$numero';
-      }
-    }
+    // Si empieza con +, ya es internacional (quitamos el + para la URL wa.me)
     if (numero.startsWith('+')) {
       numero = numero.substring(1);
+    } 
+    // Si empieza con 00, tratar como internacional (quitamos el 00)
+    else if (numero.startsWith('00')) {
+      numero = numero.substring(2);
+    }
+    // Lógica para números locales (asumiendo Venezuela por defecto si es corto)
+    else {
+      // Formato local Venezuela: 11 dígitos empezando con 0 (e.g. 0412...)
+      if (numero.length == 11 && numero.startsWith('0')) {
+        numero = '58${numero.substring(1)}';
+      } 
+      // Formato local Venezuela: 10 dígitos (e.g. 412...)
+      else if (numero.length == 10 && !numero.startsWith('0')) {
+        numero = '58$numero';
+      }
+      // En cualquier otro caso (ej. 12 dígitos como 57...), dejamos que pase tal cual
+      // para no bloquear códigos de área internacionales que el usuario haya ingresado.
     }
 
     final encodedMessage = Uri.encodeComponent(mensaje);

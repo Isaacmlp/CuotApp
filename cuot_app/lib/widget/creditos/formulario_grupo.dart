@@ -3,12 +3,14 @@ import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/Model/grupo_ahorro_model.dart';
 
 class FormularioGrupo extends StatefulWidget {
+  final GrupoAhorro? grupo;
   final String nombreUsuario;
   final Function(GrupoAhorro) onGuardar;
   final bool isLoading;
 
   const FormularioGrupo({
     super.key,
+    this.grupo,
     required this.nombreUsuario,
     required this.onGuardar,
     this.isLoading = false,
@@ -32,6 +34,14 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
   @override
   void initState() {
     super.initState();
+    if (widget.grupo != null) {
+      _nombreController.text = widget.grupo!.nombre;
+      _metaController.text = widget.grupo!.metaAhorro.toString();
+      _participantesController.text = widget.grupo!.cantidadParticipantes.toString();
+      _descripcionController.text = widget.grupo!.descripcion ?? '';
+      _usuarioRecibeNoPaga = widget.grupo!.usuarioRecibeNoPaga;
+      _periodo = widget.grupo!.periodo;
+    }
     _participantesController.addListener(() { setState(() {}); });
     _metaController.addListener(() { setState(() {}); });
   }
@@ -56,7 +66,7 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Crear Nuevo Grupo de Ahorro',
+                widget.grupo != null ? 'Editar Grupo de Ahorro' : 'Crear Nuevo Grupo de Ahorro',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -151,9 +161,9 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
                 ),
                 child: widget.isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'CREAR GRUPO',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    : Text(
+                        widget.grupo != null ? 'GUARDAR CAMBIOS' : 'CREAR GRUPO',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
               ),
             ],
@@ -277,15 +287,22 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
-      final grupo = GrupoAhorro(
+      final grupo = widget.grupo?.copyWith(
         nombre: _nombreController.text,
         metaAhorro: double.parse(_metaController.text),
-        tipoAporte: TipoAporte.comun, // Por defecto común como se pidió quitar el selector
+        periodo: _periodo,
+        cantidadParticipantes: int.parse(_participantesController.text),
+        descripcion: _descripcionController.text.trim(),
+        usuarioRecibeNoPaga: _usuarioRecibeNoPaga,
+      ) ?? GrupoAhorro(
+        nombre: _nombreController.text,
+        metaAhorro: double.parse(_metaController.text),
+        tipoAporte: TipoAporte.comun, 
         periodo: _periodo,
         creadoPor: widget.nombreUsuario,
         fechaCreacion: DateTime.now(),
         cantidadParticipantes: int.parse(_participantesController.text),
-        fechaPrimerPago: null, // Pendiente para botón de inicio en dashboard
+        fechaPrimerPago: null, 
         descripcion: _descripcionController.text.trim(),
         usuarioRecibeNoPaga: _usuarioRecibeNoPaga,
       );

@@ -76,6 +76,42 @@ class GrupoAhorro {
     'usuario_recibe_no_paga': usuarioRecibeNoPaga,
   };
 
+  GrupoAhorro copyWith({
+    String? id,
+    String? nombre,
+    double? metaAhorro,
+    TipoAporte? tipoAporte,
+    PeriodoAhorro? periodo,
+    double? totalAcumulado,
+    String? creadoPor,
+    DateTime? fechaCreacion,
+    EstadoGrupo? estado,
+    DateTime? fechaPrimerPago,
+    String? descripcion,
+    int? cantidadParticipantes,
+    int? turnoActual,
+    double? recaudadoTurno,
+    bool? usuarioRecibeNoPaga,
+  }) {
+    return GrupoAhorro(
+      id: id ?? this.id,
+      nombre: nombre ?? this.nombre,
+      metaAhorro: metaAhorro ?? this.metaAhorro,
+      tipoAporte: tipoAporte ?? this.tipoAporte,
+      periodo: periodo ?? this.periodo,
+      totalAcumulado: totalAcumulado ?? this.totalAcumulado,
+      creadoPor: creadoPor ?? this.creadoPor,
+      fechaCreacion: fechaCreacion ?? this.fechaCreacion,
+      estado: estado ?? this.estado,
+      cantidadParticipantes: cantidadParticipantes ?? this.cantidadParticipantes,
+      fechaPrimerPago: fechaPrimerPago ?? this.fechaPrimerPago,
+      descripcion: descripcion ?? this.descripcion,
+      turnoActual: turnoActual ?? this.turnoActual,
+      recaudadoTurno: recaudadoTurno ?? this.recaudadoTurno,
+      usuarioRecibeNoPaga: usuarioRecibeNoPaga ?? this.usuarioRecibeNoPaga,
+    );
+  }
+
   static PeriodoAhorro _parsePeriodo(String? value) {
     if (value == null) return PeriodoAhorro.semanal;
     switch (value.toLowerCase()) {

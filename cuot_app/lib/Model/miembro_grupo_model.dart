@@ -55,4 +55,32 @@ class MiembroGrupo {
   };
 
   double get progreso => montoMetaPersonal > 0 ? totalAportado / montoMetaPersonal : 0;
+
+  MiembroGrupo copyWith({
+    String? id,
+    String? grupoId,
+    String? clienteId,
+    String? nombreCliente,
+    String? telefonoCliente,
+    double? montoMetaPersonal,
+    double? totalAportado,
+    DateTime? fechaIngreso,
+    String? articuloDeseado,
+    int? numeroTurno,
+    double? montoCuota,
+  }) {
+    return MiembroGrupo(
+      id: id ?? this.id,
+      grupoId: grupoId ?? this.grupoId,
+      clienteId: clienteId ?? this.clienteId,
+      nombreCliente: nombreCliente ?? this.nombreCliente,
+      telefonoCliente: telefonoCliente ?? this.telefonoCliente,
+      montoMetaPersonal: montoMetaPersonal ?? this.montoMetaPersonal,
+      totalAportado: totalAportado ?? this.totalAportado,
+      fechaIngreso: fechaIngreso ?? this.fechaIngreso,
+      articuloDeseado: articuloDeseado ?? this.articuloDeseado,
+      numeroTurno: numeroTurno ?? this.numeroTurno,
+      montoCuota: montoCuota ?? this.montoCuota,
+    );
+  }
 }

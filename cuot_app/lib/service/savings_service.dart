@@ -73,6 +73,14 @@ class SavingsService {
     return GrupoAhorro.fromJson(response);
   }
 
+  Future<void> updateGrupo(GrupoAhorro grupo) async {
+    await _supabase.client
+        .schema('Financiamientos')
+        .from('Grupos_Ahorro')
+        .update(grupo.toJson())
+        .eq('id', grupo.id!);
+  }
+
   Future<void> deleteGrupo(String id) async {
     try {
       await _supabase.client

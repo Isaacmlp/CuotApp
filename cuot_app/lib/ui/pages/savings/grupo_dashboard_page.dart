@@ -1,4 +1,5 @@
 import 'package:cuot_app/service/savings_service.dart';
+import 'package:cuot_app/service/whatsapp_service.dart';
 import 'package:flutter/material.dart';
 import 'package:cuot_app/Model/grupo_ahorro_model.dart';
 import 'package:cuot_app/Model/miembro_grupo_model.dart';
@@ -10,6 +11,7 @@ import 'package:cuot_app/utils/date_utils.dart';
 import 'package:cuot_app/utils/ahorro_logic_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:cuot_app/widget/creditos/formulario_grupo.dart';
 
 class GrupoDashboardPage extends StatefulWidget {
   final String grupoId;
@@ -55,6 +57,9 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
       final grupo = await _savingsService.getGrupoById(widget.grupoId);
       final miembros = await _savingsService.getMiembros(widget.grupoId);
 
+      // Ordenar miembros por turno (menor a mayor, null al final)
+      miembros.sort((a, b) => (a.numeroTurno ?? 999).compareTo(b.numeroTurno ?? 999));
+
       setState(() {
         _grupo = grupo;
         _miembros = miembros;
@@ -94,22 +99,18 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
             foregroundColor: Colors.white,
             actions: [
               IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Editar Grupo',
+                onPressed: _tienePagos ? null : _showEditGrupoDialog,
+                color: _tienePagos ? Colors.white54 : null,
+              ),
+              IconButton(
                 icon: const Icon(Icons.delete_outline),
                 tooltip: 'Eliminar Grupo',
                 onPressed: _confirmDeleteGrupo,
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                _grupo!.nombre,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -135,7 +136,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                         ),
                       ),
                       const Text(
-                        'Total Recaudado', // TERMINOLOGÍA ACTUALIZADA
+                        'Total a Recibir', // TERMINOLOGÍA ACTUALIZADA
                         style: TextStyle(color: Colors.white70, fontSize: 14),
                       ),
                       const SizedBox(height: 8),
@@ -162,10 +163,11 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_grupo!.fechaPrimerPago == null)
-                    _buildIniciarSusuBanner()
-                  else
-                    _buildStatsRow(),
+                  _buildStatsRow(),
+                  if (_grupo!.fechaPrimerPago == null) ...[
+                    const SizedBox(height: 16),
+                    _buildIniciarSusuBanner(),
+                  ],
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -197,11 +199,10 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
            ),
          ],
        ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: _tienePagos ? null : FloatingActionButton(
         onPressed: _showAddMemberDialog,
-        icon: const Icon(Icons.person_add_alt_1),
-        label: const Text('Añadir Miembro'),
         backgroundColor: AppColors.primaryGreen,
+        child: const Icon(Icons.person_add, color: Colors.white),
       ),
     );
   }
@@ -228,7 +229,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                   onTap: () => _mostrarDesglosePagos(),
                   borderRadius: BorderRadius.circular(8),
                   child: _buildStatItem(
-                    'Recaudado', // POR TURNO
+                    'Recibe', // POR TURNO
                     '\$${_grupo!.recaudadoTurno.toStringAsFixed(0)}',
                     Icons.payments_outlined,
                   ),
@@ -274,6 +275,8 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
       ],
     );
   }
+
+  bool get _tienePagos => (_grupo?.totalAcumulado ?? 0) > 0.01;
 
   Widget _buildIniciarSusuBanner() {
     return Container(
@@ -462,9 +465,17 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
   }
 
   Widget _buildMiembroItem(MiembroGrupo miembro) {
+    final bool esTurnoActual = _grupo != null && miembro.numeroTurno == _grupo!.turnoActual;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: esTurnoActual ? 4 : 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: esTurnoActual 
+          ? const BorderSide(color: AppColors.primaryGreen, width: 2)
+          : BorderSide.none,
+      ),
       clipBehavior: Clip.antiAlias,
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -475,23 +486,41 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
             }
           },
           leading: CircleAvatar(
-            backgroundColor: AppColors.primaryGreen.withOpacity(0.1),
+            backgroundColor: esTurnoActual ? AppColors.primaryGreen : AppColors.primaryGreen.withOpacity(0.1),
             child: Text(
               miembro.numeroTurno != null 
-                  ? '#${miembro.numeroTurno}'
+                  ? '${miembro.numeroTurno}'
                   : (miembro.nombreCliente ?? '?').substring(0, 1).toUpperCase(),
-              style: const TextStyle(
-                color: AppColors.primaryGreen,
+              style: TextStyle(
+                color: esTurnoActual ? Colors.white : AppColors.primaryGreen,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
-          title: Text(
-            miembro.nombreCliente ?? 'Cargando...',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  miembro.nombreCliente ?? 'Cargando...',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              if (esTurnoActual)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryGreen,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'RECIBE',
+                    style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                  ),
+                ),
+            ],
           ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -499,18 +528,6 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      miembro.numeroTurno != null ? 'Turno ${miembro.numeroTurno}' : 'Sin Turno',
-                      style: const TextStyle(fontSize: 10, color: AppColors.primaryGreen, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
                   Text(
                     'Cuota: \$${miembro.montoCuota.toStringAsFixed(0)}',
                     style: TextStyle(color: Colors.grey.shade700, fontSize: 11, fontWeight: FontWeight.bold),
@@ -519,7 +536,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
               ),
               const SizedBox(height: 2),
                Text(
-                'Recaudado: \$${miembro.totalAportado.toStringAsFixed(2)}', // TERMINOLOGÍA ACTUALIZADA
+                'Recibe: \$${miembro.montoMetaPersonal.toStringAsFixed(2)}', // TERMINOLOGÍA ACTUALIZADA
                 style: TextStyle(
                   color: Colors.grey.shade600,
                   fontSize: 12,
@@ -534,25 +551,72 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
               ],
             ],
           ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: Icon(
-                  Icons.delete_outline, 
-                  color: miembro.totalAportado > 0 ? Colors.grey.shade400 : Colors.red.shade400
-                ),
-                onPressed: miembro.totalAportado > 0 
-                  ? () => ScaffoldMessenger.of(context).showSnackBar(
+          trailing: PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              switch (value) {
+                case 'asignar':
+                  _showAsignarNumeroDialog(miembro);
+                  break;
+                case 'intercambiar':
+                  _showIntercambiarNumeroDialog(miembro);
+                  break;
+                case 'whatsapp':
+                  _enviarWhatsAppMiembro(miembro);
+                  break;
+                case 'eliminar':
+                   if (miembro.totalAportado > 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('No se puede eliminar un miembro que ya tiene abonos registrados'))
-                    )
-                  : () => _confirmDeleteMiembro(miembro),
-                tooltip: 'Eliminar Miembro',
+                    );
+                  } else {
+                    _confirmDeleteMiembro(miembro);
+                  }
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'asignar',
+                child: Row(
+                  children: [
+                    Icon(Icons.tag, size: 18, color: Colors.blue),
+                    SizedBox(width: 12),
+                    Text('Asignar número'),
+                  ],
+                ),
               ),
-              IconButton(
-                icon: const Icon(FontAwesomeIcons.whatsapp, color: Colors.green),
-                onPressed: () => _enviarWhatsAppMiembro(miembro),
-                tooltip: 'Enviar vía WhatsApp',
+              PopupMenuItem(
+                value: 'intercambiar',
+                enabled: miembro.numeroTurno != null,
+                child: Row(
+                  children: [
+                    Icon(Icons.swap_horiz, size: 18, color: Colors.orange.shade700),
+                    SizedBox(width: 12),
+                    Text('Intercambiar número'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'whatsapp',
+                child: Row(
+                  children: [
+                    Icon(FontAwesomeIcons.whatsapp, size: 18, color: Colors.green),
+                    SizedBox(width: 12),
+                    Text('WhatsApp'),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem(
+                value: 'eliminar',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline, size: 18, color: Colors.red.shade400),
+                    SizedBox(width: 12),
+                    Text('Eliminar', style: TextStyle(color: Colors.red.shade400)),
+                  ],
+                ),
               ),
             ],
           ),
@@ -611,22 +675,25 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
 
     // Limpiar teléfono del miembro
     String? telefono = miembro.telefonoCliente;
-    if (telefono != null) {
-      telefono = telefono.replaceAll(RegExp(r'[^0-9]'), '');
-      // Si el teléfono no tiene código de país y parece ser local (ej: 10 dígitos o similar), 
-      // podrías prepender el código de tu país si es necesario, pero wa.me suele manejarlo si está completo.
-    }
 
-    final String urlStr = telefono != null && telefono.isNotEmpty
-        ? "https://wa.me/$telefono?text=${Uri.encodeComponent(mensaje)}"
-        : "https://wa.me/?text=${Uri.encodeComponent(mensaje)}";
-    
-    final Uri url = Uri.parse(urlStr);
-    
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+    if (telefono == null || telefono.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo abrir WhatsApp')),
+          const SnackBar(content: Text('El miembro no tiene un número de teléfono registrado')),
+        );
+      }
+      return;
+    }
+
+    try {
+      await WhatsappService.abrirWhatsApp(
+        telefono: telefono,
+        mensaje: mensaje,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al abrir WhatsApp: $e')),
         );
       }
     }
@@ -660,97 +727,93 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
           final c = cuotas[index];
           final bool tieneSaldo = c.pendiente > 0.01;
           
-          return Container(
-            width: 140, // Un poco más ancho para albergar el texto
-            margin: const EdgeInsets.only(right: 12),
-            decoration: BoxDecoration(
-              gradient: c.pagada 
-                ? LinearGradient(
-                    colors: [AppColors.success.withOpacity(0.1), AppColors.success.withOpacity(0.05)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+          final bool isAtrasada = !c.pagada && 
+                                c.fechaVencimiento.isBefore(DateTime.now().subtract(const Duration(days: 1)));
+          final Color statusColor = c.pagada 
+              ? AppColors.success 
+              : (isAtrasada ? Colors.red : Colors.orange);
+          
+          final bool isYellow = !c.pagada && !isAtrasada;
+          
+          return InkWell(
+            onTap: tieneSaldo ? () => _showPayCuotaDialog(miembro, c) : null,
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              width: 135,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: statusColor.withOpacity(0.3),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: statusColor.withOpacity(0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   )
-                : null,
-              color: c.pagada ? null : Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: c.pagada ? AppColors.success.withOpacity(0.3) : Colors.grey.shade200,
-                width: 1.5,
+                ],
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                )
-              ],
-            ),
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'CUOTA #${c.numeroCuota}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        letterSpacing: 1,
-                        fontWeight: FontWeight.bold,
-                        color: c.pagada ? AppColors.success : Colors.grey.shade500,
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        '#${c.numeroCuota}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: statusColor,
+                        ),
                       ),
-                    ),
-                    if (c.pagada)
-                      const Icon(Icons.verified, color: AppColors.success, size: 14),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  tieneSaldo ? 'RESTAN' : 'PAGADO',
-                  style: TextStyle(
-                    fontSize: 9,
-                    color: tieneSaldo ? Colors.red.shade400 : AppColors.success,
-                    fontWeight: FontWeight.bold,
+                      const SizedBox(width: 4),
+                      if (c.pagada) 
+                        const Icon(Icons.check_circle, color: AppColors.success, size: 14)
+                      else if (isAtrasada)
+                        const Icon(Icons.error, color: Colors.red, size: 14)
+                    ],
                   ),
-                ),
-                Text(
-                  '\$${(tieneSaldo ? c.pendiente : c.montoPagado).toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: tieneSaldo ? Colors.black87 : AppColors.success,
-                  ),
-                ),
-                const Spacer(),
-                if (tieneSaldo)
-                  SizedBox(
-                    width: double.infinity,
-                    height: 28,
-                    child: ElevatedButton(
-                      onPressed: () => _showPayCuotaDialog(miembro, c),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryGreen,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.zero,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: const Text('PAGAR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  Text(
+                    '\$${(tieneSaldo ? c.pendiente : c.montoPagado).toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: tieneSaldo ? (isAtrasada ? Colors.red.shade800 : Colors.black87) : AppColors.success,
                     ),
-                  )
-                else
+                  ),
+                  Text(
+                    tieneSaldo ? 'RESTANTE' : 'COMPLETADO',
+                    style: TextStyle(
+                      fontSize: 8,
+                      letterSpacing: 0.5,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  const Divider(height: 12),
                   Row(
                     children: [
-                      const Icon(Icons.check_circle, color: AppColors.success, size: 12),
+                      Icon(Icons.calendar_today_outlined, size: 10, color: Colors.grey.shade400),
                       const SizedBox(width: 4),
                       Text(
-                        'Al día',
-                        style: TextStyle(fontSize: 10, color: AppColors.success, fontWeight: FontWeight.w600),
+                        DateUt.formatearFecha(c.fechaVencimiento),
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
-              ],
+                ],
+              ),
             ),
           );
         },
@@ -888,7 +951,186 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
     );
   }
 
+  void _showAsignarNumeroDialog(MiembroGrupo miembro) {
+    if (_tienePagos) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pueden asignar turnos porque ya existen pagos registrados.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    // Calcular turnos ocupados excluyendo al miembro actual
+    final Set<int> usedTurns = _miembros
+        .where((m) => m.numeroTurno != null && m.id != miembro.id)
+        .map((m) => m.numeroTurno!)
+        .toSet();
+    
+    List<int> availableTurns = [];
+    for (int i = 1; i <= _grupo!.cantidadParticipantes; i++) {
+      if (!usedTurns.contains(i)) availableTurns.add(i);
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Asignar Turno a ${miembro.nombreCliente}'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: availableTurns.isEmpty
+              ? const Text('No hay turnos disponibles en este grupo.')
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: availableTurns.length,
+                  itemBuilder: (ctx, idx) {
+                    final t = availableTurns[idx];
+                    final bool isCurrent = t == miembro.numeroTurno;
+                    return ListTile(
+                      leading: Icon(isCurrent ? Icons.check_circle : Icons.circle_outlined, 
+                        color: isCurrent ? AppColors.primaryGreen : Colors.grey),
+                      title: Text('Turno $t'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _updateMemberTurn(miembro, t);
+                      },
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
+        ],
+      ),
+    );
+  }
+
+  void _showIntercambiarNumeroDialog(MiembroGrupo miembro) {
+    if (_tienePagos) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pueden intercambiar turnos porque ya existen pagos registrados.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    if (miembro.numeroTurno == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Este miembro no tiene un turno asignado para intercambiar.')),
+      );
+      return;
+    }
+
+    final otrosConTurno = _miembros.where((m) => m.id != miembro.id && m.numeroTurno != null).toList();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Intercambiar Turno'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: otrosConTurno.isEmpty
+              ? const Text('No hay otros miembros con turnos asignados para realizar un intercambio.')
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Intercambiar turno #${miembro.numeroTurno} de ${miembro.nombreCliente} con:',
+                        style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                    const SizedBox(height: 12),
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: otrosConTurno.length,
+                        itemBuilder: (ctx, idx) {
+                          final otro = otrosConTurno[idx];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: AppColors.primaryGreen.withOpacity(0.1),
+                              child: Text('${otro.numeroTurno}', style: const TextStyle(color: AppColors.primaryGreen, fontSize: 12)),
+                            ),
+                            title: Text(otro.nombreCliente ?? 'N/A'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              _intercambiarTurnos(miembro, otro);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateMemberTurn(MiembroGrupo miembro, int? turno) async {
+    setState(() => _isLoading = true);
+    try {
+      await _savingsService.updateMiembro(miembro.copyWith(numeroTurno: turno));
+      await _loadData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Turno asignado correctamente'), backgroundColor: AppColors.success),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al asignar turno: $e'), backgroundColor: Colors.red),
+        );
+      }
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _intercambiarTurnos(MiembroGrupo m1, MiembroGrupo m2) async {
+    setState(() => _isLoading = true);
+    try {
+      final int? t1 = m1.numeroTurno;
+      final int? t2 = m2.numeroTurno;
+
+      // Primero liberamos el turno de m1 (pasándolo a null temporalmente)
+      // Esto evita el choque de la restricción UNIQUE(grupo_id, numero_turno)
+      await _savingsService.updateMiembro(m1.copyWith(numeroTurno: null));
+      
+      // Ahora el turno t1 está libre, pasamos m2 a t1
+      await _savingsService.updateMiembro(m2.copyWith(numeroTurno: t1));
+      
+      // Ahora el turno t2 está libre, pasamos m1 a t2
+      await _savingsService.updateMiembro(m1.copyWith(numeroTurno: t2));
+      
+      await _loadData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('¡Turnos intercambiados éxito!'), backgroundColor: AppColors.success),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al intercambiar: $e'), backgroundColor: Colors.red),
+        );
+      }
+      setState(() => _isLoading = false);
+    }
+  }
+
   void _showAddMemberDialog() {
+    if (_tienePagos) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pueden añadir miembros porque ya existen pagos registrados.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
     if (_miembros.length >= _grupo!.cantidadParticipantes && _grupo!.cantidadParticipantes > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Ya se ha alcanzado el límite de participantes para este grupo')),
@@ -924,9 +1166,47 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
       text: _grupo!.metaAhorro.toStringAsFixed(0),
     );
     final TextEditingController articuloController = TextEditingController();
+    final double divisor = _grupo!.usuarioRecibeNoPaga 
+        ? (_grupo!.cantidadParticipantes - 1).toDouble() 
+        : _grupo!.cantidadParticipantes.toDouble();
+    
+    final double cuotaSugerida = divisor > 0 ? (_grupo!.metaAhorro / divisor) : 0;
+    bool usaCuotaManual = false;
+
     final TextEditingController cuotaController = TextEditingController(
-      text: _grupo!.cantidadParticipantes > 0 ? (_grupo!.metaAhorro / _grupo!.cantidadParticipantes).toStringAsFixed(2) : '0',
+      text: cuotaSugerida.toStringAsFixed(2),
     );
+
+    // Listener para actualizar la meta automáticamente basado en la cuota
+    void updateMeta() {
+      final double c = double.tryParse(cuotaController.text) ?? 0;
+      final double m = c * divisor;
+      final String mStr = m.toStringAsFixed(2);
+      if (metaDialogController.text != mStr) {
+        metaDialogController.text = mStr;
+      }
+    }
+    
+    // Listener para actualizar la cuota automáticamente basada en la meta
+    void updateCuota() {
+      final double m = double.tryParse(metaDialogController.text) ?? 0;
+      if (divisor > 0) {
+        final double c = m / divisor;
+        final String cStr = c.toStringAsFixed(2);
+        if (cuotaController.text != cStr) {
+          cuotaController.text = cStr;
+        }
+      }
+    }
+    
+    // Eliminamos los addListener para usar onChanged directamente en los TextField
+    // cuotaController.addListener(updateMeta);
+    // metaDialogController.addListener(updateCuota);
+
+    
+    // Ejecutar cálculo inicial
+    updateMeta();
+
 
     showDialog(
       context: context,
@@ -1109,26 +1389,86 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: metaDialogController,
-                      decoration: const InputDecoration(labelText: 'Meta Personal', prefixText: '\$ ', border: OutlineInputBorder()),
-                      keyboardType: TextInputType.number,
+                    const SizedBox(height: 16),
+                    
+                    // Selección de tipo de cuota mediante Checkbox
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('Usar monto personalizado (Otro)', style: const TextStyle(fontSize: 13)),
+                      subtitle: !usaCuotaManual 
+                          ? Text('Cuota actual del grupo: \$${cuotaSugerida.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))
+                          : null,
+                      value: usaCuotaManual,
+                      activeColor: AppColors.primaryGreen,
+                      onChanged: (val) {
+                        setDialogState(() {
+                          usaCuotaManual = val!;
+                          if (!usaCuotaManual) {
+                            cuotaController.text = cuotaSugerida.toStringAsFixed(2);
+                            updateMeta();
+                          }
+                        });
+                      },
+                      controlAffinity: ListTileControlAffinity.leading,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
+
                     TextField(
                       controller: cuotaController,
-                      decoration: const InputDecoration(labelText: 'Monto de Cuota', prefixText: '\$ ', border: OutlineInputBorder()),
+                      decoration: InputDecoration(
+                        labelText: 'Monto de Cuota', 
+                        prefixText: '\$ ', 
+                        border: const OutlineInputBorder(),
+                        enabled: usaCuotaManual,
+                        filled: !usaCuotaManual,
+                        fillColor: !usaCuotaManual ? Colors.grey.shade100 : null,
+                      ),
+                      onChanged: (val) => updateMeta(),
                       keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<int?>(
-                      value: selectedTurn,
-                      decoration: const InputDecoration(labelText: 'Asignar Turno', border: OutlineInputBorder()),
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('Sorteo Pendiente')),
-                        ...availableTurns.map((t) => DropdownMenuItem(value: t, child: Text('Turno $t'))),
-                      ],
-                      onChanged: (val) => setDialogState(() => selectedTurn = val),
+                    TextField(
+                      controller: metaDialogController,
+                      decoration: InputDecoration(
+                        labelText: 'Meta Personal (Recibe) - ${divisor.toInt()} cuotas', 
+                        prefixText: '\$ ', 
+                        border: const OutlineInputBorder(),
+                        enabled: usaCuotaManual,
+                        filled: !usaCuotaManual,
+                        fillColor: !usaCuotaManual ? Colors.grey.shade100 : null,
+                        helperText: 'Calculado: Cuota x ${divisor.toInt()}',
+                      ),
+                      onChanged: (val) => updateCuota(),
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('Asignar Turno (Opcional):', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: List.generate(_grupo!.cantidadParticipantes, (index) {
+                        final t = index + 1;
+                        final isOccupied = usedTurns.contains(t);
+                        final isSelected = selectedTurn == t;
+                        
+                        return ChoiceChip(
+                          label: Text('T$t'),
+                          selected: isSelected,
+                          onSelected: isOccupied 
+                            ? null 
+                            : (val) {
+                                setDialogState(() {
+                                  selectedTurn = val ? t : null;
+                                });
+                              },
+                          selectedColor: AppColors.primaryGreen.withOpacity(0.2),
+                          labelStyle: TextStyle(
+                            color: isSelected ? AppColors.primaryGreen : (isOccupied ? Colors.grey : Colors.black87),
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        );
+                      }),
                     ),
                     const SizedBox(height: 12),
                     TextField(
@@ -1261,7 +1601,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
       montoCuota: cuota,
     );
 
-    // REGISTRO INMEDIATO (REQUERIMIENTO ACTUALIZADO)
+    // REGISTRO INMEDIATO
     await _savingsService.addMiembro(miembro);
     
     if (dialogContext.mounted) {
@@ -1281,6 +1621,15 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
   }
 
   void _confirmDeleteMiembro(MiembroGrupo miembro) {
+    if (_tienePagos) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pueden eliminar miembros porque ya existen pagos registrados.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
     bool isDeleting = false;
     showDialog(
       context: context,
@@ -1339,52 +1688,43 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
 
 
 
-  void _showAportesHistory(MiembroGrupo miembro) async {
-    final aportes = await _savingsService.getAportes(miembro.id!);
-
-    if (!mounted) return;
-
+  void _showEditGrupoDialog() {
+    if (_tienePagos) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se puede editar el grupo porque ya existen pagos registrados.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Historial: ${miembro.nombreCliente}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: aportes.isEmpty
-                  ? const Center(child: Text('No hay aportes registrados'))
-                  : ListView.builder(
-                      itemCount: aportes.length,
-                      itemBuilder: (context, index) {
-                        final a = aportes[index];
-                        return ListTile(
-                          leading: const Icon(
-                            Icons.arrow_upward,
-                            color: AppColors.success,
-                          ),
-                          title: Text('\$${a.monto.toStringAsFixed(2)}'),
-                          subtitle: Text(DateUt.formatearFecha(a.fechaAporte)),
-                          trailing: Text(
-                            a.metodoPago.toUpperCase(),
-                            style: const TextStyle(fontSize: 10),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: FormularioGrupo(
+          nombreUsuario: widget.usuarioNombre,
+          grupo: _grupo,
+          onGuardar: (grupoEditado) async {
+            try {
+              await _savingsService.updateGrupo(grupoEditado);
+              Navigator.pop(context);
+              _loadData();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Grupo actualizado correctamente'), backgroundColor: AppColors.success),
+              );
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error al actualizar el grupo: $e'), backgroundColor: Colors.red),
+              );
+            }
+          },
         ),
       ),
     );
@@ -1451,6 +1791,15 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
   }
 
   Future<void> _realizarSorteo() async {
+    if (_tienePagos) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se puede realizar el sorteo porque ya existen pagos registrados.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
     final sinTurno = _miembros.where((m) => m.numeroTurno == null).toList();
     if (sinTurno.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(

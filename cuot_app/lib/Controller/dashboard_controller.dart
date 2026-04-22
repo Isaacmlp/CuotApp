@@ -1,5 +1,6 @@
 import 'package:cuot_app/Model/payment_model.dart';
 import 'package:cuot_app/service/credit_service.dart';
+import 'package:cuot_app/utils/date_utils.dart';
 import 'package:flutter/material.dart';
 
 class DashboardController extends ChangeNotifier {
@@ -67,6 +68,21 @@ class DashboardController extends ChangeNotifier {
     totalCapital = 0.0;
 
     for (var credit in credits) {
+      // Identificar última renovación para aislar pagos/cuotas del ciclo actual
+      final List<dynamic> renovaciones = credit['Renovaciones'] ?? [];
+      DateTime? ultimaRenovacion;
+      if (renovaciones.isNotEmpty) {
+        final sortedRenov = List<dynamic>.from(renovaciones);
+        sortedRenov.sort((a, b) {
+          final dateA = DateUt.parseFullDateTime(a['created_at'] ?? a['fecha_renovacion']);
+          final dateB = DateUt.parseFullDateTime(b['created_at'] ?? b['fecha_renovacion']);
+          return dateB.compareTo(dateA);
+        });
+        ultimaRenovacion = DateUt.parseFullDateTime(
+          sortedRenov.first['created_at'] ?? sortedRenov.first['fecha_renovacion']
+        );
+      }
+
       // 1. Créditos activos
       if (credit['estado'] != 'Pagado') {
         totalCredits++;
@@ -83,15 +99,32 @@ class DashboardController extends ChangeNotifier {
       final concepto = credit['concepto'] ?? 'Crédito';
       final creditId = credit['id'].toString();
 
-      // 2. Dinero abonado (sumar todos los pagos del crédito)
+      // 2. Dinero abonado (Solo pagos del ciclo actual)
       final List<dynamic> pagosRaw = credit['Pagos'] ?? [];
       for (var p in pagosRaw) {
+        final ref = p['referencia']?.toString() ?? '';
+        if (ref == 'Abono en Renovación') continue;
+
+        final fechaStr = p['fecha_pago_real'] ?? p['fecha_pago'];
+        final fechaPago = DateUt.parseFullDateTime(fechaStr);
+
+        // Si hay renovación, ignorar pagos anteriores al timestamp exacto de la misma
+        if (ultimaRenovacion != null && fechaPago.isBefore(ultimaRenovacion)) {
+          continue;
+        }
+
         totalPaid += (p['monto'] as num).toDouble();
       }
 
-      // 3, 4, 5, 6. Analizar cuotas
+      // 3, 4, 5, 6. Analizar cuotas (Solo cuotas del ciclo actual)
       final List<dynamic> cuotasRaw = credit['Cuotas'] ?? [];
       for (var c in cuotasRaw) {
+        // Filtrar cuotas históricas si hay renovación (importante para saldo pendiente)
+        if (ultimaRenovacion != null && c['created_at'] != null) {
+          final created = DateUt.parseFullDateTime(c['created_at']);
+          if (created.isBefore(ultimaRenovacion)) continue;
+        }
+
         final double monto = (c['monto'] as num).toDouble();
         final bool pagada = c['pagada'] ?? false;
         final DateTime fechaPago = DateTime.parse(c['fecha_pago']);
@@ -106,8 +139,9 @@ class DashboardController extends ChangeNotifier {
             pendingWeeklyQuotas++;
           }
 
-          // 5. Próximos vencimientos (next 7 days)
-          if (fechaPago.isAfter(now) && fechaPago.isBefore(sevenDaysLater)) {
+          // 5. Próximos vencimientos (incluyendo hoy hasta los próximos 7 días)
+          final hoyMedianoche = DateTime.now().copyWith(hour: 0, minute: 0, second: 0, millisecond: 0, microsecond: 0);
+          if (!fechaPago.isBefore(hoyMedianoche) && fechaPago.isBefore(sevenDaysLater)) {
             upcomingPayments.add(PaymentModel(
               id: c['id'].toString(),
               creditId: creditId,

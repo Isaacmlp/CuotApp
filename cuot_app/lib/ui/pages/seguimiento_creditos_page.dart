@@ -62,26 +62,27 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         final List<dynamic> rawCuotas = c['Cuotas'] ?? [];
         final List<dynamic> rawPagos = c['Pagos'] ?? [];
 
-        // Identificar la última renovación para saber si hay historial viejo que ocultar
+        // Identificar la última renovación usando timestamp completo (con hora) para
+        // que abonos del mismo día pero ANTES de la renovación se excluyan correctamente.
         final List<dynamic> renovaciones = c['Renovaciones'] ?? [];
         DateTime? ultimaRenovacion;
         if (renovaciones.isNotEmpty) {
           final sortedRenov = List<dynamic>.from(renovaciones);
-          // Usar created_at para máxima precisión en el aislamiento cronológico
           sortedRenov.sort((a, b) {
-            final dateA = DateUt.parsePureDate(a['created_at'] ?? a['fecha_renovacion']);
-            final dateB = DateUt.parsePureDate(b['created_at'] ?? b['fecha_renovacion']);
+            final dateA = DateUt.parseFullDateTime(a['created_at'] ?? a['fecha_renovacion']);
+            final dateB = DateUt.parseFullDateTime(b['created_at'] ?? b['fecha_renovacion']);
             return dateB.compareTo(dateA);
           });
           final last = sortedRenov.first;
-          ultimaRenovacion = DateUt.parsePureDate(last['created_at'] ?? last['fecha_renovacion']);
+          // Guardar el timestamp completo (con hora) de la última renovación
+          ultimaRenovacion = DateUt.parseFullDateTime(last['created_at'] ?? last['fecha_renovacion']);
         }
 
         final List<CuotaPersonalizada> cuotas = rawCuotas
             .where((cq) {
               if (esPagoUnico) return true;
               if (ultimaRenovacion != null && cq['created_at'] != null) {
-                final created = DateUt.parsePureDate(cq['created_at']);
+                final created = DateUt.parseFullDateTime(cq['created_at']);
                 if (created.isBefore(ultimaRenovacion)) return false;
               }
               return true;
@@ -103,27 +104,26 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                   id: p['id'].toString(),
                   creditoId: creditId,
                   numeroCuota: p['numero_cuota'],
-                  fechaPago: DateUt.parsePureDate(p['fecha_pago_real']),
+                  // Usar fecha_pago_real con fallback a fecha_pago para precisión horaria
+                  fechaPago: DateUt.parseFullDateTime(p['fecha_pago_real'] ?? p['fecha_pago']),
                   monto: (p['monto'] as num).toDouble(),
-                  fechaPagoReal: DateUt.parsePureDate(p['fecha_pago_real']),
+                  fechaPagoReal: DateUt.parseFullDateTime(p['fecha_pago_real'] ?? p['fecha_pago']),
                   estado: 'pagado',
                   metodoPago: p['metodo_pago'] ?? 'efectivo',
                   referencia: p['referencia'] ?? '',
                   observaciones: p['observaciones'] ?? '',
                 ))
             .where((p) {
-              // Excluir abonos de renovación (ya incorporados en el gross de la renovación)
+              // Excluir abonos de renovación (ya incorporados en el monto total de la renovación)
               if (p.referencia == 'Abono en Renovación') {
                 pagosExcluidosDeUI += p.monto;
                 return false;
               }
-              // Excluir pagos del DÍA de la renovación o anteriores.
-              // Se compara solo la fecha (sin hora) porque fecha_renovacion puede ser
-              // un campo DATE en Supabase que se parsea como medianoche, y un pago
-              // hecho a las 15:00 del mismo día no satisfaría isBefore(00:00).
+              
+              // Excluir pagos anteriores a la última renovación.
+              // Usamos comparación por timestamp exacto (con hora) para distinguir
+              // abonos hechos el mismo día pero antes de renovar.
               if (ultimaRenovacion != null) {
-                // Comparación por momento exacto: Un pago es histórico si ocurrió antes de la renovación.
-                // Esto permite abonos el mismo día post-renovación, pero ignora abonos previos a la renovación.
                 if (p.fechaPago.isBefore(ultimaRenovacion)) {
                   pagosExcluidosDeUI += p.monto;
                   return false;

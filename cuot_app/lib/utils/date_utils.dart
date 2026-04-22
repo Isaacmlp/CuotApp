@@ -13,6 +13,15 @@ class DateUt {
     return normalizeToUtc(parsed);
   }
 
+  /// Parsea un timestamp completo CONSERVANDO la hora exacta (en UTC).
+  /// Úsalo cuando necesites distinguir eventos del mismo día (ej: abono vs renovación).
+  static DateTime parseFullDateTime(dynamic date) {
+    if (date == null) return DateTime.now().toUtc();
+    if (date is DateTime) return date.toUtc();
+    final str = date.toString();
+    return DateTime.parse(str).toUtc();
+  }
+
   /// Normaliza una fecha a UTC a las 00:00:00
   static DateTime normalizeToUtc(DateTime date) {
     return DateTime.utc(date.year, date.month, date.day);

@@ -100,31 +100,34 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
         return;
       }
       
-      // Identificar última renovación para calcular saldo correctamente
+      // Usar timestamp completo para filtrar pagos anteriores a la renovación con precisión
+      double pagosValidos = 0.0;
+      final List<dynamic> todosLosPagos = _credito?['Pagos'] ?? [];
       DateTime? ultimaRenovacion;
       if (renovaciones.isNotEmpty) {
         final sortedRenov = List<dynamic>.from(renovaciones);
         sortedRenov.sort((a, b) {
-          final dateA = DateUt.parsePureDate(a['created_at'] ?? a['fecha_renovacion']);
-          final dateB = DateUt.parsePureDate(b['created_at'] ?? b['fecha_renovacion']);
+          final dateA = DateUt.parseFullDateTime(a['created_at'] ?? a['fecha_renovacion']);
+          final dateB = DateUt.parseFullDateTime(b['created_at'] ?? b['fecha_renovacion']);
           return dateB.compareTo(dateA);
         });
-        ultimaRenovacion = DateUt.parsePureDate(sortedRenov.first['created_at'] ?? sortedRenov.first['fecha_renovacion']);
+        ultimaRenovacion = DateUt.parseFullDateTime(
+          sortedRenov.first['created_at'] ?? sortedRenov.first['fecha_renovacion']
+        );
       }
 
-      double pagosValidos = 0.0;
-      final List<dynamic> todosLosPagos = _credito?['Pagos'] ?? [];
+      int totalAbonosValidos = 0;
       for (var pago in todosLosPagos) {
         final ref = pago['referencia']?.toString() ?? '';
         final fechaStr = pago['fecha_pago_real'] ?? pago['fecha_pago'];
-        final fechaPago = fechaStr != null ? DateUt.parsePureDate(fechaStr.toString()) : DateUt.nowUtc();
+        final fechaPago = DateUt.parseFullDateTime(fechaStr);
         
         if (ref != 'Abono en Renovación') {
           if (ultimaRenovacion == null || !fechaPago.isBefore(ultimaRenovacion)) {
-            // Conversión segura de monto
             final montoRaw = pago['monto'];
             final double monto = (montoRaw is num) ? montoRaw.toDouble() : 0.0;
             pagosValidos += monto;
+            totalAbonosValidos++;
           }
         }
       }
@@ -143,6 +146,20 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
       
       debugPrint('Tipo crédito: $tipoCredito, esCuotas: $esCuotas');
 
+      // Filtrar cuotas del ciclo actual para conteos precisos en WhatsApp
+      final List<dynamic> cuotasCicloActual = rawCuotas.where((c) {
+        if (ultimaRenovacion == null) return true;
+        if (c['created_at'] == null) return true;
+        return !DateUt.parseFullDateTime(c['created_at']).isBefore(ultimaRenovacion);
+      }).toList();
+
+      final int cuotasPagadas = cuotasCicloActual.where((c) => c['pagada'] == true).length;
+      final int cuotasVencidas = cuotasCicloActual.where((c) {
+        if (c['pagada'] == true) return false;
+        final fechaVenc = DateUt.parsePureDate(c['fecha_pago']);
+        return fechaVenc.isBefore(DateUt.nowUtc());
+      }).length;
+
       final String mensaje = esCuotas
         ? WhatsappService.generarFichaCuotas(
             creditoId: widget.creditoId.toString(),
@@ -152,9 +169,9 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
             montoTotal: totalCredito,
             totalPagado: pagosValidos,
             saldoPendiente: saldoPendiente,
-            totalCuotas: rawCuotas.length,
-            cuotasPagadas: rawCuotas.where((c) => c['pagada'] == true).length,
-            cuotasVencidas: 0, 
+            totalCuotas: cuotasCicloActual.length,
+            cuotasPagadas: cuotasPagadas,
+            cuotasVencidas: cuotasVencidas, 
             montoCuota: rawCuotas.isNotEmpty 
                 ? ((rawCuotas.first['monto_cuota'] as num?)?.toDouble() ?? 0.0)
                 : 0.0,
@@ -168,12 +185,12 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
             montoTotal: totalCredito,
             totalPagado: pagosValidos,
             saldoPendiente: saldoPendiente,
-            cantidadAbonos: _credito?['Pagos']?.length ?? 0,
+            cantidadAbonos: totalAbonosValidos,
             fechaLimite: _credito?['fecha_vencimiento'] != null 
                 ? DateUt.formatearFecha(DateUt.parsePureDate(_credito!['fecha_vencimiento']))
                 : 'N/A',
             diasRestantes: _credito?['fecha_vencimiento'] != null
-                ? '${DateUt.parsePureDate(_credito!['fecha_vencimiento']).difference(DateUt.nowUtc()).inDays} días'
+                ? DateUt.formatearDuracion(DateUt.nowUtc(), DateUt.parsePureDate(_credito!['fecha_vencimiento']))
                 : 'N/A',
             numeroCredito: _credito?['numero_credito'] != null ? int.tryParse(_credito!['numero_credito'].toString()) : null,
             notas: _credito?['notas']?.toString(),
@@ -249,17 +266,22 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
 
     final cliente = _credito!['Clientes'] ?? {};
     
-    // Identificar última renovación para excluir pagos y cuotas pasados
+    // Identificar última renovación con timestamp completo (hora exacta) para
+    // filtrar correctamente abonos del mismo día que la renovación.
     final List<dynamic> renovaciones = _credito?['Renovaciones'] ?? [];
     DateTime? ultimaRenovacion;
     if (renovaciones.isNotEmpty) {
       final sortedRenov = List<dynamic>.from(renovaciones);
       sortedRenov.sort((a, b) {
-        final dateA = DateUt.parsePureDate(a['created_at'] ?? a['fecha_renovacion']);
-        final dateB = DateUt.parsePureDate(b['created_at'] ?? b['fecha_renovacion']);
+        // Usar parseFullDateTime para ordenar por timestamp exacto
+        final dateA = DateUt.parseFullDateTime(a['created_at'] ?? a['fecha_renovacion']);
+        final dateB = DateUt.parseFullDateTime(b['created_at'] ?? b['fecha_renovacion']);
         return dateB.compareTo(dateA);
       });
-      ultimaRenovacion = DateUt.parsePureDate(sortedRenov.first['created_at'] ?? sortedRenov.first['fecha_renovacion']);
+      // Guardar el timestamp completo de la última renovación
+      ultimaRenovacion = DateUt.parseFullDateTime(
+        sortedRenov.first['created_at'] ?? sortedRenov.first['fecha_renovacion']
+      );
     }
 
     final bool esUnico = _credito!['tipo_credito'] == 'unico';
@@ -285,8 +307,10 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
       final referencia = pago['referencia']?.toString() ?? '';
       if (referencia == 'Abono en Renovación') continue;
       
+      // Usar timestamp completo para que un abono de las 10am
+      // no escape el filtro de una renovación de las 2pm del mismo día
       final fechaStr = pago['fecha_pago_real'] ?? pago['fecha_pago'];
-      final fechaPago = fechaStr != null ? DateUt.parsePureDate(fechaStr.toString()) : DateUt.nowUtc();
+      final fechaPago = DateUt.parseFullDateTime(fechaStr);
       
       if (ultimaRenovacion != null && fechaPago.isBefore(ultimaRenovacion)) {
         continue;
@@ -404,19 +428,20 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
   List<Widget> _buildInfoSeccion() {
     final cliente = _credito!['Clientes'] ?? {};
     
-    // Identificar última renovación para excluir pagos pasados de la matemática
+    // Identificar última renovación con timestamp completo para aislamiento preciso
     final List<dynamic> renovaciones = _credito?['Renovaciones'] ?? [];
     DateTime? ultimaRenovacion;
     if (renovaciones.isNotEmpty) {
       final sortedRenov = List<dynamic>.from(renovaciones);
-      // Usar created_at para máxima precisión en el aislamiento cronológico
       sortedRenov.sort((a, b) {
-        final dateA = DateUt.parsePureDate(a['created_at'] ?? a['fecha_renovacion']);
-        final dateB = DateUt.parsePureDate(b['created_at'] ?? b['fecha_renovacion']);
+        final dateA = DateUt.parseFullDateTime(a['created_at'] ?? a['fecha_renovacion']);
+        final dateB = DateUt.parseFullDateTime(b['created_at'] ?? b['fecha_renovacion']);
         return dateB.compareTo(dateA);
       });
       final last = sortedRenov.first;
-      ultimaRenovacion = DateUt.parsePureDate(last['created_at'] ?? last['fecha_renovacion']);
+      ultimaRenovacion = DateUt.parseFullDateTime(
+        last['created_at'] ?? last['fecha_renovacion']
+      );
     }
 
     double pagosExcluidosDeUI = 0.0;
@@ -425,14 +450,13 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     final List<dynamic> todosLosPagos = _credito?['Pagos'] ?? [];
     for (var pago in todosLosPagos) {
       final ref = pago['referencia']?.toString() ?? '';
+      // Usar timestamp completo para detectar abonos del mismo día que la renovación
       final fechaStr = pago['fecha_pago_real'] ?? pago['fecha_pago'];
-      final fechaPago = fechaStr != null ? DateUt.parsePureDate(fechaStr.toString()) : DateUt.nowUtc();
+      final fechaPago = DateUt.parseFullDateTime(fechaStr);
       
       if (ref == 'Abono en Renovación') {
         pagosExcluidosDeUI += (pago['monto'] as num).toDouble();
       } else if (ultimaRenovacion != null) {
-        // Comparación por momento exacto: Un pago es histórico si ocurrió antes de la renovación.
-        // Esto evita que abonos previos a la renovación en el mismo día se cuenten en el nuevo ciclo.
         if (fechaPago.isBefore(ultimaRenovacion)) {
           pagosExcluidosDeUI += (pago['monto'] as num).toDouble();
         } else {

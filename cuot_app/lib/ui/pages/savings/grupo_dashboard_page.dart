@@ -72,9 +72,10 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
         pc = stats['porCobrar'] ?? 0;
         can = stats['cancelado'] ?? 0;
         tot = stats['total'] ?? 0;
+        double pendCount = stats['pendientesCount'] ?? 0;
         
-        if (miembros.isNotEmpty) {
-          prom = tot / miembros.length;
+        if (pendCount > 0) {
+          prom = pc / pendCount;
         }
       }
 
@@ -179,7 +180,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            _buildHeaderStat('Por cobrar', '\$${_totalRecaudacionTurno.toStringAsFixed(0)}'),
+                            _buildHeaderStat('Por cobrar', '\$${_porCobrarTurno.toStringAsFixed(0)}'),
                             _buildHeaderStat('Cancelado', '\$${_canceladoTurno.toStringAsFixed(0)}'),
                             _buildHeaderStat('Promedio', '\$${_promedioTurno.toStringAsFixed(0)}'),
                           ],

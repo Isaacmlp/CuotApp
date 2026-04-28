@@ -571,34 +571,50 @@ class SavingsService {
   
   Future<Map<String, double>> getStatsTurno(String grupoId, int turno) async {
     try {
+      final grupo = await getGrupoById(grupoId);
+      final bool usuarioRecibeNoPaga = grupo?.usuarioRecibeNoPaga ?? false;
+
       final miembros = await getMiembros(grupoId);
       final miembrosIds = miembros.map((e) => e.id!).toList();
       
-      if (miembrosIds.isEmpty) return {'porCobrar': 0, 'cancelado': 0, 'total': 0};
+      if (miembrosIds.isEmpty) return {'porCobrar': 0, 'cancelado': 0, 'total': 0, 'pendientesCount': 0};
 
       final response = await _supabase.client
           .schema('Financiamientos')
           .from('Cuotas_Ahorro')
-          .select('monto_esperado, monto_pagado')
+          .select('miembro_id, monto_esperado, monto_pagado')
           .filter('miembro_id', 'in', '(${miembrosIds.map((id) => '"$id"').join(',')})')
           .eq('numero_cuota', turno);
 
       double porCobrar = 0;
       double cancelado = 0;
       double total = 0;
+      int pendientesCount = 0;
 
       for (var row in response) {
+        final mId = row['miembro_id'];
+        // Buscar el miembro para saber si es su turno
+        final miembro = miembros.where((m) => m.id == mId).firstOrNull;
+        
+        final bool isExenta = usuarioRecibeNoPaga && miembro != null && miembro.numeroTurno == turno;
+        
+        if (isExenta) continue; // No entra en las sumatorias
+
         final esperado = (row['monto_esperado'] as num).toDouble();
         final pagado = (row['monto_pagado'] as num).toDouble();
         total += esperado;
         cancelado += pagado;
-        porCobrar += (esperado - pagado > 0) ? (esperado - pagado) : 0;
+        if (esperado - pagado > 0.01) {
+          porCobrar += (esperado - pagado);
+          pendientesCount++;
+        }
       }
 
       return {
         'porCobrar': porCobrar,
         'cancelado': cancelado,
         'total': total,
+        'pendientesCount': pendientesCount.toDouble(),
       };
     } catch (e) {
       print('Error en getStatsTurno: $e');

@@ -139,9 +139,10 @@ class SavingsService {
       if (grupo.fechaPrimerPago != null) {
         List<Map<String, dynamic>> cuotasJson = [];
         for (int i = 1; i <= n; i++) {
-          // REGLA: El usuario que recibe no paga
+          // REGLA: El usuario que recibe no paga (la cuota se crea normal pero se bloqueará en la UI)
+          bool pagadaActual = false;
           if (grupo.usuarioRecibeNoPaga == true && i == miembro.numeroTurno) {
-            continue; // Se salta esta cuota
+            pagadaActual = true;
           }
 
           DateTime fechaVencimiento;
@@ -167,7 +168,7 @@ class SavingsService {
             'monto_esperado': montoCuota,
             'monto_pagado': 0,
             'fecha_vencimiento': fechaVencimiento.toIso8601String().split('T')[0],
-            'pagada': false,
+            'pagada': pagadaActual,
           });
         }
 
@@ -369,11 +370,19 @@ class SavingsService {
       final grupoData = await _supabase.client
           .schema('Financiamientos')
           .from('Grupos_Ahorro')
-          .select('turno_actual')
+          .select('turno_actual, recaudado_turno, total_acumulado, cantidad_participantes')
           .eq('id', grupoId)
           .single();
 
-      final int nuevoTurno = (grupoData['turno_actual'] ?? 1) + 1;
+      final int turnoActual = (grupoData['turno_actual'] ?? 1);
+      final double recaudadoTurnoAnterior = (grupoData['recaudado_turno'] ?? 0).toDouble();
+      final double totalAcumuladoActual = (grupoData['total_acumulado'] ?? 0).toDouble();
+      final int cantidadParticipantes = (grupoData['cantidad_participantes'] ?? 0);
+      
+      final int nuevoTurno = turnoActual + 1;
+      
+      // El nuevo total acumulado es el anterior menos lo que se entregó en este turno
+      final double nuevoTotalAcumulado = (totalAcumuladoActual - recaudadoTurnoAnterior).clamp(0, double.infinity);
 
       // Calcular lo que ya se abonó por adelantado para este nuevoTurno:
       // Primero encontramos todos los miembros del grupo
@@ -394,16 +403,49 @@ class SavingsService {
         }
       }
 
+      // Si el nuevo turno supera la cantidad de participantes, el grupo se finaliza
+      final String nuevoEstado = nuevoTurno > cantidadParticipantes ? 'finalizado' : 'activo';
+
       await _supabase.client
           .schema('Financiamientos')
           .from('Grupos_Ahorro')
           .update({
-            'turno_actual': nuevoTurno,
-            'recaudado_turno': totalAdelantado, // Configurar suma adelantada en vez de 0
+            'turno_actual': nuevoTurno > cantidadParticipantes ? cantidadParticipantes : nuevoTurno,
+            'recaudado_turno': nuevoTurno > cantidadParticipantes ? 0 : totalAdelantado, 
+            'total_acumulado': nuevoTotalAcumulado,
+            'estado': nuevoEstado,
           })
           .eq('id', grupoId);
     } catch (e) {
       print('Error en entregarTurno: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> intercambiarTurnos(MiembroGrupo m1, MiembroGrupo m2) async {
+    try {
+      final int? t1 = m1.numeroTurno;
+      final int? t2 = m2.numeroTurno;
+
+      // Usar un valor temporal negativo que garantice no chocar con turnos reales (ej. 1, 2, 3...)
+      // ni con el valor 'null' (ya que pueden haber otros miembros sin turno).
+      final int tempTurn = -9999;
+
+      // Paso 1: Liberamos el turno de m1 pasándolo a un valor temporal
+      await updateMiembro(m1.copyWith(numeroTurno: tempTurn));
+      
+      // Paso 2: Ahora el turno t1 está libre, pasamos m2 a t1
+      await updateMiembro(m2.copyWith(numeroTurno: t1));
+      
+      // Paso 3: Ahora el turno t2 está libre, pasamos m1 a t2
+      await updateMiembro(m1.copyWith(numeroTurno: t2));
+
+    } catch (e) {
+      print('Error en intercambiarTurnos: $e');
+      // Intentar rollback en caso de error crítico si se quedó en el valor temporal
+      try {
+         await updateMiembro(m1.copyWith(numeroTurno: m1.numeroTurno));
+      } catch (_) {}
       rethrow;
     }
   }
@@ -482,9 +524,10 @@ class SavingsService {
 
       for (var miembro in miembros) {
         for (int i = 1; i <= n; i++) {
-          // REGLA: El usuario que recibe no paga
+          // REGLA: El usuario que recibe no paga (la cuota se crea normal pero se bloqueará en la UI)
+          bool pagadaActual = false;
           if (grupo.usuarioRecibeNoPaga == true && i == miembro.numeroTurno) {
-            continue; 
+            pagadaActual = true;
           }
 
           DateTime fechaVencimiento;
@@ -509,7 +552,7 @@ class SavingsService {
             'monto_esperado': miembro.montoCuota,
             'monto_pagado': 0,
             'fecha_vencimiento': fechaVencimiento.toIso8601String().split('T')[0],
-            'pagada': false,
+            'pagada': pagadaActual,
           });
         }
       }
@@ -523,6 +566,43 @@ class SavingsService {
     } catch (e) {
       print('Error al iniciar el susu y regenerar cuotas: $e');
       rethrow;
+    }
+  }
+  
+  Future<Map<String, double>> getStatsTurno(String grupoId, int turno) async {
+    try {
+      final miembros = await getMiembros(grupoId);
+      final miembrosIds = miembros.map((e) => e.id!).toList();
+      
+      if (miembrosIds.isEmpty) return {'porCobrar': 0, 'cancelado': 0, 'total': 0};
+
+      final response = await _supabase.client
+          .schema('Financiamientos')
+          .from('Cuotas_Ahorro')
+          .select('monto_esperado, monto_pagado')
+          .filter('miembro_id', 'in', '(${miembrosIds.map((id) => '"$id"').join(',')})')
+          .eq('numero_cuota', turno);
+
+      double porCobrar = 0;
+      double cancelado = 0;
+      double total = 0;
+
+      for (var row in response) {
+        final esperado = (row['monto_esperado'] as num).toDouble();
+        final pagado = (row['monto_pagado'] as num).toDouble();
+        total += esperado;
+        cancelado += pagado;
+        porCobrar += (esperado - pagado > 0) ? (esperado - pagado) : 0;
+      }
+
+      return {
+        'porCobrar': porCobrar,
+        'cancelado': cancelado,
+        'total': total,
+      };
+    } catch (e) {
+      print('Error en getStatsTurno: $e');
+      return {'porCobrar': 0, 'cancelado': 0, 'total': 0};
     }
   }
 }

@@ -28,6 +28,7 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
   final TextEditingController _descripcionController = TextEditingController(); // Nueva nota
   
   bool _usuarioRecibeNoPaga = false;
+  DateTime? _fechaInicioProyectada;
   
   PeriodoAhorro _periodo = PeriodoAhorro.semanal;
 
@@ -41,6 +42,7 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
       _descripcionController.text = widget.grupo!.descripcion ?? '';
       _usuarioRecibeNoPaga = widget.grupo!.usuarioRecibeNoPaga;
       _periodo = widget.grupo!.periodo;
+      _fechaInicioProyectada = widget.grupo!.fechaInicioProyectada;
     }
     _participantesController.addListener(() { setState(() {}); });
     _metaController.addListener(() { setState(() {}); });
@@ -137,6 +139,71 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
                 ),
                 maxLines: 2,
               ),
+              const SizedBox(height: 24),
+              
+              const Text('Fecha y Hora de Inicio (Opcional)', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () async {
+                  final pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: _fechaInicioProyectada ?? DateTime.now(),
+                    firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (pickedDate != null) {
+                    final pickedTime = await showTimePicker(
+                      context: context,
+                      initialTime: _fechaInicioProyectada != null 
+                          ? TimeOfDay.fromDateTime(_fechaInicioProyectada!) 
+                          : const TimeOfDay(hour: 12, minute: 0),
+                    );
+                    if (pickedTime != null) {
+                      setState(() {
+                        _fechaInicioProyectada = DateTime(
+                          pickedDate.year,
+                          pickedDate.month,
+                          pickedDate.day,
+                          pickedTime.hour,
+                          pickedTime.minute,
+                        );
+                      });
+                    }
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade400),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_month, color: Colors.grey.shade700),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _fechaInicioProyectada != null
+                              ? '${_fechaInicioProyectada!.day}/${_fechaInicioProyectada!.month}/${_fechaInicioProyectada!.year} - ${_fechaInicioProyectada!.hour > 12 ? _fechaInicioProyectada!.hour - 12 : (_fechaInicioProyectada!.hour == 0 ? 12 : _fechaInicioProyectada!.hour)}:${_fechaInicioProyectada!.minute.toString().padLeft(2, '0')} ${_fechaInicioProyectada!.hour >= 12 ? 'PM' : 'AM'}'
+                              : 'Seleccionar Fecha y Hora...',
+                          style: TextStyle(
+                            color: _fechaInicioProyectada != null ? Colors.black87 : Colors.grey.shade600,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                      if (_fechaInicioProyectada != null)
+                        IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.red),
+                          onPressed: () => setState(() => _fechaInicioProyectada = null),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 24),
               
               const Text('Frecuencia de Ahorro', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -287,26 +354,36 @@ class _FormularioGrupoState extends State<FormularioGrupo> {
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
-      final grupo = widget.grupo?.copyWith(
+      final metaAhorro = double.parse(_metaController.text);
+      final participantes = int.parse(_participantesController.text);
+      
+      final nuevoGrupo = widget.grupo?.copyWith(
         nombre: _nombreController.text,
-        metaAhorro: double.parse(_metaController.text),
+        metaAhorro: metaAhorro,
         periodo: _periodo,
-        cantidadParticipantes: int.parse(_participantesController.text),
-        descripcion: _descripcionController.text.trim(),
+        fechaCreacion: widget.grupo?.fechaCreacion ?? DateTime.now(),
+        estado: widget.grupo?.estado ?? EstadoGrupo.activo,
+        cantidadParticipantes: participantes,
+        fechaPrimerPago: widget.grupo?.fechaPrimerPago,
+        descripcion: _descripcionController.text.isEmpty ? null : _descripcionController.text,
+        turnoActual: widget.grupo?.turnoActual ?? 1,
+        recaudadoTurno: widget.grupo?.recaudadoTurno ?? 0,
         usuarioRecibeNoPaga: _usuarioRecibeNoPaga,
+        fechaInicioProyectada: _fechaInicioProyectada,
       ) ?? GrupoAhorro(
         nombre: _nombreController.text,
-        metaAhorro: double.parse(_metaController.text),
-        tipoAporte: TipoAporte.comun, 
+        metaAhorro: metaAhorro,
+        tipoAporte: TipoAporte.comun,
         periodo: _periodo,
         creadoPor: widget.nombreUsuario,
         fechaCreacion: DateTime.now(),
-        cantidadParticipantes: int.parse(_participantesController.text),
-        fechaPrimerPago: null, 
-        descripcion: _descripcionController.text.trim(),
+        cantidadParticipantes: participantes,
+        descripcion: _descripcionController.text.isEmpty ? null : _descripcionController.text,
         usuarioRecibeNoPaga: _usuarioRecibeNoPaga,
+        fechaInicioProyectada: _fechaInicioProyectada,
       );
-      widget.onGuardar(grupo);
+
+      widget.onGuardar(nuevoGrupo);
     }
   }
 }

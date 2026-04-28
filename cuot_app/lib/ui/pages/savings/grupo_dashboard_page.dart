@@ -39,6 +39,12 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
   final Map<String, List<CuotaAhorro>> _cuotasCache = {};
   final Map<String, bool> _loadingCuotasCache = {};
 
+  // Estadísticas del turno actual
+  double _porCobrarTurno = 0;
+  double _canceladoTurno = 0;
+  double _totalRecaudacionTurno = 0;
+  double _promedioTurno = 0;
+
   @override
   void initState() {
     super.initState();
@@ -60,9 +66,25 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
       // Ordenar miembros por turno (menor a mayor, null al final)
       miembros.sort((a, b) => (a.numeroTurno ?? 999).compareTo(b.numeroTurno ?? 999));
 
+      double pc = 0, can = 0, tot = 0, prom = 0;
+      if (grupo != null && grupo.turnoActual > 0) {
+        final stats = await _savingsService.getStatsTurno(grupo.id!, grupo.turnoActual);
+        pc = stats['porCobrar'] ?? 0;
+        can = stats['cancelado'] ?? 0;
+        tot = stats['total'] ?? 0;
+        
+        if (miembros.isNotEmpty) {
+          prom = tot / miembros.length;
+        }
+      }
+
       setState(() {
         _grupo = grupo;
         _miembros = miembros;
+        _porCobrarTurno = pc;
+        _canceladoTurno = can;
+        _totalRecaudacionTurno = tot;
+        _promedioTurno = prom;
         _isLoading = false;
       });
     } catch (e) {
@@ -136,7 +158,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                         ),
                       ),
                       const Text(
-                        'Total a Recibir', // TERMINOLOGÍA ACTUALIZADA
+                        'Recaudado', // TERMINOLOGÍA ACTUALIZADA
                         style: TextStyle(color: Colors.white70, fontSize: 14),
                       ),
                       const SizedBox(height: 8),
@@ -150,7 +172,19 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                           _getProximoARecibir(),
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                         ),
-                      )
+                      ),
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildHeaderStat('Por cobrar', '\$${_totalRecaudacionTurno.toStringAsFixed(0)}'),
+                            _buildHeaderStat('Cancelado', '\$${_canceladoTurno.toStringAsFixed(0)}'),
+                            _buildHeaderStat('Promedio', '\$${_promedioTurno.toStringAsFixed(0)}'),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -225,16 +259,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                InkWell(
-                  onTap: () => _mostrarDesglosePagos(),
-                  borderRadius: BorderRadius.circular(8),
-                  child: _buildStatItem(
-                    'Recibe', // POR TURNO
-                    '\$${_grupo!.recaudadoTurno.toStringAsFixed(0)}',
-                    Icons.payments_outlined,
-                  ),
-                ),
-                Container(width: 1, height: 40, color: Colors.grey.shade200),
+                // 1. Asignar (Sorteo) - MOVIDO AQUÍ
                 InkWell(
                   onTap: () => _realizarSorteo(),
                   borderRadius: BorderRadius.circular(8),
@@ -245,33 +270,36 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                   ),
                 ),
                 Container(width: 1, height: 40, color: Colors.grey.shade200),
-                _buildStatItem(
-                  'Turno',
-                  '#${_grupo!.turnoActual}',
-                  Icons.tag,
+                
+                // 2. Entregar Turno - MOVIDO AQUÍ
+                InkWell(
+                  onTap: _grupo!.fechaPrimerPago != null ? () => _showEntregarTurnoConfirm() : null,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Opacity(
+                    opacity: _grupo!.fechaPrimerPago != null ? 1.0 : 0.5,
+                    child: _buildStatItem(
+                      'Entregar',
+                      'Turno #${_grupo!.turnoActual}',
+                      Icons.handshake_outlined,
+                    ),
+                  ),
+                ),
+                Container(width: 1, height: 40, color: Colors.grey.shade200),
+                
+                // 3. Historial (Recibe) - MOVIDO AQUÍ
+                InkWell(
+                  onTap: () => _mostrarDesglosePagos(),
+                  borderRadius: BorderRadius.circular(8),
+                  child: _buildStatItem(
+                    'Historial',
+                    '\$${_grupo!.recaudadoTurno.toStringAsFixed(0)}',
+                    Icons.payments_outlined,
+                  ),
                 ),
               ],
             ),
           ),
         ),
-        if (_grupo!.fechaPrimerPago != null) ...[
-          const SizedBox(height: 12),
-          // BOTÓN ENTREGAR NUMERO (REQUERIMIENTO 12)
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () => _showEntregarTurnoConfirm(),
-              icon: const Icon(Icons.handshake_outlined),
-              label: Text('Entregar Turno #${_grupo!.turnoActual} a $nombreRecibe'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          )
-        ],
       ],
     );
   }
@@ -336,6 +364,60 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
         ),
       );
       return;
+    }
+
+    // NUEVA VALIDACIÓN: Fecha proyectada expirada
+    if (_grupo!.fechaInicioProyectada != null) {
+      final hoy = DateTime.now();
+      final hoySinHora = DateTime(hoy.year, hoy.month, hoy.day);
+      final proyectada = _grupo!.fechaInicioProyectada!;
+      final proyectadaSinHora = DateTime(proyectada.year, proyectada.month, proyectada.day);
+
+      if (proyectadaSinHora.isBefore(hoySinHora)) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                SizedBox(width: 8),
+                Text('Fecha Expirada'),
+              ],
+            ),
+            content: Text('La fecha de inicio proyectada (${DateUt.formatearFecha(proyectada)}) ha expirado. ¿Deseas seleccionar una nueva fecha o iniciar hoy?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('CANCELAR', style: TextStyle(color: Colors.grey)),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (picked != null) {
+                    _ejecutarInicio(picked);
+                  }
+                },
+                child: const Text('ELEGIR FECHA'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _ejecutarInicio(DateTime.now());
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryGreen, foregroundColor: Colors.white),
+                child: const Text('INICIAR HOY'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
     }
 
     showDialog(
@@ -649,28 +731,66 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
       fechaRecepcion = DateUt.formatearFecha(dt);
     }
 
-    String mensaje = 
-      "*Ficha de Participante - Grupo Ahorro*\n\n"
-      "Participante: *${miembro.nombreCliente}*\n"
-      "Nombre del grupo: *${_grupo!.nombre}*\n\n"
-      "*Información del Susu* 📋\n"
-      "Frecuencia: *${_grupo!.periodo.name.toUpperCase()}*\n"
-      "Moneda: *USD-BCV*\n"
-      "Valor objetivo: *\$${_grupo!.metaAhorro.toStringAsFixed(0)}*\n\n"
-      "*Compromiso del Participante* 💰\n"
-      "Cuota a pagar: *\$${miembro.montoCuota.toStringAsFixed(0)} ${_grupo!.periodo.name}*\n"
-      "Total de cuotas a pagar: *${_grupo!.cantidadParticipantes}*\n"
-      "Turno a recibir: *#${miembro.numeroTurno ?? '?'}*\n"
-      "Fecha de recepción: *${fechaRecepcion}* ✅\n\n"
-      "*Estado de Pagos de las cuotas* 🚨\n"
-      "Pagadas: *$pagadas/$total*\n"
-      "No pagadas: *0*\n"
-      "Pendientes: *$pendientes*";
+    String mensaje = '';
 
-    // Requerimiento 9: La nota del objetivo que se vea en el registro del miembro
-    if (_grupo?.descripcion != null && _grupo!.descripcion!.isNotEmpty) {
-      mensaje = "*Ficha de Participante - Grupo Ahorro*\n"
-                "Objetivo: *${_grupo!.descripcion}*\n\n" + mensaje.replaceFirst("*Ficha de Participante - Grupo Ahorro*\n\n", "");
+    if (_grupo!.fechaPrimerPago == null) {
+      // Mensaje de confirmación pre-inicio (Susu no iniciado)
+      String fechaApertura = 'Fecha Indefinida';
+      String horaApertura = '';
+      if (_grupo!.fechaInicioProyectada != null) {
+        final fp = _grupo!.fechaInicioProyectada!;
+        const mesesStr = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        fechaApertura = '${fp.day} de ${mesesStr[fp.month - 1]}';
+        
+        final isPm = fp.hour >= 12;
+        int hour12 = fp.hour > 12 ? fp.hour - 12 : (fp.hour == 0 ? 12 : fp.hour);
+        String minStr = fp.minute > 0 ? ':${fp.minute.toString().padLeft(2, '0')}' : '';
+        horaApertura = '  *Hora: $hour12$minStr${isPm ? 'pm' : 'am'}.*';
+      }
+
+      double meses = 0;
+      if (_grupo!.cantidadParticipantes > 0) {
+        switch (_grupo!.periodo) {
+          case PeriodoAhorro.diario: meses = _grupo!.cantidadParticipantes / 30; break;
+          case PeriodoAhorro.semanal: meses = _grupo!.cantidadParticipantes / 4; break;
+          case PeriodoAhorro.quincenal: meses = _grupo!.cantidadParticipantes / 2; break;
+          case PeriodoAhorro.mensual: meses = _grupo!.cantidadParticipantes.toDouble(); break;
+        }
+      }
+
+      String freqStr = _grupo!.periodo == PeriodoAhorro.diario ? 'diarios' :
+                       _grupo!.periodo == PeriodoAhorro.semanal ? 'semanales' :
+                       _grupo!.periodo == PeriodoAhorro.quincenal ? 'quincenales' : 'mensuales';
+
+      mensaje = "Muy buenos días, escribimos para confirmar su participación en el susú que se va a apertura este *$fechaApertura*.$horaApertura\n\n"
+                "Según se registró con un monto de *${miembro.montoCuota.toStringAsFixed(0)}\$ $freqStr | ${_grupo!.cantidadParticipantes} cuotas | ${meses.toStringAsFixed(1).replaceAll('.0', '')} meses.*\n\n"
+                "Puede pagar sus cuotas $freqStr o mensuales como más le sea más fácil";
+
+    } else {
+      // Mensaje estándar cuando el Susu ya inició
+      mensaje = 
+        "*Ficha de Participante - Grupo Ahorro*\n\n"
+        "Participante: *${miembro.nombreCliente}*\n"
+        "Nombre del grupo: *${_grupo!.nombre}*\n\n"
+        "*Información del Susu* 📋\n"
+        "Frecuencia: *${_grupo!.periodo.name.toUpperCase()}*\n"
+        "Moneda: *USD-BCV*\n"
+        "Valor objetivo: *\$${_grupo!.metaAhorro.toStringAsFixed(0)}*\n\n"
+        "*Compromiso del Participante* 💰\n"
+        "Cuota a pagar: *\$${miembro.montoCuota.toStringAsFixed(0)} ${_grupo!.periodo.name}*\n"
+        "Total de cuotas a pagar: *${_grupo!.cantidadParticipantes}*\n"
+        "Turno a recibir: *#${miembro.numeroTurno ?? '?'}*\n"
+        "Fecha de recepción: *${fechaRecepcion}* ✅\n\n"
+        "*Estado de Pagos de las cuotas* 🚨\n"
+        "Pagadas: *$pagadas/$total*\n"
+        "No pagadas: *0*\n"
+        "Pendientes: *$pendientes*";
+
+      // Requerimiento 9: La nota del objetivo que se vea en el registro del miembro
+      if (_grupo?.descripcion != null && _grupo!.descripcion!.isNotEmpty) {
+        mensaje = "*Ficha de Participante - Grupo Ahorro*\n"
+                  "Objetivo: *${_grupo!.descripcion}*\n\n" + mensaje.replaceFirst("*Ficha de Participante - Grupo Ahorro*\n\n", "");
+      }
     }
 
     // Limpiar teléfono del miembro
@@ -725,15 +845,17 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
         itemCount: cuotas.length,
         itemBuilder: (context, index) {
           final c = cuotas[index];
-          final bool tieneSaldo = c.pendiente > 0.01;
+          // Detectar si es la cuota de su propio turno y el grupo dice que no paga
+          final bool isExenta = (_grupo?.usuarioRecibeNoPaga ?? false) && c.numeroCuota == miembro.numeroTurno;
           
-          final bool isAtrasada = !c.pagada && 
-                                c.fechaVencimiento.isBefore(DateTime.now().subtract(const Duration(days: 1)));
-          final Color statusColor = c.pagada 
-              ? AppColors.success 
-              : (isAtrasada ? Colors.red : Colors.orange);
+          final bool tieneSaldo = c.pendiente > 0.01 && !isExenta;
           
-          final bool isYellow = !c.pagada && !isAtrasada;
+          final bool isAtrasada = !c.pagada && !isExenta &&
+                                 c.fechaVencimiento.isBefore(DateTime.now().subtract(const Duration(days: 1)));
+          
+          final Color statusColor = isExenta 
+              ? Colors.blueGrey 
+              : (c.pagada ? AppColors.success : (isAtrasada ? Colors.red : Colors.orange));
           
           return InkWell(
             onTap: tieneSaldo ? () => _showPayCuotaDialog(miembro, c) : null,
@@ -742,7 +864,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
               width: 135,
               margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isExenta ? Colors.grey.shade50 : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: statusColor.withOpacity(0.3),
@@ -772,7 +894,9 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      if (c.pagada) 
+                      if (isExenta)
+                        const Icon(Icons.lock, color: Colors.blueGrey, size: 14)
+                      else if (c.pagada) 
                         const Icon(Icons.check_circle, color: AppColors.success, size: 14)
                       else if (isAtrasada)
                         const Icon(Icons.error, color: Colors.red, size: 14)
@@ -780,19 +904,19 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    '\$${(tieneSaldo ? c.pendiente : c.montoPagado).toStringAsFixed(2)}',
+                    '\$${(isExenta ? c.montoEsperado : (tieneSaldo ? c.pendiente : c.montoPagado)).toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
-                      color: tieneSaldo ? (isAtrasada ? Colors.red.shade800 : Colors.black87) : AppColors.success,
+                      color: isExenta ? Colors.blueGrey : (tieneSaldo ? (isAtrasada ? Colors.red.shade800 : Colors.black87) : AppColors.success),
                     ),
                   ),
                   Text(
-                    tieneSaldo ? 'RESTANTE' : 'COMPLETADO',
+                    isExenta ? 'TURNO RECIBO' : (tieneSaldo ? 'RESTANTE' : 'COMPLETADO'),
                     style: TextStyle(
                       fontSize: 8,
                       letterSpacing: 0.5,
-                      color: Colors.grey.shade500,
+                      color: isExenta ? Colors.blueGrey.shade300 : Colors.grey.shade500,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -1092,23 +1216,12 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
   Future<void> _intercambiarTurnos(MiembroGrupo m1, MiembroGrupo m2) async {
     setState(() => _isLoading = true);
     try {
-      final int? t1 = m1.numeroTurno;
-      final int? t2 = m2.numeroTurno;
-
-      // Primero liberamos el turno de m1 (pasándolo a null temporalmente)
-      // Esto evita el choque de la restricción UNIQUE(grupo_id, numero_turno)
-      await _savingsService.updateMiembro(m1.copyWith(numeroTurno: null));
-      
-      // Ahora el turno t1 está libre, pasamos m2 a t1
-      await _savingsService.updateMiembro(m2.copyWith(numeroTurno: t1));
-      
-      // Ahora el turno t2 está libre, pasamos m1 a t2
-      await _savingsService.updateMiembro(m1.copyWith(numeroTurno: t2));
+      await _savingsService.intercambiarTurnos(m1, m2);
       
       await _loadData();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('¡Turnos intercambiados éxito!'), backgroundColor: AppColors.success),
+          const SnackBar(content: Text('¡Turnos intercambiados con éxito!'), backgroundColor: AppColors.success),
         );
       }
     } catch (e) {
@@ -1787,7 +1900,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
       return 'Esperando Sorteo / ${info.nombreProximo}';
     }
 
-    return 'Próximo a recibir: ${info.nombreProximo} (en ${info.diasRestantes} días)';
+    return 'Turno ${_grupo!.turnoActual}: ${info.nombreProximo} (en ${info.diasRestantes} días)';
   }
 
   Future<void> _realizarSorteo() async {
@@ -1849,5 +1962,27 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
         const SnackBar(content: Text('Sorteo realizado con éxito'), backgroundColor: AppColors.success),
       );
     }
+  }
+
+  Widget _buildHeaderStat(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.8),
+            fontSize: 9,
+          ),
+        ),
+      ],
+    );
   }
 }

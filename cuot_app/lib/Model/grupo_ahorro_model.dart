@@ -20,6 +20,7 @@ class GrupoAhorro {
   final int turnoActual; // Turno en curso
   final double recaudadoTurno; // Lo recaudado solo para el turno actual
   final bool usuarioRecibeNoPaga;
+  final DateTime? fechaInicioProyectada;
 
   GrupoAhorro({
     this.id,
@@ -37,6 +38,7 @@ class GrupoAhorro {
     this.turnoActual = 1,
     this.recaudadoTurno = 0,
     this.usuarioRecibeNoPaga = false,
+    this.fechaInicioProyectada,
   });
 
   factory GrupoAhorro.fromJson(Map<String, dynamic> json) {
@@ -56,6 +58,7 @@ class GrupoAhorro {
       turnoActual: json['turno_actual'] ?? 1,
       recaudadoTurno: (json['recaudado_turno'] as num?)?.toDouble() ?? 0,
       usuarioRecibeNoPaga: json['usuario_recibe_no_paga'] == true,
+      fechaInicioProyectada: json['fecha_inicio_proyectada'] != null ? DateUt.parseFullDateTime(json['fecha_inicio_proyectada']) : null,
     );
   }
 
@@ -74,6 +77,7 @@ class GrupoAhorro {
     'turno_actual': turnoActual,
     'recaudado_turno': recaudadoTurno,
     'usuario_recibe_no_paga': usuarioRecibeNoPaga,
+    if (fechaInicioProyectada != null) 'fecha_inicio_proyectada': fechaInicioProyectada?.toIso8601String(),
   };
 
   GrupoAhorro copyWith({
@@ -92,6 +96,7 @@ class GrupoAhorro {
     int? turnoActual,
     double? recaudadoTurno,
     bool? usuarioRecibeNoPaga,
+    DateTime? fechaInicioProyectada,
   }) {
     return GrupoAhorro(
       id: id ?? this.id,
@@ -109,6 +114,7 @@ class GrupoAhorro {
       turnoActual: turnoActual ?? this.turnoActual,
       recaudadoTurno: recaudadoTurno ?? this.recaudadoTurno,
       usuarioRecibeNoPaga: usuarioRecibeNoPaga ?? this.usuarioRecibeNoPaga,
+      fechaInicioProyectada: fechaInicioProyectada ?? this.fechaInicioProyectada,
     );
   }
 

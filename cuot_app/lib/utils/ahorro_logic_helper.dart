@@ -32,35 +32,10 @@ class AhorroLogicHelper {
     final DateTime now = DateTime.now();
     final DateTime startDate = grupo.fechaPrimerPago ?? grupo.fechaCreacion;
     
-    // Calcular cuántos periodos han pasado desde la fecha de inicio
-    int periodosPasados = 0;
-    int diasDesdeInicio = now.difference(startDate).inDays;
-
-    if (now.isBefore(startDate)) {
-      // Aún no ha empezado el ciclo
-      periodosPasados = 0;
-    } else {
-      switch (grupo.periodo) {
-        case PeriodoAhorro.diario:
-          periodosPasados = diasDesdeInicio;
-          break;
-        case PeriodoAhorro.semanal:
-          periodosPasados = (diasDesdeInicio / 7).floor();
-          break;
-        case PeriodoAhorro.quincenal:
-          periodosPasados = (diasDesdeInicio / 15).floor();
-          break;
-        case PeriodoAhorro.mensual:
-          // Aproximación mensual: diferencia en meses
-          periodosPasados = (now.year - startDate.year) * 12 + now.month - startDate.month;
-          if (now.day < startDate.day) periodosPasados--;
-          break;
-      }
-    }
-
-    int turnoActual = periodosPasados + 1;
+    // El turno real es el que dicta la base de datos
+    int turnoActual = grupo.turnoActual;
     
-    // Calcular fecha del próximo turno
+    // Calcular fecha del próximo turno (el que está en progreso)
     DateTime fechaProxima;
     switch (grupo.periodo) {
       case PeriodoAhorro.diario:
@@ -75,11 +50,6 @@ class AhorroLogicHelper {
       case PeriodoAhorro.mensual:
         fechaProxima = DateTime(startDate.year, startDate.month + (turnoActual - 1), startDate.day);
         break;
-    }
-
-    // Si la fecha calculada ya pasó, el próximo turno es el siguiente
-    if (now.isAfter(fechaProxima.add(const Duration(days: 1)))) {
-       // Opcional: Podrías avanzar el turno aquí si consideras que el turno se "ejecuta" el mismo día
     }
 
     int diasRestantes = fechaProxima.difference(now).inDays;

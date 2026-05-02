@@ -765,7 +765,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
 
       mensaje = "Muy buenos días, escribimos para confirmar su participación en el susú que se va a apertura este *$fechaApertura*.$horaApertura\n\n"
                 "Según se registró con un monto de *${miembro.montoCuota.toStringAsFixed(0)}\$ $freqStr | ${_grupo!.cantidadParticipantes} cuotas | ${meses.toStringAsFixed(1).replaceAll('.0', '')} meses.*\n\n"
-                "Puede pagar sus cuotas $freqStr o mensuales como más le sea más fácil";
+                "Puede pagar sus cuotas mensuales, quincenales, semanales o diario como le sea más fácil .";
 
     } else {
       // Mensaje estándar cuando el Susu ya inició

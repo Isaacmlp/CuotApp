@@ -27,6 +27,8 @@ class TarjetaFinanciamiento extends StatefulWidget {
   final VoidCallback onVerDetalle;
   final int? numeroCredito;
   final String? notas;
+  final VoidCallback? onListaNegra;
+  final String? estadoDB;
 
   const TarjetaFinanciamiento({
     super.key,
@@ -41,8 +43,8 @@ class TarjetaFinanciamiento extends StatefulWidget {
     required this.cuotas,
     required this.pagos,
     required this.concepto,
-    required this.totalCredito, // 👈 NUEVO
-    required this.modalidadPago, // 👈 NUEVO
+    required this.totalCredito,
+    required this.modalidadPago,
     this.creditoId,
     required this.onCuotaTap,
     required this.onVerDetalle,
@@ -50,6 +52,8 @@ class TarjetaFinanciamiento extends StatefulWidget {
     this.onEliminar,
     this.numeroCredito,
     this.notas,
+    this.onListaNegra,
+    this.estadoDB,
   });
 
   @override
@@ -84,6 +88,7 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
 
   Color get _estadoColor {
     final est = widget.estado.toLowerCase();
+    if (est == 'lista negra') return const Color(0xFF37474F);
     if (est == 'pagado') return AppColors.success;
     if (est == 'atrasado' || est == 'vencido') return AppColors.error;
     if (est == 'al día') return AppColors.primaryGreen;
@@ -92,6 +97,8 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
 
   IconData get _estadoIcon {
     switch (widget.estado.toLowerCase()) {
+      case 'lista negra':
+        return Icons.block;
       case 'pagado':
         return Icons.check_circle;
       case 'atrasado':
@@ -253,6 +260,60 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
                             ],
                           ),
                         ),
+                        // Menú de 3 puntos
+                        if (widget.estado.toLowerCase() != 'pagado')
+                          PopupMenuButton<String>(
+                            icon: Icon(
+                              Icons.more_vert,
+                              color: Colors.grey.shade600,
+                              size: 22,
+                            ),
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            onSelected: (value) {
+                              if (value == 'lista_negra') {
+                                widget.onListaNegra?.call();
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              if (widget.estadoDB != 'Lista Negra')
+                                PopupMenuItem<String>(
+                                  value: 'lista_negra',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.block, color: Colors.red.shade700, size: 20),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        'Lista Negra',
+                                        style: TextStyle(
+                                          color: Colors.red.shade700,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              if (widget.estadoDB == 'Lista Negra')
+                                PopupMenuItem<String>(
+                                  value: 'lista_negra',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.restore, color: AppColors.primaryGreen, size: 20),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        'Quitar Lista Negra',
+                                        style: TextStyle(
+                                          color: AppColors.primaryGreen,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
                       ],
                     ),
                     const SizedBox(height: 12),

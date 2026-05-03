@@ -15,6 +15,7 @@ class TarjetaCreditoUnico extends StatefulWidget {
   final VoidCallback onVerDetalle;
   final VoidCallback? onEditar;
   final VoidCallback? onEliminar;
+  final VoidCallback? onListaNegra;
 
   const TarjetaCreditoUnico({
     super.key,
@@ -23,6 +24,7 @@ class TarjetaCreditoUnico extends StatefulWidget {
     required this.onVerDetalle,
     this.onEditar,
     this.onEliminar,
+    this.onListaNegra,
   });
 
   @override
@@ -84,6 +86,7 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
   }
 
   Color get _colorDiasRestantes {
+    if (widget.credito.estadoDB == 'Lista Negra') return const Color(0xFF37474F);
     if (widget.credito.estaPagado) return AppColors.success;
     if (widget.credito.estaVencido) return AppColors.error;
     if (_diasRestantes <= 3) return AppColors.error;
@@ -233,13 +236,17 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(
-                                        Icons.event,
+                                        widget.credito.estadoDB == 'Lista Negra'
+                                            ? Icons.block
+                                            : Icons.event,
                                         size: 14,
                                         color: _colorDiasRestantes,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        _textoDiasRestantes,
+                                        widget.credito.estadoDB == 'Lista Negra'
+                                            ? 'Lista Negra'
+                                            : _textoDiasRestantes,
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
@@ -262,6 +269,60 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
                                 ],
                               ),
                             ),
+                            // Menú de 3 puntos
+                            if (!widget.credito.estaPagado)
+                              PopupMenuButton<String>(
+                                icon: Icon(
+                                  Icons.more_vert,
+                                  color: Colors.grey.shade600,
+                                  size: 22,
+                                ),
+                                padding: EdgeInsets.zero,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                onSelected: (value) {
+                                  if (value == 'lista_negra') {
+                                    widget.onListaNegra?.call();
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  if (widget.credito.estadoDB != 'Lista Negra')
+                                    PopupMenuItem<String>(
+                                      value: 'lista_negra',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.block, color: Colors.red.shade700, size: 20),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            'Lista Negra',
+                                            style: TextStyle(
+                                              color: Colors.red.shade700,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  if (widget.credito.estadoDB == 'Lista Negra')
+                                    PopupMenuItem<String>(
+                                      value: 'lista_negra',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.restore, color: AppColors.primaryGreen, size: 20),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            'Quitar Lista Negra',
+                                            style: TextStyle(
+                                              color: AppColors.primaryGreen,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                              ),
                           ],
                         ),
                       ],

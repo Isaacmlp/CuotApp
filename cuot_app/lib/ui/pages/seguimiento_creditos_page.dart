@@ -155,6 +155,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             pagosRealizados: pagos,
             notas: c['notas'],
             numeroCredito: c['numero_credito'],
+            estadoDB: c['estado'],
           ));
         } else {
           processedCredits.add({
@@ -172,6 +173,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             'modalidadPago': _getModalidadName(c['modalidad_pago']),
             'numeroCredito': c['numero_credito'],
             'notas': c['notas'],
+            'estadoDB': c['estado'],
           });
         }
       }
@@ -208,6 +210,11 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
 
   // Función para calcular el estado de créditos en cuotas
   String _calcularEstadoCreditoCuotas(Map<String, dynamic> financiamiento) {
+    // Si la BD dice 'Lista Negra', respetar ese estado
+    if (financiamiento['estadoDB'] == 'Lista Negra') {
+      return 'Lista Negra';
+    }
+
     final fechaActual = DateUt.nowUtc();
 
     final totalPagado = financiamiento['totalPagado'] as double;
@@ -351,6 +358,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         return AppColors.error;
       case 'pagado':
         return AppColors.success;
+      case 'lista negra':
+        return const Color(0xFF37474F);
       default:
         return AppColors.mediumGrey;
     }
@@ -523,7 +532,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
   }
 
   Widget _buildFiltros() {
-    final filtros = ['hoy', 'atrasado', 'al día', 'pagado', 'todos'];
+    final filtros = ['hoy', 'atrasado', 'al día', 'pagado', 'lista negra', 'todos'];
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -540,6 +549,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             else if (filtro == 'atrasado') nombreFiltro = 'Vencidos';
             else if (filtro == 'al día') nombreFiltro = 'Al día';
             else if (filtro == 'pagado') nombreFiltro = 'Pagados';
+            else if (filtro == 'lista negra') nombreFiltro = 'Lista Negra';
 
             return Padding(
               padding: const EdgeInsets.only(right: 8),
@@ -651,6 +661,88 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('❌ Error al eliminar: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _cambiarListaNegra(dynamic creditId, String nombreCliente, bool yaEsListaNegra) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              yaEsListaNegra ? Icons.restore : Icons.block,
+              color: yaEsListaNegra ? AppColors.primaryGreen : const Color(0xFF37474F),
+              size: 28,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                yaEsListaNegra ? 'Quitar de Lista Negra' : 'Pasar a Lista Negra',
+                style: const TextStyle(fontSize: 17),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          yaEsListaNegra
+              ? '¿Quieres quitar el crédito de $nombreCliente de la Lista Negra?'
+              : '¿Estás seguro de que deseas pasar el crédito de $nombreCliente a Lista Negra?\n\nCada abono que reciba contará como ganancia.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: yaEsListaNegra ? AppColors.primaryGreen : const Color(0xFF37474F),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(yaEsListaNegra ? 'Quitar' : 'Confirmar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmado == true) {
+      try {
+        final nuevoEstado = yaEsListaNegra ? 'Activo' : 'Lista Negra';
+        await _creditService.updateCreditEstado(creditId.toString(), nuevoEstado);
+        await _loadData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                yaEsListaNegra
+                    ? '✅ Crédito de $nombreCliente removido de Lista Negra'
+                    : '⚫ Crédito de $nombreCliente movido a Lista Negra',
+              ),
+              backgroundColor: yaEsListaNegra ? AppColors.success : const Color(0xFF37474F),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ Error: $e'),
               backgroundColor: AppColors.error,
             ),
           );
@@ -874,6 +966,11 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
           item.id,
           item.nombreCliente,
         ),
+        onListaNegra: () => _cambiarListaNegra(
+          item.id,
+          item.nombreCliente,
+          item.estadoDB == 'Lista Negra',
+        ),
         onVerDetalle: () {
           Navigator.push(
             context,
@@ -923,6 +1020,12 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         totalCredito: item['totalCredito'] ?? 0.0,
         numeroCredito: item['numeroCredito'],
         notas: item['notas'],
+        estadoDB: item['estadoDB'],
+        onListaNegra: () => _cambiarListaNegra(
+          item['id'],
+          item['nombre'],
+          item['estadoDB'] == 'Lista Negra',
+        ),
         onVerDetalle: () {
           Navigator.push(
             context,

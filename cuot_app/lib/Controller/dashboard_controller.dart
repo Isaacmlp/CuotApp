@@ -15,6 +15,8 @@ class DashboardController extends ChangeNotifier {
   List<PaymentModel> upcomingPayments = []; // 5. Próximos Vencimientos
   List<PaymentModel> latePayments = []; // 6. Cuotas Atrasadas
   double totalCapital = 0.0; // 7. Capital total
+  double gananciaPorCobrar = 0.0; // 8. Ganancia total por cobrar (mes actual)
+  double gananciaMensual = 0.0; // 9. Ganancia cobrada del mes actual
 
   bool isLoading = true;
   String? errorMessage;
@@ -66,6 +68,8 @@ class DashboardController extends ChangeNotifier {
     upcomingPayments = [];
     latePayments = [];
     totalCapital = 0.0;
+    gananciaPorCobrar = 0.0;
+    gananciaMensual = 0.0;
 
     for (var credit in credits) {
       // Identificar última renovación para aislar pagos/cuotas del ciclo actual
@@ -166,6 +170,105 @@ class DashboardController extends ChangeNotifier {
               clientName: clienteNombre,
               concept: concepto,
             ));
+          }
+        }
+      }
+
+      // ===== CÁLCULO DE GANANCIAS =====
+      final List<dynamic> renovacionesCredito = credit['Renovaciones'] ?? [];
+      final double margen = (credit['margen_ganancia'] as num).toDouble();
+      final double costoInv = (credit['costo_inversion'] as num).toDouble();
+      final double totalCredito = costoInv + margen;
+      final bool esListaNegra = credit['estado'] == 'Lista Negra';
+
+      // Ratio de ganancia: qué porcentaje de cada pago es ganancia
+      // Lista Negra: todo pago es 100% ganancia
+      final double profitRatio = esListaNegra
+          ? 1.0
+          : (totalCredito > 0 ? margen / totalCredito : 0.0);
+
+      // Ganancia proporcional de cada pago del ciclo actual (Para Ganancia Mensual)
+      double pagadoTotal = 0.0;
+      for (var p in pagosRaw) {
+        final ref = p['referencia']?.toString() ?? '';
+        if (ref == 'Abono en Renovación') continue;
+
+        final fechaStr = p['fecha_pago_real'] ?? p['fecha_pago'];
+        final fechaPago = DateUt.parseFullDateTime(fechaStr);
+
+        if (ultimaRenovacion != null && fechaPago.isBefore(ultimaRenovacion)) {
+          continue;
+        }
+
+        final double montoPago = (p['monto'] as num).toDouble();
+        pagadoTotal += montoPago;
+        
+        // Ganancia mensual: solo pagos del mes actual
+        if (fechaPago.year == now.year && fechaPago.month == now.month) {
+          gananciaMensual += montoPago * profitRatio;
+        }
+      }
+
+      // Ganancia adicional por renovaciones (solo para Ganancia Mensual)
+      for (var renov in renovacionesCredito) {
+        final String estadoRenov = renov['estado'] ?? '';
+        if (estadoRenov != 'aprobada') continue;
+
+        final double abono = (renov['monto_abono'] as num?)?.toDouble() ?? 0.0;
+        if (abono <= 0) continue;
+
+        final fechaRenov = DateUt.parseFullDateTime(
+          renov['created_at'] ?? renov['fecha_renovacion'],
+        );
+        if (fechaRenov.year == now.year && fechaRenov.month == now.month) {
+          gananciaMensual += abono;
+        }
+      }
+
+      // Ganancia por Cobrar (este mes)
+      if (credit['estado'] != 'Pagado') {
+        final String modalidad = credit['modalidad_pago'] ?? '';
+        final bool esPagoUnico = modalidad.toLowerCase() == 'unico' || modalidad.toLowerCase() == 'único';
+
+        if (esPagoUnico) {
+          final fechaVencimientoStr = credit['fecha_vencimiento'] ?? credit['fecha_inicio'];
+          if (fechaVencimientoStr != null) {
+            final fechaVencimiento = DateUt.parsePureDate(fechaVencimientoStr);
+            if (fechaVencimiento.year == now.year && fechaVencimiento.month == now.month) {
+              final double pendiente = totalCredito - pagadoTotal;
+              if (pendiente > 0) {
+                gananciaPorCobrar += pendiente * profitRatio;
+              }
+            }
+          }
+        } else {
+          // Cuotas
+          for (var c in cuotasRaw) {
+            if (ultimaRenovacion != null && c['created_at'] != null) {
+              final created = DateUt.parseFullDateTime(c['created_at']);
+              if (created.isBefore(ultimaRenovacion)) continue;
+            }
+            final bool pagada = c['pagada'] ?? false;
+            final String? fechaPagoStr = c['fecha_pago'];
+            if (fechaPagoStr == null) continue;
+            
+            final fechaCuota = DateUt.parsePureDate(fechaPagoStr);
+            if (fechaCuota.year == now.year && fechaCuota.month == now.month) {
+               if (!pagada) {
+                 final double montoCuota = (c['monto'] as num).toDouble();
+                 final int numCuota = c['numero_cuota'];
+                 double pagadoCuota = 0.0;
+                 for (var p in pagosRaw) {
+                   if (p['numero_cuota'] == numCuota) {
+                      pagadoCuota += (p['monto'] as num).toDouble();
+                   }
+                 }
+                 final double pendienteCuota = montoCuota - pagadoCuota;
+                 if (pendienteCuota > 0) {
+                   gananciaPorCobrar += pendienteCuota * profitRatio;
+                 }
+               }
+            }
           }
         }
       }

@@ -460,4 +460,20 @@ class CreditService {
       rethrow;
     }
   }
+
+  /// Actualizar el estado de un crédito (ej: 'Lista Negra')
+  Future<void> updateCreditEstado(String creditId, String nuevoEstado) async {
+    try {
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Creditos')
+          .update({'estado': nuevoEstado})
+          .eq('id', creditId);
+
+      invalidateCache();
+    } catch (e) {
+      print('Error al actualizar estado del crédito: $e');
+      rethrow;
+    }
+  }
 }

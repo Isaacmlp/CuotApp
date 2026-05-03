@@ -7,6 +7,8 @@ class CreditSummaryCards extends StatelessWidget {
   final int pendingWeeklyQuotas; // 3. Cuotas pendientes por semana
   final double pendingBalance; // 4. Saldo de Cuotas Pendiente
   final double totalCapital; // 5. Capital total
+  final double gananciaPorCobrar; // 6. Ganancia por cobrar (mes actual)
+  final double gananciaMensual; // 7. Ganancia del mes actual
 
   final VoidCallback? onTapActiveCredits; // 👈 NUEVO: Callback para navegación
   final VoidCallback? onTapPendingBalance; // 👈 NUEVO: Opcional para el futuro
@@ -20,10 +22,18 @@ class CreditSummaryCards extends StatelessWidget {
     this.onTapActiveCredits,
     this.onTapPendingBalance,
     required this.totalCapital,
+    required this.gananciaPorCobrar,
+    required this.gananciaMensual,
   });
 
   @override
   Widget build(BuildContext context) {
+    const meses = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    final mesActual = meses[DateTime.now().month - 1];
+
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -57,6 +67,20 @@ class CreditSummaryCards extends StatelessWidget {
           value: '\$${pendingBalance.toStringAsFixed(2)}',
           icon: Icons.pending_actions,
           color: AppColors.error,
+        ),
+        _buildSummaryCard(
+          title: 'Ganancia por Cobrar',
+          value: '\$${gananciaPorCobrar.toStringAsFixed(2)}',
+          icon: Icons.trending_up,
+          color: const Color(0xFF00897B), // Teal
+          extraInfo: mesActual,
+        ),
+        _buildSummaryCard(
+          title: 'Ganancia Mensual',
+          value: '\$${gananciaMensual.toStringAsFixed(2)}',
+          icon: Icons.calendar_month,
+          color: const Color(0xFF7B1FA2), // Purple
+          extraInfo: mesActual,
         ),
       ],
     );

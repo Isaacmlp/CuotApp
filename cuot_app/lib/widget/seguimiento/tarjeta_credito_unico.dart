@@ -15,7 +15,7 @@ class TarjetaCreditoUnico extends StatefulWidget {
   final VoidCallback onVerDetalle;
   final VoidCallback? onEditar;
   final VoidCallback? onEliminar;
-  final VoidCallback? onListaNegra;
+  final VoidCallback? onFallido;
 
   const TarjetaCreditoUnico({
     super.key,
@@ -24,7 +24,7 @@ class TarjetaCreditoUnico extends StatefulWidget {
     required this.onVerDetalle,
     this.onEditar,
     this.onEliminar,
-    this.onListaNegra,
+    this.onFallido,
   });
 
   @override
@@ -86,7 +86,7 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
   }
 
   Color get _colorDiasRestantes {
-    if (widget.credito.estadoDB == 'Lista Negra') return const Color(0xFF37474F);
+    if (widget.credito.estadoDB == 'Fallido') return const Color(0xFF37474F);
     if (widget.credito.estaPagado) return AppColors.success;
     if (widget.credito.estaVencido) return AppColors.error;
     if (_diasRestantes <= 3) return AppColors.error;
@@ -236,7 +236,7 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(
-                                        widget.credito.estadoDB == 'Lista Negra'
+                                        widget.credito.estadoDB == 'Fallido'
                                             ? Icons.block
                                             : Icons.event,
                                         size: 14,
@@ -244,8 +244,8 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        widget.credito.estadoDB == 'Lista Negra'
-                                            ? 'Lista Negra'
+                                        widget.credito.estadoDB == 'Fallido'
+                                            ? 'Fallido'
                                             : _textoDiasRestantes,
                                         style: TextStyle(
                                           fontSize: 11,
@@ -282,37 +282,37 @@ class _TarjetaCreditoUnicoState extends State<TarjetaCreditoUnico> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 onSelected: (value) {
-                                  if (value == 'lista_negra') {
-                                    widget.onListaNegra?.call();
+                                  if (value == 'fallido' || value == 'quitar_fallido') {
+                                    widget.onFallido?.call();
                                   }
                                 },
                                 itemBuilder: (context) => [
-                                  if (widget.credito.estadoDB != 'Lista Negra')
+                                  if (widget.credito.estadoDB != 'Fallido')
                                     PopupMenuItem<String>(
-                                      value: 'lista_negra',
+                                      value: 'fallido',
                                       child: Row(
                                         children: [
-                                          Icon(Icons.block, color: Colors.red.shade700, size: 20),
+                                          Icon(Icons.block, color: const Color(0xFF37474F), size: 20),
                                           const SizedBox(width: 10),
-                                          Text(
-                                            'Lista Negra',
+                                          const Text(
+                                            'Marcar como Fallido',
                                             style: TextStyle(
-                                              color: Colors.red.shade700,
+                                              color: Color(0xFF37474F),
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                  if (widget.credito.estadoDB == 'Lista Negra')
+                                  if (widget.credito.estadoDB == 'Fallido')
                                     PopupMenuItem<String>(
-                                      value: 'lista_negra',
+                                      value: 'quitar_fallido',
                                       child: Row(
                                         children: [
                                           Icon(Icons.restore, color: AppColors.primaryGreen, size: 20),
                                           const SizedBox(width: 10),
-                                          Text(
-                                            'Quitar Lista Negra',
+                                          const Text(
+                                            'Quitar de Fallido',
                                             style: TextStyle(
                                               color: AppColors.primaryGreen,
                                               fontWeight: FontWeight.w600,

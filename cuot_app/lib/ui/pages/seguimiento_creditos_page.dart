@@ -210,9 +210,9 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
 
   // Función para calcular el estado de créditos en cuotas
   String _calcularEstadoCreditoCuotas(Map<String, dynamic> financiamiento) {
-    // Si la BD dice 'Lista Negra', respetar ese estado
-    if (financiamiento['estadoDB'] == 'Lista Negra') {
-      return 'Lista Negra';
+    // Si la BD dice 'Fallido', respetar ese estado
+    if (financiamiento['estadoDB'] == 'Fallido') {
+      return 'Fallido';
     }
 
     final fechaActual = DateUt.nowUtc();
@@ -358,7 +358,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         return AppColors.error;
       case 'pagado':
         return AppColors.success;
-      case 'lista negra':
+      case 'fallido':
         return const Color(0xFF37474F);
       default:
         return AppColors.mediumGrey;
@@ -532,7 +532,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
   }
 
   Widget _buildFiltros() {
-    final filtros = ['hoy', 'atrasado', 'al día', 'pagado', 'lista negra', 'todos'];
+    final filtros = ['hoy', 'atrasado', 'al día', 'pagado', 'fallido', 'todos'];
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -549,7 +549,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             else if (filtro == 'atrasado') nombreFiltro = 'Vencidos';
             else if (filtro == 'al día') nombreFiltro = 'Al día';
             else if (filtro == 'pagado') nombreFiltro = 'Pagados';
-            else if (filtro == 'lista negra') nombreFiltro = 'Lista Negra';
+            else if (filtro == 'fallido') nombreFiltro = 'Fallido';
 
             return Padding(
               padding: const EdgeInsets.only(right: 8),
@@ -669,7 +669,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
     }
   }
 
-  Future<void> _cambiarListaNegra(dynamic creditId, String nombreCliente, bool yaEsListaNegra) async {
+  Future<void> _cambiarFallido(dynamic creditId, String nombreCliente, String estadoActual) async {
+    final yaEsFallido = estadoActual == 'Fallido';
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -679,23 +680,23 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         title: Row(
           children: [
             Icon(
-              yaEsListaNegra ? Icons.restore : Icons.block,
-              color: yaEsListaNegra ? AppColors.primaryGreen : const Color(0xFF37474F),
+              yaEsFallido ? Icons.restore : Icons.block,
+              color: yaEsFallido ? AppColors.primaryGreen : const Color(0xFF37474F),
               size: 28,
             ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                yaEsListaNegra ? 'Quitar de Lista Negra' : 'Pasar a Lista Negra',
+                yaEsFallido ? 'Quitar de Fallido' : 'Marcar como Fallido',
                 style: const TextStyle(fontSize: 17),
               ),
             ),
           ],
         ),
         content: Text(
-          yaEsListaNegra
-              ? '¿Quieres quitar el crédito de $nombreCliente de la Lista Negra?'
-              : '¿Estás seguro de que deseas pasar el crédito de $nombreCliente a Lista Negra?\n\nCada abono que reciba contará como ganancia.',
+          yaEsFallido
+              ? '¿Quieres quitar el crédito de $nombreCliente de Fallido?'
+              : '¿Estás seguro de que deseas marcar el crédito de $nombreCliente como Fallido?\n\nCada abono que reciba contará como ganancia.',
         ),
         actions: [
           TextButton(
@@ -705,13 +706,13 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: yaEsListaNegra ? AppColors.primaryGreen : const Color(0xFF37474F),
+              backgroundColor: yaEsFallido ? AppColors.primaryGreen : const Color(0xFF37474F),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            child: Text(yaEsListaNegra ? 'Quitar' : 'Confirmar'),
+            child: Text(yaEsFallido ? 'Quitar' : 'Confirmar'),
           ),
         ],
       ),
@@ -719,18 +720,18 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
 
     if (confirmado == true) {
       try {
-        final nuevoEstado = yaEsListaNegra ? 'Activo' : 'Lista Negra';
+        final nuevoEstado = yaEsFallido ? 'Activo' : 'Fallido';
         await _creditService.updateCreditEstado(creditId.toString(), nuevoEstado);
         await _loadData();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                yaEsListaNegra
-                    ? '✅ Crédito de $nombreCliente removido de Lista Negra'
-                    : '⚫ Crédito de $nombreCliente movido a Lista Negra',
+                yaEsFallido
+                    ? '✅ Crédito de $nombreCliente removido de Fallido'
+                    : '⚫ Crédito de $nombreCliente marcado como Fallido',
               ),
-              backgroundColor: yaEsListaNegra ? AppColors.success : const Color(0xFF37474F),
+              backgroundColor: yaEsFallido ? AppColors.success : const Color(0xFF37474F),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -966,10 +967,10 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
           item.id,
           item.nombreCliente,
         ),
-        onListaNegra: () => _cambiarListaNegra(
+        onFallido: () => _cambiarFallido(
           item.id,
           item.nombreCliente,
-          item.estadoDB == 'Lista Negra',
+          item.estadoDB ?? '',
         ),
         onVerDetalle: () {
           Navigator.push(
@@ -1021,10 +1022,10 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         numeroCredito: item['numeroCredito'],
         notas: item['notas'],
         estadoDB: item['estadoDB'],
-        onListaNegra: () => _cambiarListaNegra(
+        onFallido: () => _cambiarFallido(
           item['id'],
           item['nombre'],
-          item['estadoDB'] == 'Lista Negra',
+          item['estadoDB'] ?? '',
         ),
         onVerDetalle: () {
           Navigator.push(

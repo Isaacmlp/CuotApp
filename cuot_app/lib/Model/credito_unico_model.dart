@@ -25,7 +25,7 @@ class CreditoUnico {
   final String? descripcion;
   final String? notas;
   final int? numeroCredito;
-  final String? estadoDB; // Estado desde la BD (ej: 'Lista Negra')
+  final String? estadoDB; // Estado desde la BD (ej: 'Fallido')
 
   CreditoUnico({
     required this.id,
@@ -60,14 +60,14 @@ class CreditoUnico {
   }
 
   String get estado {
-    if (estadoDB == 'Lista Negra') return 'Lista Negra';
+    if (estadoDB == 'Fallido') return 'Fallido';
     if (estaPagado) return 'Pagado';
     if (estaVencido) return 'Vencido';
     return 'Al día';
   }
 
   Color get estadoColor {
-    if (estadoDB == 'Lista Negra') return const Color(0xFF37474F); // Blue Grey 800
+    if (estadoDB == 'Fallido') return const Color(0xFF37474F); // Blue Grey 800
     if (estaPagado) return Colors.green;
     if (estaVencido) return Colors.red;
     if (progreso > 0.7) return Colors.orange;
@@ -75,7 +75,7 @@ class CreditoUnico {
   }
 
   IconData get estadoIcon {
-    if (estadoDB == 'Lista Negra') return Icons.block;
+    if (estadoDB == 'Fallido') return Icons.block;
     if (estaPagado) return Icons.check_circle;
     if (estaVencido) return Icons.warning;
     return Icons.access_time;

@@ -27,7 +27,7 @@ class TarjetaFinanciamiento extends StatefulWidget {
   final VoidCallback onVerDetalle;
   final int? numeroCredito;
   final String? notas;
-  final VoidCallback? onListaNegra;
+  final VoidCallback? onFallido;
   final String? estadoDB;
 
   const TarjetaFinanciamiento({
@@ -52,7 +52,7 @@ class TarjetaFinanciamiento extends StatefulWidget {
     this.onEliminar,
     this.numeroCredito,
     this.notas,
-    this.onListaNegra,
+    this.onFallido,
     this.estadoDB,
   });
 
@@ -88,7 +88,7 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
 
   Color get _estadoColor {
     final est = widget.estado.toLowerCase();
-    if (est == 'lista negra') return const Color(0xFF37474F);
+    if (est == 'fallido') return const Color(0xFF37474F);
     if (est == 'pagado') return AppColors.success;
     if (est == 'atrasado' || est == 'vencido') return AppColors.error;
     if (est == 'al día') return AppColors.primaryGreen;
@@ -97,7 +97,7 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
 
   IconData get _estadoIcon {
     switch (widget.estado.toLowerCase()) {
-      case 'lista negra':
+      case 'fallido':
         return Icons.block;
       case 'pagado':
         return Icons.check_circle;
@@ -115,6 +115,8 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
   }
 
   int get _cuotasPagadasCount => widget.cuotas.where((c) => c.pagada).length;
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -273,20 +275,20 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             onSelected: (value) {
-                              if (value == 'lista_negra') {
-                                widget.onListaNegra?.call();
+                              if (value == 'fallido' || value == 'quitar_fallido') {
+                                widget.onFallido?.call();
                               }
                             },
                             itemBuilder: (context) => [
-                              if (widget.estadoDB != 'Lista Negra')
+                              if (widget.estadoDB != 'Fallido')
                                 PopupMenuItem<String>(
-                                  value: 'lista_negra',
+                                  value: 'fallido',
                                   child: Row(
                                     children: [
                                       Icon(Icons.block, color: Colors.red.shade700, size: 20),
                                       const SizedBox(width: 10),
                                       Text(
-                                        'Lista Negra',
+                                        'Marcar como Fallido',
                                         style: TextStyle(
                                           color: Colors.red.shade700,
                                           fontWeight: FontWeight.w600,
@@ -295,15 +297,15 @@ class _TarjetaFinanciamientoState extends State<TarjetaFinanciamiento> {
                                     ],
                                   ),
                                 ),
-                              if (widget.estadoDB == 'Lista Negra')
+                              if (widget.estadoDB == 'Fallido')
                                 PopupMenuItem<String>(
-                                  value: 'lista_negra',
+                                  value: 'quitar_fallido',
                                   child: Row(
                                     children: [
                                       Icon(Icons.restore, color: AppColors.primaryGreen, size: 20),
                                       const SizedBox(width: 10),
                                       Text(
-                                        'Quitar Lista Negra',
+                                        'Quitar de Fallido',
                                         style: TextStyle(
                                           color: AppColors.primaryGreen,
                                           fontWeight: FontWeight.w600,

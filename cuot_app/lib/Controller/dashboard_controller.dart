@@ -16,6 +16,12 @@ class DashboardController extends ChangeNotifier {
   List<PaymentModel> latePayments = []; // 6. Cuotas Atrasadas
   double totalCapital = 0.0; // 7. Capital total
 
+  // 📊 GANANCIAS Y CAPITAL
+  double gananciaCobrada = 0.0; // Ganancia ya recibida en efectivo
+  double gananciaMensual = 0.0; // Ganancia cobrada este mes
+  double gananciaTotal = 0.0;   // Ganancia esperada de todos los créditos
+  double capitalRecogido = 0.0; // Capital devuelto por créditos pagados
+
   bool isLoading = true;
   String? errorMessage;
 
@@ -66,6 +72,13 @@ class DashboardController extends ChangeNotifier {
     upcomingPayments = [];
     latePayments = [];
     totalCapital = 0.0;
+    gananciaCobrada = 0.0;
+    gananciaMensual = 0.0;
+    gananciaTotal = 0.0;
+    capitalRecogido = 0.0;
+
+    final currentMonth = now.month;
+    final currentYear = now.year;
 
     for (var credit in credits) {
       // Identificar última renovación para aislar pagos/cuotas del ciclo actual
@@ -83,14 +96,53 @@ class DashboardController extends ChangeNotifier {
         );
       }
 
+      final double margenGanancia = (credit['margen_ganancia'] as num).toDouble();
+      final double costoInversion = (credit['costo_inversion'] as num).toDouble();
+
+      // Ganancia total esperada (todos los créditos)
+      gananciaTotal += margenGanancia;
+
       // 1. Créditos activos
       if (credit['estado'] != 'Pagado') {
         totalCredits++;
+        totalCapital += costoInversion;
+      } else {
+        // Crédito pagado: ganancia cobrada + capital recuperado
+        gananciaCobrada += margenGanancia;
+        capitalRecogido += costoInversion;
+
+        // Verificar si se pagó este mes (última fecha de pago)
+        final List<dynamic> pagosCheck = credit['Pagos'] ?? [];
+        DateTime? lastPayDate;
+        for (var p in pagosCheck) {
+          final fechaStr = p['fecha_pago_real'] ?? p['fecha_pago'];
+          if (fechaStr != null) {
+            final fecha = DateUt.parseFullDateTime(fechaStr);
+            if (lastPayDate == null || fecha.isAfter(lastPayDate)) {
+              lastPayDate = fecha;
+            }
+          }
+        }
+        if (lastPayDate != null &&
+            lastPayDate.month == currentMonth &&
+            lastPayDate.year == currentYear) {
+          gananciaMensual += margenGanancia;
+        }
       }
 
-      // 7. Capital total
-      if (credit['estado'] != 'Pagado') {
-        totalCapital += (credit['costo_inversion'] as num).toDouble();
+      // Renovaciones: el abono cobrado es ganancia realizada
+      for (var renov in renovaciones) {
+        final double montoAbono = (renov['monto_abono'] as num?)?.toDouble() ?? 0;
+        if (montoAbono > 0) {
+          gananciaCobrada += montoAbono;
+          final fechaRenovStr = renov['fecha_renovacion'] ?? renov['created_at'];
+          if (fechaRenovStr != null) {
+            final fechaRenov = DateTime.parse(fechaRenovStr);
+            if (fechaRenov.month == currentMonth && fechaRenov.year == currentYear) {
+              gananciaMensual += montoAbono;
+            }
+          }
+        }
       }
 
       final clienteData = credit['Clientes'];

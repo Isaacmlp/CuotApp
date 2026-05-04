@@ -53,7 +53,7 @@ class CreditSummaryCards extends StatelessWidget {
             value: '\$${totalCapital.toStringAsFixed(2)}',
             icon: Icons.account_balance,
             color: AppColors.primaryGreen,
-            extraInfo: 'Dinero actualmente prestado'
+            extraInfo: 'Dinero actual'
           ),
         ),
         const SizedBox(height: 12),

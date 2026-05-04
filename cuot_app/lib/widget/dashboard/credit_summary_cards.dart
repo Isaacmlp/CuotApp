@@ -2,18 +2,15 @@ import 'package:cuot_app/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class CreditSummaryCards extends StatelessWidget {
-  // Métricas operativas existentes
   final int totalCredits;
   final double totalPaid;
   final int pendingWeeklyQuotas;
   final double pendingBalance;
   final double totalCapital;
-
-  // Nuevas métricas de ganancias
-  final double gananciaCobrada;
+  final double capitalRecuperado;
+  final double gananciaPorCobrarMensual;
+  final double gananciaPorCobrarTotal;
   final double gananciaMensual;
-  final double gananciaTotal;
-  final double capitalRecogido;
 
   final VoidCallback? onTapActiveCredits;
   final VoidCallback? onTapPendingBalance;
@@ -25,202 +22,101 @@ class CreditSummaryCards extends StatelessWidget {
     required this.pendingWeeklyQuotas,
     required this.pendingBalance,
     required this.totalCapital,
-    required this.gananciaCobrada,
+    required this.capitalRecuperado,
+    required this.gananciaPorCobrarMensual,
+    required this.gananciaPorCobrarTotal,
     required this.gananciaMensual,
-    required this.gananciaTotal,
-    required this.capitalRecogido,
     this.onTapActiveCredits,
     this.onTapPendingBalance,
   });
 
   @override
   Widget build(BuildContext context) {
+    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    final mesActual = meses[DateTime.now().month - 1];
+
+    Widget smallCard(String title, String value, IconData icon, Color color, {String? extraInfo, VoidCallback? onTap}) {
+       return AspectRatio(
+         aspectRatio: 1.25,
+         child: _buildSummaryCard(title: title, value: value, icon: icon, color: color, extraInfo: extraInfo, onTap: onTap),
+       );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ─── GRID OPERATIVO (4 tarjetas) ───
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.4,
+        _buildSectionTitle('Resumen General', Icons.dashboard_customize),
+        AspectRatio(
+          aspectRatio: 2.8,
+          child: _buildSummaryCard(
+            title: 'Ganancia por Cobrar ($mesActual)',
+            value: '\$${gananciaPorCobrarMensual.toStringAsFixed(2)}',
+            icon: Icons.savings,
+            color: const Color(0xFF00897B),
+            extraInfo: 'Falta por cobrar este mes'
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildUnifiedActivityCard(onTapActiveCredits),
+        const SizedBox(height: 20),
+        
+        // ─── ESTADO DE GANANCIAS ───
+        _buildSectionTitle('Estado de Ganancias', Icons.trending_up),
+        _buildGananciasCard(mesActual),
+        const SizedBox(height: 12),
+        Row(
           children: [
-            _buildMiniCard(
-              title: 'Registros Activos',
-              value: totalCredits.toString(),
-              icon: Icons.credit_card,
-              color: AppColors.primaryGreen,
-              onTap: onTapActiveCredits,
-            ),
-            _buildMiniCard(
-              title: 'Total Abonado',
-              value: '\$${totalPaid.toStringAsFixed(2)}',
-              icon: Icons.account_balance_wallet,
-              color: AppColors.info,
-            ),
-            _buildMiniCard(
-              title: 'Cuotas x Semana',
-              value: pendingWeeklyQuotas.toString(),
-              icon: Icons.calendar_today,
-              color: AppColors.warning,
-            ),
-            _buildMiniCard(
-              title: 'Saldo Pendiente',
-              value: '\$${pendingBalance.toStringAsFixed(2)}',
-              icon: Icons.pending_actions,
-              color: AppColors.error,
-            ),
+            Expanded(child: smallCard('Ganancia Mensual', '\$${gananciaMensual.toStringAsFixed(2)}', Icons.calendar_month, const Color(0xFF7B1FA2), extraInfo: mesActual)),
+            const SizedBox(width: 12),
+            Expanded(child: smallCard('Pendiente Total', '\$${gananciaPorCobrarTotal.toStringAsFixed(2)}', Icons.auto_graph, const Color(0xFF1565C0))),
           ],
         ),
-
-        const SizedBox(height: 28),
-
-        // ─── ESTADO DE GANANCIAS ───
-        _buildSectionHeader('Estado de Ganancias', Icons.trending_up, const Color(0xFF2E7D32)),
-        const SizedBox(height: 14),
-        _buildGananciasSection(),
-
-        const SizedBox(height: 28),
+        const SizedBox(height: 20),
 
         // ─── ESTADO DEL CAPITAL ───
-        _buildSectionHeader('Estado del Capital', Icons.account_balance, const Color(0xFF1565C0)),
-        const SizedBox(height: 14),
-        _buildCapitalSection(),
+        _buildSectionTitle('Estado del Capital', Icons.account_balance),
+        Row(
+          children: [
+            Expanded(child: smallCard('Capital Invertido', '\$${totalCapital.toStringAsFixed(2)}', Icons.account_balance, AppColors.primaryGreen)),
+            const SizedBox(width: 12),
+            Expanded(child: smallCard('Capital Recogido', '\$${capitalRecuperado.toStringAsFixed(2)}', Icons.savings, const Color(0xFF0277BD))),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: smallCard('Total Abonado', '\$${totalPaid.toStringAsFixed(2)}', Icons.account_balance_wallet, AppColors.info)),
+            const SizedBox(width: 12),
+            Expanded(child: smallCard('Saldo Pendiente', '\$${pendingBalance.toStringAsFixed(2)}', Icons.pending_actions, AppColors.error)),
+          ],
+        ),
       ],
     );
   }
 
-  // ─── SECCIÓN DE GANANCIAS ───
-  Widget _buildGananciasSection() {
+  // ─── TARJETA DE GANANCIAS CON BARRA DE PROGRESO ───
+  Widget _buildGananciasCard(String mesActual) {
+    final double gananciaTotal = gananciaMensual + gananciaPorCobrarTotal;
     final double progreso = gananciaTotal > 0
-        ? (gananciaCobrada / gananciaTotal).clamp(0.0, 1.0)
+        ? (gananciaMensual / gananciaTotal).clamp(0.0, 1.0)
         : 0.0;
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            const Color(0xFFE8F5E9),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.green.withOpacity(0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.white, const Color(0xFFE8F5E9)],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Ganancia Cobrada
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2E7D32).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.monetization_on, color: Color(0xFF2E7D32), size: 20),
-                    ),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'Ganancia Cobrada',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  '\$${gananciaCobrada.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2E7D32),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            // Ganancia Mensual con barra de progreso
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF43A047).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.calendar_month, color: Color(0xFF43A047), size: 16),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Ganancia Mensual',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black45,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '\$${gananciaMensual.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF43A047),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            // Barra de progreso
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: progreso,
-                minHeight: 10,
-                backgroundColor: Colors.grey.shade200,
-                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF43A047)),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${(progreso * 100).toStringAsFixed(1)}% cobrado',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
-                ),
-                Text(
-                  'Meta: \$${gananciaTotal.toStringAsFixed(2)}',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                ),
-              ],
-            ),
-
-            const Divider(height: 28),
-
-            // Ganancia Total
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -229,29 +125,57 @@ class CreditSummaryCards extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF66BB6A).withOpacity(0.1),
+                        color: const Color(0xFF2E7D32).withOpacity(0.15),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.emoji_events, color: Color(0xFF66BB6A), size: 16),
+                      child: const Icon(Icons.monetization_on, color: Color(0xFF2E7D32), size: 18),
                     ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Ganancia Total Esperada',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black45,
-                      ),
-                    ),
+                    const SizedBox(width: 10),
+                    Text('Ganancia Cobrada ($mesActual)', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
                   ],
                 ),
-                Text(
-                  '\$${gananciaTotal.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF66BB6A),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2E7D32).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  child: Text(
+                    '${(progreso * 100).toStringAsFixed(1)}%',
+                    style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF2E7D32), fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progreso,
+                backgroundColor: Colors.grey.shade200,
+                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2E7D32)),
+                minHeight: 8,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Cobrado', style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text('\$${gananciaMensual.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF2E7D32))),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('Meta Total', style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text('\$${gananciaTotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                  ],
                 ),
               ],
             ),
@@ -261,69 +185,83 @@ class CreditSummaryCards extends StatelessWidget {
     );
   }
 
-  // ─── SECCIÓN DE CAPITAL ───
-  Widget _buildCapitalSection() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildCapitalCard(
-            title: 'Capital Invertido',
-            value: '\$${totalCapital.toStringAsFixed(2)}',
-            icon: Icons.account_balance,
-            color: const Color(0xFF1565C0),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildCapitalCard(
-            title: 'Capital Recogido',
-            value: '\$${capitalRecogido.toStringAsFixed(2)}',
-            icon: Icons.savings,
-            color: const Color(0xFF0277BD),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ─── HEADER DE SECCIÓN ───
-  Widget _buildSectionHeader(String title, IconData icon, Color color) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
+  Widget _buildUnifiedActivityCard(VoidCallback? onTap) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
           ),
-          child: Icon(icon, size: 16, color: color),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: color,
-            letterSpacing: 0.3,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildMiniStat(Icons.credit_card, AppColors.primaryGreen, totalCredits.toString(), 'Registros Activos'),
+              Container(width: 1, height: 40, color: Colors.grey.shade200),
+              _buildMiniStat(Icons.calendar_today, AppColors.warning, pendingWeeklyQuotas.toString(), 'Cuotas x Semana'),
+            ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMiniStat(IconData icon, Color color, String value, String title) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 8),
+            Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(title, style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w700)),
       ],
     );
   }
 
-  // ─── TARJETA MINI (grid operativo) ───
-  Widget _buildMiniCard({
+  Widget _buildSectionTitle(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0, left: 4.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.grey.shade700),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: Colors.grey.shade800,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard({
     required String title,
     required String value,
     required IconData icon,
     required Color color,
     VoidCallback? onTap,
+    String? extraInfo,
   }) {
     return Card(
       elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: InkWell(
         onTap: onTap,
         child: Container(
@@ -342,95 +280,66 @@ class CreditSummaryCards extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(icon, color: color, size: 22),
+                  ),
+                  if (extraInfo != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        extraInfo,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: color.withOpacity(0.9),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-              const Spacer(),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade600,
-                ),
+              const SizedBox(height: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey.shade700,
+                      height: 1.1,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  // ─── TARJETA DE CAPITAL ───
-  Widget _buildCapitalCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            color.withOpacity(0.06),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withOpacity(0.15)),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 20, color: color),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
       ),
     );
   }

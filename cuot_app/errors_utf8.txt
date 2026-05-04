@@ -1,0 +1,250 @@
+﻿Analyzing cuot_app...                                           
+
+warning - The URI 'package:flutter_lints/flutter.yaml' included in 'C:\Flutter-Projects\CoutApps\cuot_app\analysis_options.yaml' can't be found when analyzing 'C:\Flutter-Projects\CoutApps\cuot_app' - analysis_options.yaml:10:10 - include_file_not_found
+warning - The operand can't be 'null', so the condition is always 'false' - lib\Model\credito_model.dart:33:22 - unnecessary_null_comparison
+   info - The import of 'dart:ui' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' - lib\Model\credito_unico_model.dart:2:8 - unnecessary_import
+warning - The value of the field '_supabase' isn't used - lib\service\credito_service.dart:4:24 - unused_field
+warning - Unused import: 'package:cuot_app/Model/cliente_model.dart' - lib\service\savings_service.dart:5:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\credito_page.dart:106:37 - deprecated_member_use
+   info - 'onPopInvoked' is deprecated and shouldn't be used. Use onPopInvokedWithResult instead. This feature was deprecated after v3.22.0-12.0.pre - lib\ui\pages\cuotapp_login_page.dart:17:7 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\cuotapp_register_page.dart:186:36 - deprecated_member_use
+   info - 'onPopInvoked' is deprecated and shouldn't be used. Use onPopInvokedWithResult instead. This feature was deprecated after v3.22.0-12.0.pre - lib\ui\pages\dashboard_screen.dart:29:9 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\dashboard_screen.dart:89:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\dashboard_screen.dart:120:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\dashboard_screen.dart:181:65 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\dashboard_screen.dart:219:64 - deprecated_member_use
+warning - The value of the local variable 'cliente' isn't used - lib\ui\pages\detalle_credito_page.dart:267:11 - unused_local_variable
+warning - The value of the local variable 'pagosExcluidosDeUI' isn't used - lib\ui\pages\detalle_credito_page.dart:447:12 - unused_local_variable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\detalle_credito_page.dart:531:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\detalle_credito_page.dart:553:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\detalle_credito_page.dart:773:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\detalle_credito_page.dart:780:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\detalle_credito_page.dart:781:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\detalle_credito_page.dart:831:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\detalle_credito_page.dart:838:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\detalle_credito_page.dart:839:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\detalle_credito_page.dart:965:56 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\detalle_credito_page.dart:1017:51 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\detalle_credito_page.dart:1031:56 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\detalle_credito_page.dart:1069:48 - deprecated_member_use
+warning - The declaration '_formatCondiciones' isn't referenced - lib\ui\pages\detalle_credito_page.dart:1217:16 - unused_element
+warning - The left operand can't be null, so the right operand is never executed - lib\ui\pages\detalle_credito_page.dart:1539:62 - dead_null_aware_expression
+warning - The left operand can't be null, so the right operand is never executed - lib\ui\pages\detalle_credito_page.dart:1582:63 - dead_null_aware_expression
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\detalle_credito_page.dart:1600:48 - deprecated_member_use
+warning - The left operand can't be null, so the right operand is never executed - lib\ui\pages\detalle_credito_page.dart:1604:51 - dead_null_aware_expression
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\formulario_renovacion_page.dart:621:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\formulario_renovacion_page.dart:623:61 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\formulario_renovacion_page.dart:761:64 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\formulario_renovacion_page.dart:768:73 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\formulario_renovacion_page.dart:808:68 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\formulario_renovacion_page.dart:809:57 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\formulario_renovacion_page.dart:938:62 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\formulario_renovacion_page.dart:956:44 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\formulario_renovacion_page.dart:1008:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\formulario_renovacion_page.dart:1011:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\formulario_renovacion_page.dart:1165:57 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\formulario_renovacion_page.dart:1182:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\formulario_renovacion_page.dart:1202:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\formulario_renovacion_page.dart:1458:57 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\historial_renovaciones_page.dart:228:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\historial_renovaciones_page.dart:486:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\historial_renovaciones_page.dart:656:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\historial_renovaciones_page.dart:700:44 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\historial_renovaciones_page.dart:704:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\historial_renovaciones_page.dart:722:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\historial_renovaciones_page.dart:817:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\historial_renovaciones_page.dart:855:51 - deprecated_member_use
+warning - The value of the field '_creditoService' isn't used - lib\ui\pages\registro_credito_screen.dart:25:24 - unused_field
+warning - The value of the local variable 'facturaUrl' isn't used - lib\ui\pages\registro_credito_screen.dart:93:15 - unused_local_variable
+warning - The value of the local variable 'montoTotal' isn't used - lib\ui\pages\registro_credito_screen.dart:102:14 - unused_local_variable
+warning - Dead code - lib\ui\pages\registro_credito_screen.dart:130:14 - dead_code
+warning - Unused import: 'package:url_launcher/url_launcher.dart' - lib\ui\pages\savings\grupo_dashboard_page.dart:12:8 - unused_import
+warning - The value of the field '_totalRecaudacionTurno' isn't used - lib\ui\pages\savings\grupo_dashboard_page.dart:45:10 - unused_field
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\savings\grupo_dashboard_page.dart:142:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\savings\grupo_dashboard_page.dart:169:47 - deprecated_member_use
+warning - The value of the local variable 'nombreRecibe' isn't used - lib\ui\pages\savings\grupo_dashboard_page.dart:247:12 - unused_local_variable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\savings\grupo_dashboard_page.dart:572:94 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\savings\grupo_dashboard_page.dart:871:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\savings\grupo_dashboard_page.dart:876:40 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\savings\grupo_dashboard_page.dart:999:67 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\savings\grupo_dashboard_page.dart:1175:71 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\savings\grupo_dashboard_page.dart:1438:57 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\savings\grupo_dashboard_page.dart:1440:76 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\savings\grupo_dashboard_page.dart:1579:65 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\savings\grupo_dashboard_page.dart:1982:33 - deprecated_member_use
+warning - The value of the local variable 'pagosExcluidosDeUI' isn't used - lib\ui\pages\seguimiento_creditos_page.dart:101:16 - unused_local_variable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\seguimiento_creditos_page.dart:567:40 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\seguimiento_creditos_page.dart:569:66 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\seguimiento_creditos_page.dart:593:55 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\pages\seguimiento_creditos_page.dart:818:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\custom_date_picker.dart:87:93 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\custom_date_picker.dart:144:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\dialogo_editar_cuota.dart:61:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\dialogo_editar_cuota.dart:77:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\editor_cuota_horizontal.dart:73:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\factura_uploader.dart:171:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\factura_uploader.dart:183:41 - deprecated_member_use
+   info - 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre - lib\widget\creditos\forma_pago_form.dart:118:21 - deprecated_member_use
+   info - 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre - lib\widget\creditos\forma_pago_form.dart:119:21 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\forma_pago_form.dart:244:49 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\widget\creditos\formulario_cuotas.dart:296:25 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\formulario_cuotas.dart:713:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\formulario_grupo.dart:258:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\formulario_grupo.dart:295:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\formulario_grupo.dart:297:58 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\formulario_pagounico.dart:396:46 - deprecated_member_use
+warning - The declaration '_formatearFecha' isn't referenced - lib\widget\creditos\formulario_pagounico.dart:642:10 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\loading_widget.dart:44:27 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\loading_widget.dart:53:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\producto_form.dart:175:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\selector_fechas_cuotas_compacto.dart:189:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\selector_fechas_cuotas_compacto.dart:193:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\selector_fechas_cuotas_compacto.dart:194:32 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\selector_fechas_cuotas_compacto.dart:309:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\selector_fechas_cuotas_compacto.dart:351:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\tarjeta_cuota_compacta.dart:29:27 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\tarjeta_cuota_compacta.dart:32:30 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\tarjeta_cuota_compacta.dart:35:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\tarjeta_cuota_compacta.dart:37:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\tarjeta_cuota_compacta.dart:43:27 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\tarjeta_cuota_compacta.dart:46:30 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\tarjeta_cuota_compacta.dart:49:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\tarjeta_cuota_compacta.dart:51:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\tarjeta_cuota_compacta.dart:94:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\tarjeta_cuota_compacta.dart:100:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\tarjeta_cuota_compacta.dart:106:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\tarjeta_cuota_compacta.dart:156:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\tarjeta_cuota_compacta.dart:192:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\tarjeta_cuota_compacta.dart:197:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\creditos\tarjeta_cuota_compacta.dart:208:47 - deprecated_member_use
+warning - Unused import: 'package:cuot_app/Model/local_auth.dart' - lib\widget\cuotapp_login_card.dart:1:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\cuotapp_login_card.dart:478:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\cuotapp_login_card.dart:617:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\cuotapp_login_card.dart:618:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\cuotapp_login_card.dart:622:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\cuotapp_login_card.dart:627:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\cuotapp_logo_header.dart:20:31 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\cuotapp_logo_header.dart:24:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\dashboard\credit_summary_cards.dart:164:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\dashboard\credit_summary_cards.dart:178:55 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\dashboard\credit_summary_cards.dart:190:51 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\dashboard\credit_summary_cards.dart:260:23 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\dashboard\credit_summary_cards.dart:274:36 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\dashboard\credit_summary_cards.dart:283:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\dashboard\credit_summary_cards.dart:291:40 - deprecated_member_use
+warning - Unused import: 'package:cuot_app/ui/credito_page.dart' - lib\widget\dashboard\custom_drawer.dart:2:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\dashboard\custom_drawer.dart:77:43 - deprecated_member_use
+warning - Unused import: 'package:intl/intl.dart' - lib\widget\dashboard\overdue_payments.dart:4:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\dashboard\overdue_payments.dart:33:30 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\dashboard\overdue_payments.dart:110:79 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\dashboard\upcoming_payments.dart:35:51 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\register\document_tile.dart:36:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\cuota_miniatura.dart:38:47 - deprecated_member_use
+warning - Unused import: 'package:cuot_app/utils/date_utils.dart' - lib\widget\seguimiento\detalle_cuotas_screen.dart:7:8 - unused_import
+warning - Unused import: 'package:cuot_app/widget/seguimiento/dialogo_pago_cuota.dart' - lib\widget\seguimiento\detalle_cuotas_screen.dart:8:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\detalle_cuotas_screen.dart:75:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\detalle_cuotas_screen.dart:105:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\detalle_cuotas_screen.dart:155:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\detalle_cuotas_screen.dart:168:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\detalle_cuotas_screen.dart:179:55 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\detalle_cuotas_screen.dart:180:60 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\detalle_cuotas_screen.dart:282:58 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota.dart:155:45 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota.dart:165:40 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota.dart:170:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota.dart:222:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota.dart:241:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota.dart:244:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota.dart:366:44 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota.dart:403:50 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\widget\seguimiento\dialogo_pago_cuota.dart:431:23 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota.dart:440:69 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota.dart:590:58 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota.dart:596:61 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota.dart:621:56 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota.dart:656:67 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:299:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:304:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:369:65 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:389:62 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:411:51 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:414:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:421:65 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:513:27 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:522:73 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:749:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:782:84 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:832:62 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:838:65 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:863:60 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:899:73 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:912:69 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:935:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:967:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:970:56 - deprecated_member_use
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:1015:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:1046:67 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:1070:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:1073:61 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:1316:24 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:1319:26 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:1334:36 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:1378:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_cuota_completo.dart:1387:44 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_unico.dart:184:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_unico.dart:243:57 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_unico.dart:246:59 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\widget\seguimiento\dialogo_pago_unico.dart:307:25 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_unico.dart:316:71 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_unico.dart:479:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_unico.dart:510:82 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_unico.dart:575:60 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_unico.dart:584:63 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_unico.dart:609:58 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_unico.dart:627:69 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_unico.dart:651:71 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_unico.dart:664:67 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_unico.dart:688:57 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_unico.dart:691:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_unico.dart:811:24 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_unico.dart:813:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\dialogo_pago_unico.dart:821:30 - deprecated_member_use
+warning - Unused import: 'package:cuot_app/widget/seguimiento/dialogo_pago_cuota.dart' - lib\widget\seguimiento\tarjeta_credito_seguimiento.dart:8:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_credito_seguimiento.dart:74:28 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_credito_seguimiento.dart:126:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_credito_seguimiento.dart:129:51 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_credito_seguimiento.dart:230:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_credito_seguimiento.dart:361:24 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_credito_unico.dart:102:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_credito_unico.dart:115:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_credito_unico.dart:150:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_credito_unico.dart:151:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_credito_unico.dart:228:60 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_credito_unico.dart:464:51 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_credito_unico.dart:542:64 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_credito_unico.dart:587:24 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_credito_unico.dart:596:30 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_credito_unico.dart:626:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_credito_unico.dart:631:28 - deprecated_member_use
+warning - The declaration '_getMensajeEstado' isn't referenced - lib\widget\seguimiento\tarjeta_financiamiento.dart:119:10 - unused_element
+warning - The declaration '_buildMiniEstadistica' isn't referenced - lib\widget\seguimiento\tarjeta_financiamiento.dart:127:10 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_financiamiento.dart:163:28 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_financiamiento.dart:231:110 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_financiamiento.dart:239:69 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_financiamiento.dart:255:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_financiamiento.dart:492:51 - deprecated_member_use
+  error - The name '_buildMiniEstadistica' is already defined - lib\widget\seguimiento\tarjeta_financiamiento.dart:601:10 - duplicate_definition
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_financiamiento.dart:650:24 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_financiamiento.dart:653:26 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_financiamiento.dart:685:29 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_financiamiento.dart:687:31 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_financiamiento.dart:688:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_financiamiento.dart:698:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_financiamiento.dart:700:37 - deprecated_member_use
+  error - The name '_getMensajeEstado' is already defined - lib\widget\seguimiento\tarjeta_financiamiento.dart:769:10 - duplicate_definition
+warning - Unused import: 'package:cuot_app/utils/ahorro_logic_helper.dart' - lib\widget\seguimiento\tarjeta_grupo.dart:5:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_grupo.dart:46:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_grupo.dart:68:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_grupo.dart:109:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widget\seguimiento\tarjeta_grupo.dart:177:55 - deprecated_member_use
+

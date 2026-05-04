@@ -155,6 +155,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             pagosRealizados: pagos,
             notas: c['notas'],
             numeroCredito: c['numero_credito'],
+            estadoDB: c['estado'],
           ));
         } else {
           processedCredits.add({
@@ -172,6 +173,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             'modalidadPago': _getModalidadName(c['modalidad_pago']),
             'numeroCredito': c['numero_credito'],
             'notas': c['notas'],
+            'estadoDB': c['estado'],
           });
         }
       }
@@ -208,6 +210,11 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
 
   // Función para calcular el estado de créditos en cuotas
   String _calcularEstadoCreditoCuotas(Map<String, dynamic> financiamiento) {
+    // Si la BD dice 'Fallido', respetar ese estado
+    if (financiamiento['estadoDB'] == 'Fallido') {
+      return 'Fallido';
+    }
+
     final fechaActual = DateUt.nowUtc();
 
     final totalPagado = financiamiento['totalPagado'] as double;
@@ -351,6 +358,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         return AppColors.error;
       case 'pagado':
         return AppColors.success;
+      case 'fallido':
+        return const Color(0xFF37474F);
       default:
         return AppColors.mediumGrey;
     }
@@ -523,7 +532,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
   }
 
   Widget _buildFiltros() {
-    final filtros = ['hoy', 'atrasado', 'al día', 'pagado', 'todos'];
+    final filtros = ['hoy', 'atrasado', 'al día', 'pagado', 'fallido', 'todos'];
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -540,6 +549,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             else if (filtro == 'atrasado') nombreFiltro = 'Vencidos';
             else if (filtro == 'al día') nombreFiltro = 'Al día';
             else if (filtro == 'pagado') nombreFiltro = 'Pagados';
+            else if (filtro == 'fallido') nombreFiltro = 'Fallido';
 
             return Padding(
               padding: const EdgeInsets.only(right: 8),
@@ -651,6 +661,89 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('❌ Error al eliminar: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _cambiarFallido(dynamic creditId, String nombreCliente, String estadoActual) async {
+    final yaEsFallido = estadoActual == 'Fallido';
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              yaEsFallido ? Icons.restore : Icons.block,
+              color: yaEsFallido ? AppColors.primaryGreen : const Color(0xFF37474F),
+              size: 28,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                yaEsFallido ? 'Quitar de Fallido' : 'Marcar como Fallido',
+                style: const TextStyle(fontSize: 17),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          yaEsFallido
+              ? '¿Quieres quitar el crédito de $nombreCliente de Fallido?'
+              : '¿Estás seguro de que deseas marcar el crédito de $nombreCliente como Fallido?\n\nCada abono que reciba contará como ganancia.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: yaEsFallido ? AppColors.primaryGreen : const Color(0xFF37474F),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(yaEsFallido ? 'Quitar' : 'Confirmar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmado == true) {
+      try {
+        final nuevoEstado = yaEsFallido ? 'Activo' : 'Fallido';
+        await _creditService.updateCreditEstado(creditId.toString(), nuevoEstado);
+        await _loadData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                yaEsFallido
+                    ? '✅ Crédito de $nombreCliente removido de Fallido'
+                    : '⚫ Crédito de $nombreCliente marcado como Fallido',
+              ),
+              backgroundColor: yaEsFallido ? AppColors.success : const Color(0xFF37474F),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ Error: $e'),
               backgroundColor: AppColors.error,
             ),
           );
@@ -874,6 +967,11 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
           item.id,
           item.nombreCliente,
         ),
+        onFallido: () => _cambiarFallido(
+          item.id,
+          item.nombreCliente,
+          item.estadoDB ?? '',
+        ),
         onVerDetalle: () {
           Navigator.push(
             context,
@@ -923,6 +1021,12 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         totalCredito: item['totalCredito'] ?? 0.0,
         numeroCredito: item['numeroCredito'],
         notas: item['notas'],
+        estadoDB: item['estadoDB'],
+        onFallido: () => _cambiarFallido(
+          item['id'],
+          item['nombre'],
+          item['estadoDB'] ?? '',
+        ),
         onVerDetalle: () {
           Navigator.push(
             context,

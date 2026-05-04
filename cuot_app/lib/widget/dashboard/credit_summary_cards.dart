@@ -49,11 +49,11 @@ class CreditSummaryCards extends StatelessWidget {
         AspectRatio(
           aspectRatio: 2.8,
           child: _buildSummaryCard(
-            title: 'Ganancia por Cobrar ($mesActual)',
-            value: '\$${gananciaPorCobrarMensual.toStringAsFixed(2)}',
-            icon: Icons.savings,
-            color: const Color(0xFF00897B),
-            extraInfo: 'Falta por cobrar este mes'
+            title: 'Capital Total Invertido',
+            value: '\$${totalCapital.toStringAsFixed(2)}',
+            icon: Icons.account_balance,
+            color: AppColors.primaryGreen,
+            extraInfo: 'Dinero actualmente prestado'
           ),
         ),
         const SizedBox(height: 12),

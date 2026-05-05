@@ -92,8 +92,8 @@ class DashboardController extends ChangeNotifier {
         );
       }
 
-      // 1. Créditos activos y capital
-      if (credit['estado'] != 'Pagado') {
+      // 1. Créditos activos y capital (Fallidos no suman: solo cuentan cuando abonan)
+      if (credit['estado'] != 'Pagado' && credit['estado'] != 'Fallido') {
         totalCredits++;
         totalCapital += (credit['costo_inversion'] as num).toDouble();
       }

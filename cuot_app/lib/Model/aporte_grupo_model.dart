@@ -34,7 +34,7 @@ class AporteGrupo {
   Map<String, dynamic> toJson() => {
     'miembro_id': miembroId,
     'monto': monto,
-    'fecha_aporte': fechaAporte.toIso8601String(),
+    'fecha_aporte': fechaAporte.toUtc().toIso8601String(),
     'metodo_pago': metodoPago,
     'referencia': referencia,
     'observaciones': observaciones,

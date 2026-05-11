@@ -53,11 +53,17 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
       final empleados = asignaciones.map((a) => a.trabajadorNombre).toSet();
       
       for (var emp in empleados) {
-        final acts = await _bitacoraService.obtenerActividades(
-          limit: 10,
-          usuarioFilter: emp,
-        );
-        actividades[emp] = acts;
+        try {
+          final acts = await _bitacoraService.obtenerActividades(
+            limit: 10,
+            usuarioFilter: emp,
+          );
+          actividades[emp] = acts;
+        } catch (e) {
+          // Ignorar silenciosamente si hay RLS o error al obtener actividades
+          // de un empleado en particular para no romper toda la vista
+          actividades[emp] = [];
+        }
       }
 
       // Obtener nombres de clientes para los créditos

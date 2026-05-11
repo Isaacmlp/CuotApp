@@ -17,6 +17,7 @@ class _BitacoraPageState extends State<BitacoraPage> {
   final BitacoraService _bitacoraService = BitacoraService();
   List<BitacoraActividad> _actividades = [];
   bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -25,13 +26,25 @@ class _BitacoraPageState extends State<BitacoraPage> {
   }
 
   Future<void> _cargarActividades() async {
-    setState(() => _isLoading = true);
-    final acts = await _bitacoraService.obtenerActividades(limit: 100);
-    if (mounted) {
-      setState(() {
-        _actividades = acts;
-        _isLoading = false;
-      });
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      final acts = await _bitacoraService.obtenerActividades(limit: 100);
+      if (mounted) {
+        setState(() {
+          _actividades = acts;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -51,9 +64,32 @@ class _BitacoraPageState extends State<BitacoraPage> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _actividades.isEmpty
-              ? const Center(child: Text('No hay actividad registrada'))
-              : ListView.builder(
+          : _errorMessage != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.security, size: 60, color: AppColors.error),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Permiso Denegado',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.error),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Parece que necesitas configurar los permisos RLS en Supabase para la tabla Bitacora_Actividad.\n\nDetalle: $_errorMessage',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey.shade700),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : _actividades.isEmpty
+                  ? const Center(child: Text('No hay actividad registrada'))
+                  : ListView.builder(
                   padding: const EdgeInsets.all(12),
                   itemCount: _actividades.length,
                   itemBuilder: (context, index) {

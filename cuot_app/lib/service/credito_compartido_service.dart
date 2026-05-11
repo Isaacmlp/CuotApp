@@ -118,6 +118,24 @@ class CreditoCompartidoService {
     }
   }
 
+  /// Obtener TODOS los créditos compartidos activos (para filtrado global)
+  Future<List<CreditoCompartido>> obtenerTodosLosCreditosCompartidos() async {
+    try {
+      final response = await _supabase.client
+          .schema('Usuarios')
+          .from('Creditos_Compartidos')
+          .select()
+          .eq('activo', true);
+
+      return List<Map<String, dynamic>>.from(response)
+          .map((json) => CreditoCompartido.fromJson(json))
+          .toList();
+    } catch (e) {
+      print('❌ Error en obtenerTodosLosCreditosCompartidos: $e');
+      return [];
+    }
+  }
+
   /// Actualizar permisos de un crédito compartido
   Future<void> actualizarPermisos(String compartidoId, String nuevosPermisos) async {
     try {

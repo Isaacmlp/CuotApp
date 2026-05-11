@@ -9,6 +9,7 @@ class UserAdminService {
     String? searchQuery,
     String? rolFilter,
     bool? activoFilter,
+    String? creadoPorFilter,
   }) async {
     try {
       var query = _supabase.client
@@ -36,6 +37,11 @@ class UserAdminService {
       // Filtrar por estado activo
       if (activoFilter != null) {
         usuarios = usuarios.where((u) => u.activo == activoFilter).toList();
+      }
+
+      // Filtrar por creador (aislamiento de empleados por admin)
+      if (creadoPorFilter != null && creadoPorFilter.isNotEmpty) {
+        usuarios = usuarios.where((u) => u.creadoPor == creadoPorFilter).toList();
       }
 
       return usuarios;

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:cuot_app/Controller/credito_controller.dart';
 import 'package:cuot_app/Model/credito_model.dart';
+import 'package:cuot_app/service/bitacora_service.dart';
 import 'package:cuot_app/widget/creditos/formulario_cuotas.dart';
 import 'package:cuot_app/widget/creditos/formulario_pagounico.dart';
 import 'package:cuot_app/widget/creditos/tipo_credito_selector.dart';
@@ -224,6 +225,15 @@ class _CreditoPageState extends State<CreditoPage> {
         debugPrint('🔵 guardarCredito retornó creditId: $creditId');
 
         if (creditId != null) {
+          // Registrar en bitácora
+          await BitacoraService().registrarActividad(
+            usuarioNombre: widget.nombreUsuario,
+            accion: widget.creditoIdEditar != null ? 'editar_credito' : 'crear_credito',
+            descripcion: '${widget.creditoIdEditar != null ? 'Editó' : 'Creó'} crédito para ${credito.nombreCliente}',
+            entidadTipo: 'credito',
+            entidadId: creditId,
+          );
+
           scaffoldMessenger.showSnackBar(
             const SnackBar(
               content: Text('✅ Crédito guardado exitosamente'),

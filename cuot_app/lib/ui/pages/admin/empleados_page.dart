@@ -2,6 +2,7 @@ import 'package:cuot_app/Model/bitacora_model.dart';
 import 'package:cuot_app/Model/credito_compartido_model.dart';
 import 'package:cuot_app/service/bitacora_service.dart';
 import 'package:cuot_app/service/credito_compartido_service.dart';
+import 'package:cuot_app/service/credit_service.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/widget/dashboard/custom_drawer.dart';
 import 'package:flutter/material.dart';
@@ -26,9 +27,11 @@ class EmpleadosPage extends StatefulWidget {
 class _EmpleadosPageState extends State<EmpleadosPage> {
   final CreditoCompartidoService _compartidoService = CreditoCompartidoService();
   final BitacoraService _bitacoraService = BitacoraService();
+  final CreditService _creditService = CreditService();
 
   List<CreditoCompartido> _asignaciones = [];
   Map<String, List<BitacoraActividad>> _actividadesPorEmpleado = {};
+  Map<String, String> _nombresClientes = {};
   bool _isLoading = true;
   String? _error;
 
@@ -57,10 +60,24 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
         actividades[emp] = acts;
       }
 
+      // Obtener nombres de clientes para los créditos
+      Map<String, String> nombres = {};
+      for (var a in asignaciones) {
+        if (!nombres.containsKey(a.creditoId)) {
+          try {
+            final creditData = await _creditService.getCreditById(a.creditoId);
+            nombres[a.creditoId] = creditData?['Clientes']?['nombre'] ?? 'ID: ${a.creditoId}';
+          } catch (_) {
+            nombres[a.creditoId] = 'ID: ${a.creditoId}';
+          }
+        }
+      }
+
       if (mounted) {
         setState(() {
           _asignaciones = asignaciones;
           _actividadesPorEmpleado = actividades;
+          _nombresClientes = nombres;
           _isLoading = false;
         });
       }
@@ -216,7 +233,7 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('ID Crédito: ${a.creditoId}', 
+                Text(_nombresClientes[a.creditoId] ?? 'Cargando...', 
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 Text('Permisos: ${a.permisos}', style: const TextStyle(fontSize: 11)),
               ],

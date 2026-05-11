@@ -18,6 +18,7 @@ import 'package:cuot_app/Model/grupo_ahorro_model.dart';
 import 'package:cuot_app/service/savings_service.dart';
 import 'package:cuot_app/widget/seguimiento/tarjeta_grupo.dart';
 import 'package:cuot_app/ui/pages/savings/grupo_dashboard_page.dart';
+import 'package:cuot_app/service/bitacora_service.dart';
 import 'package:cuot_app/Model/miembro_grupo_model.dart';
 
 class SeguimientoCreditosPage extends StatefulWidget {
@@ -479,10 +480,19 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         referencia: referencia,
         observaciones: observaciones,
         esPagoParcial: esPagoParcial,
-        comprobantePath: comprobantePath, // 👈 NUEVO
+        comprobantePath: comprobantePath,
       );
 
-      // 2. Refrescar datos desde la base de datos
+      // 2. Registrar en bitácora
+      await BitacoraService().registrarActividad(
+        usuarioNombre: widget.nombreUsuario,
+        accion: 'pago_cuota',
+        descripcion: 'Registró pago de cuota #$numeroCuota para ${f['nombre']}',
+        entidadTipo: 'credito',
+        entidadId: f['id'].toString(),
+      );
+
+      // 3. Refrescar datos desde la base de datos
       await _loadData();
 
       String mensaje = esPagoParcial
@@ -528,10 +538,19 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         metodoPago: pago.metodoPago ?? 'efectivo',
         referencia: pago.referencia ?? '',
         observaciones: pago.observaciones ?? '',
-        esPagoParcial: pago.monto < credito.saldoPendiente, // Usar saldoPendiente para comparar
+        esPagoParcial: pago.monto < credito.saldoPendiente,
       );
 
-      // 2. Refrescar datos
+      // 2. Registrar en bitácora
+      await BitacoraService().registrarActividad(
+        usuarioNombre: widget.nombreUsuario,
+        accion: 'pago_credito_unico',
+        descripcion: 'Registró pago de \$${pago.monto.toStringAsFixed(2)} para ${credito.nombreCliente}',
+        entidadTipo: 'credito',
+        entidadId: credito.id,
+      );
+
+      // 3. Refrescar datos
       await _loadData();
 
       if (mounted) {

@@ -1,5 +1,6 @@
 import 'package:cuot_app/Model/usuario_model.dart';
 import 'package:cuot_app/service/bitacora_service.dart';
+import 'package:cuot_app/service/credito_compartido_service.dart';
 import 'package:cuot_app/service/user_admin_service.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/ui/pages/admin/crear_usuario_page.dart';
@@ -27,6 +28,7 @@ class AdminUsuariosPage extends StatefulWidget {
 class _AdminUsuariosPageState extends State<AdminUsuariosPage> {
   final UserAdminService _userService = UserAdminService();
   final BitacoraService _bitacoraService = BitacoraService();
+  final CreditoCompartidoService _compartidoService = CreditoCompartidoService();
   final TextEditingController _searchController = TextEditingController();
 
   List<Usuario> _usuarios = [];
@@ -60,10 +62,33 @@ class _AdminUsuariosPageState extends State<AdminUsuariosPage> {
         searchQuery: _searchController.text,
         rolFilter: _rolFilter,
         activoFilter: _activoFilter,
+        // Eliminamos el filtrado por creador para que todos vean a todos inicialmente
       );
+
+      // Obtener todas las asignaciones para filtrar visibilidad exclusiva
+      final asignaciones = await _compartidoService.obtenerTodosLosCreditosCompartidos();
+
       if (mounted) {
         setState(() {
-          _usuarios = usuarios;
+          _usuarios = usuarios.where((u) {
+            // 1. No mostrarse a sí mismo
+            if (u.correoElectronico == widget.correo) return false;
+
+            // 2. Buscar si el usuario tiene algún crédito asignado
+            final tieneAsignacion = asignaciones.any((a) => a.trabajadorNombre.trim() == u.nombreCompleto.trim());
+
+            if (tieneAsignacion) {
+              // 3. Si tiene asignación, solo mostrar si yo soy EL propietario (o uno de ellos)
+              final soyPropietario = asignaciones.any((a) => 
+                a.trabajadorNombre.trim() == u.nombreCompleto.trim() && 
+                a.propietarioNombre.trim() == widget.nombreUsuario.trim()
+              );
+              return soyPropietario;
+            }
+
+            // 4. Si no tiene asignaciones, es visible para todos los admins
+            return true;
+          }).toList();
           _isLoading = false;
         });
       }

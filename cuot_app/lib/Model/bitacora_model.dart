@@ -19,26 +19,20 @@ class BitacoraActividad {
 
   String get accionDisplayName {
     switch (accion) {
-      case 'login':
-        return 'Inicio de sesión';
-      case 'logout':
-        return 'Cierre de sesión';
-      case 'crear_usuario':
-        return 'Creación de usuario';
-      case 'editar_rol':
-        return 'Edición de rol';
-      case 'toggle_activo':
-        return 'Cambio de estado';
-      case 'reset_contrasena':
-        return 'Reseteo de contraseña';
-      case 'agregar_pago':
-        return 'Pago registrado';
+      case 'pago_cuota':
+        return 'Pago de cuota';
+      case 'pago_credito_unico':
+        return 'Pago crédito único';
+      case 'crear_credito':
+        return 'Nuevo crédito';
       case 'editar_credito':
         return 'Crédito editado';
-      case 'eliminar_credito':
-        return 'Crédito eliminado';
+      case 'renovacion_credito':
+        return 'Renovación de crédito';
       case 'compartir_credito':
-        return 'Crédito compartido';
+        return 'Asignación de crédito';
+      case 'crear_usuario':
+        return 'Usuario creado';
       default:
         return accion;
     }

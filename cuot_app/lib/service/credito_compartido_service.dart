@@ -4,6 +4,28 @@ import 'package:cuot_app/core/supabase/supabase_service.dart';
 class CreditoCompartidoService {
   final SupabaseService _supabase = SupabaseService();
 
+  // 🚀 CACHE: Evita parpadeos en el drawer redireccionando consultas pesadas
+  static bool? _cacheTieneCreditosAsignados;
+  static bool? _cacheTieneEmpleados;
+  static String? _cachedUser;
+
+  static void clearCache() {
+    _cacheTieneCreditosAsignados = null;
+    _cacheTieneEmpleados = null;
+    _cachedUser = null;
+  }
+
+  /// Verificar si un propietario tiene empleados asignados (con caché)
+  Future<bool> tieneEmpleados(String propietarioNombre) async {
+    if (_cachedUser == propietarioNombre.trim() && _cacheTieneEmpleados != null) {
+      return _cacheTieneEmpleados!;
+    }
+    
+    // Si no hay caché, lo forzamos cargando la lista (esto actualizará el caché)
+    await obtenerCreditosCompartidosPorPropietario(propietarioNombre);
+    return _cacheTieneEmpleados ?? false;
+  }
+
   /// Compartir un crédito con un trabajador
   Future<CreditoCompartido> compartirCredito({
     required String creditoId,
@@ -67,8 +89,13 @@ class CreditoCompartidoService {
     }
   }
 
-  /// Verificar si un usuario tiene créditos asignados (para mostrar opción en drawer)
+  /// Verificar si un usuario tiene créditos asignados (con caché)
   Future<bool> tieneCreditosAsignados(String nombreUsuario) async {
+    // Retornar caché si es del mismo usuario
+    if (_cachedUser == nombreUsuario.trim() && _cacheTieneCreditosAsignados != null) {
+      return _cacheTieneCreditosAsignados!;
+    }
+
     try {
       final response = await _supabase.client
           .schema('Usuarios')
@@ -78,10 +105,33 @@ class CreditoCompartidoService {
           .eq('activo', true)
           .limit(1);
 
-      return List.from(response).isNotEmpty;
+      final result = List.from(response).isNotEmpty;
+      
+      // Actualizar caché
+      _cachedUser = nombreUsuario.trim();
+      _cacheTieneCreditosAsignados = result;
+
+      return result;
     } catch (e) {
       print('❌ Error en tieneCreditosAsignados: $e');
       return false;
+    }
+  }
+
+  /// Pre-cargar datos para evitar parpadeos en el drawer
+  Future<void> preCargarDatosIniciales(String usuario, String rol) async {
+    try {
+      // 1. Cargar si tiene créditos asignados (Trabajo)
+      await tieneCreditosAsignados(usuario);
+      
+      // 2. Cargar si tiene empleados (solo para admin)
+      if (rol == 'admin') {
+        await obtenerCreditosCompartidosPorPropietario(usuario);
+      }
+      
+      print('✅ Caché de CreditoCompartidoService inicializado para $usuario');
+    } catch (e) {
+      print('❌ Error al pre-cargar caché: $e');
     }
   }
 
@@ -99,8 +149,11 @@ class CreditoCompartidoService {
     }
   }
 
-  /// Obtener créditos que un propietario ha compartido
+  /// Obtener créditos que un propietario ha compartido (con caché para el flag de tieneEmpleados)
   Future<List<CreditoCompartido>> obtenerCreditosCompartidosPorPropietario(String propietarioNombre) async {
+    // Si solo queremos el flag de si tiene empleados, podríamos usar el caché si existe
+    // Pero como esta función devuelve la lista completa, la ejecutamos siempre, pero actualizamos el caché
+    
     try {
       final response = await _supabase.client
           .schema('Usuarios')
@@ -109,9 +162,20 @@ class CreditoCompartidoService {
           .eq('propietario_nombre', propietarioNombre.trim())
           .eq('activo', true);
 
-      return List<Map<String, dynamic>>.from(response)
+      final result = List<Map<String, dynamic>>.from(response)
           .map((json) => CreditoCompartido.fromJson(json))
           .toList();
+
+      // Actualizar caché del flag
+      if (_cachedUser == propietarioNombre.trim()) {
+        _cacheTieneEmpleados = result.isNotEmpty;
+      } else {
+        _cachedUser = propietarioNombre.trim();
+        _cacheTieneEmpleados = result.isNotEmpty;
+        _cacheTieneCreditosAsignados = null; // Resetear el otro flag si cambia el usuario
+      }
+
+      return result;
     } catch (e) {
       print('❌ Error en obtenerCreditosCompartidosPorPropietario: $e');
       return [];

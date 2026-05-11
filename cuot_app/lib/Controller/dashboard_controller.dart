@@ -1,5 +1,6 @@
 import 'package:cuot_app/Model/payment_model.dart';
 import 'package:cuot_app/service/credit_service.dart';
+import 'package:cuot_app/service/credito_compartido_service.dart';
 import 'package:cuot_app/utils/date_utils.dart';
 import 'package:flutter/material.dart';
 import 'dart:math';
@@ -7,6 +8,7 @@ import 'dart:math';
 class DashboardController extends ChangeNotifier {
   final CreditService _creditService = CreditService();
   String? userName;
+  String? rol;
 
   // 🔴 AQUÍ SE ALMACENARÁN LOS DATOS DEL DASHBOARD
   int totalCredits = 0; // 1. Cantidad de Créditos
@@ -24,8 +26,9 @@ class DashboardController extends ChangeNotifier {
   bool isLoading = true;
   String? errorMessage;
 
-  DashboardController({String? userName, String? correo}) {
+  DashboardController({String? userName, String? correo, String? rol}) {
     this.userName = userName;
+    this.rol = rol;
     loadDashboardData();
   }
 
@@ -42,6 +45,11 @@ class DashboardController extends ChangeNotifier {
             userName ?? '',
             forceRefresh: forceRefresh,
           );
+
+      // 🎯 PRE-CARGA: Inicializar caché de opciones del drawer para evitar parpadeos
+      if (userName != null) {
+        await CreditoCompartidoService().preCargarDatosIniciales(userName!, rol ?? 'cliente');
+      }
 
       _processData(creditsData);
     } catch (e) {

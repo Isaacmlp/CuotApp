@@ -6,6 +6,7 @@ import 'package:cuot_app/widget/dashboard/credit_summary_cards.dart';
 import 'package:cuot_app/widget/dashboard/custom_drawer.dart';
 import 'package:cuot_app/widget/dashboard/overdue_payments.dart';
 import 'package:cuot_app/widget/dashboard/upcoming_payments.dart';
+import 'package:cuot_app/widget/dashboard/recent_activity.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cuot_app/ui/pages/seguimiento_creditos_page.dart';
@@ -24,7 +25,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => DashboardController(correo: correo, userName: userName),
+      create: (_) => DashboardController(correo: correo, userName: userName, rol: rol),
       child: PopScope(
         canPop: false,
         onPopInvoked: (didPop) async {
@@ -291,6 +292,12 @@ class DashboardScreen extends StatelessWidget {
                             OverduePayments(payments: controller.latePayments),
 
                             const SizedBox(height: 24),
+
+                            // 7. Actividad Reciente
+                            RecentActivityWidget(
+                              userName: userName ?? "Usuario",
+                              rol: rol,
+                            ),
 
                             // Botón para nuevo crédit
 

@@ -4,6 +4,7 @@ import 'package:cuot_app/service/renovacion_service.dart';
 import 'package:cuot_app/service/credit_service.dart';
 import 'package:cuot_app/Model/renovacion_model.dart';
 import 'package:intl/intl.dart';
+import 'package:cuot_app/service/bitacora_service.dart';
 import 'package:cuot_app/widget/creditos/custom_date_picker.dart';
 
 class FormularioRenovacionPage extends StatefulWidget {
@@ -540,6 +541,16 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
       );
 
       await _renovacionService.crearRenovacion(renovacion);
+      
+      // 🎯 REGISTRO EN BITÁCORA
+      final String nombreCliente = cliente['nombre'] ?? 'N/A';
+      await BitacoraService().registrarActividad(
+        usuarioNombre: widget.nombreUsuario,
+        accion: 'renovacion_credito',
+        descripcion: 'Renovó préstamo para $nombreCliente. Nuevo total: \$${_nuevoMontoTotal.toStringAsFixed(2)}',
+        entidadTipo: 'credito',
+        entidadId: widget.creditoId,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

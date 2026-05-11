@@ -467,7 +467,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
     String? comprobantePath, // 👈 NUEVO
   ) async {
     final f = _financiamientos[financiamientoIndex];
-    if (f is! Map<String, dynamic>) return;
+    // Soporte tanto para Map como para CreditoUnico
 
     try {
       // 1. Guardar en base de datos
@@ -484,12 +484,13 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
       );
 
       // 2. Registrar en bitácora
+      final String nombreCliente = (f is Map) ? f['nombre'] : (f as CreditoUnico).nombreCliente;
       await BitacoraService().registrarActividad(
         usuarioNombre: widget.nombreUsuario,
         accion: 'pago_cuota',
-        descripcion: 'Registró pago de cuota #$numeroCuota para ${f['nombre']}',
+        descripcion: 'Registró pago de cuota #$numeroCuota para $nombreCliente',
         entidadTipo: 'credito',
-        entidadId: f['id'].toString(),
+        entidadId: (f is Map) ? f['id'].toString() : (f as CreditoUnico).id,
       );
 
       // 3. Refrescar datos desde la base de datos

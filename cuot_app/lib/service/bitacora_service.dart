@@ -38,25 +38,19 @@ class BitacoraService {
       var query = _supabase.client
           .schema('Usuarios')
           .from('Bitacora_Actividad')
-          .select()
+          .select();
+
+      if (usuarioFilter != null && usuarioFilter.isNotEmpty) {
+        query = query.eq('usuario_nombre', usuarioFilter.trim());
+      }
+
+      final response = await query
           .order('created_at', ascending: false)
           .limit(limit);
 
-      final List<Map<String, dynamic>> response = await query;
-
-      List<BitacoraActividad> actividades = response
+      return (response as List)
           .map((json) => BitacoraActividad.fromJson(json))
           .toList();
-
-      // Filtrar por usuario si se especifica
-      if (usuarioFilter != null && usuarioFilter.isNotEmpty) {
-        actividades = actividades
-            .where((a) => a.usuarioNombre.toLowerCase()
-                .contains(usuarioFilter.toLowerCase()))
-            .toList();
-      }
-
-      return actividades;
     } catch (e) {
       print('❌ Error en obtenerActividades: $e');
       return [];

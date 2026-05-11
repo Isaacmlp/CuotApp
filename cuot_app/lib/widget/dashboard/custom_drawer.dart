@@ -2,6 +2,7 @@ import 'package:cuot_app/service/credito_compartido_service.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/ui/credito_page.dart';
 import 'package:cuot_app/ui/pages/admin/admin_usuarios_page.dart';
+import 'package:cuot_app/ui/pages/admin/bitacora_page.dart';
 import 'package:cuot_app/ui/pages/admin/empleados_page.dart';
 import 'package:cuot_app/ui/pages/cuotapp_login_page.dart';
 import 'package:cuot_app/ui/pages/dashboard_screen.dart';
@@ -61,11 +62,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
   Future<void> _verificarEmpleados() async {
     try {
-      final lista = await CreditoCompartidoService()
-          .obtenerCreditosCompartidosPorPropietario(widget.nombre_usuario.trim());
+      final tiene = await CreditoCompartidoService()
+          .tieneEmpleados(widget.nombre_usuario.trim());
       if (mounted) {
         setState(() {
-          _tieneEmpleados = lista.isNotEmpty;
+          _tieneEmpleados = tiene;
         });
       }
     } catch (e) {
@@ -315,6 +316,22 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   );
                 },
                 isSelected: widget.ventanaActiva == 'gestion_usuarios',
+              ),
+
+            if (widget.rol == 'admin')
+              _buildDrawerItem(
+                icon: Icons.list_alt,
+                label: 'Bitácora',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BitacoraPage(nombreUsuario: widget.nombre_usuario),
+                    ),
+                  );
+                },
+                isSelected: widget.ventanaActiva == 'bitacora',
               ),
 
             _buildDrawerItem(

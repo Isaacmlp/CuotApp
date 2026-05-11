@@ -18,6 +18,7 @@ class _RecentActivityWidgetState extends State<RecentActivityWidget> {
   final BitacoraService _bitacoraService = BitacoraService();
   List<BitacoraActividad> _actividades = [];
   bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -26,16 +27,24 @@ class _RecentActivityWidgetState extends State<RecentActivityWidget> {
   }
 
   Future<void> _cargarActividades() async {
-    // Si es admin, ve global. Si no, solo lo suyo
-    final acts = await _bitacoraService.obtenerActividades(
-      limit: 10,
-      usuarioFilter: widget.rol == 'admin' ? null : widget.userName,
-    );
-    if (mounted) {
-      setState(() {
-        _actividades = acts;
-        _isLoading = false;
-      });
+    try {
+      final acts = await _bitacoraService.obtenerActividades(
+        limit: 10,
+        usuarioFilter: widget.rol == 'admin' ? null : widget.userName,
+      );
+      if (mounted) {
+        setState(() {
+          _actividades = acts;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -45,6 +54,13 @@ class _RecentActivityWidgetState extends State<RecentActivityWidget> {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 20),
         child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        child: Text('Error cargando bitácora: $_errorMessage', style: const TextStyle(color: Colors.red)),
       );
     }
 

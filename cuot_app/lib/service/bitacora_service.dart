@@ -24,8 +24,9 @@ class BitacoraService {
             'entidad_id': entidadId,
           });
     } catch (e) {
-      // No lanzar error para no interrumpir la operación principal
+      // Registrar log local pero lanzar para que la app se entere en dev
       print('⚠️ Error registrando actividad en bitácora: $e');
+      // No rethrow para no romper pagos o crear créditos, pero lo imprimirá
     }
   }
 
@@ -53,7 +54,7 @@ class BitacoraService {
           .toList();
     } catch (e) {
       print('❌ Error en obtenerActividades: $e');
-      return [];
+      rethrow;
     }
   }
 }

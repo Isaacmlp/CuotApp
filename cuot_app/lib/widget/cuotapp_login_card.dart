@@ -1,5 +1,7 @@
 import 'package:cuot_app/Model/local_auth.dart';
 import 'package:cuot_app/core/supabase/supabase_service.dart';
+import 'package:cuot_app/service/bitacora_service.dart';
+import 'package:cuot_app/service/user_admin_service.dart';
 import 'package:cuot_app/ui/pages/dashboard_screen.dart';
 import 'package:cuot_app/widget/login_form.dart';
 import 'package:flutter/material.dart';
@@ -166,19 +168,34 @@ class _CuotAppLoginCardState extends State<CuotAppLoginCard> {
       if (contrasena == contrasenaBD) {
         print('✅ Login exitoso para: $correo');
 
-        final user = await supabaseService.client
-            .schema("Usuarios")
-            .from("Usuarios")
-            .select("Nombre_Completo")
-            .eq('Correo_Electronico', correo)
-            .maybeSingle();
+        // Obtener datos del usuario incluyendo rol y estado
+        final userAdminService = UserAdminService();
+        final datosRol = await userAdminService.obtenerDatosRolPorCorreo(correo);
 
-        final nombreCompleto = (user?['Nombre_Completo'] ?? '')
+        final String rol = datosRol?['rol'] ?? 'cliente';
+        final bool activo = datosRol?['activo'] ?? true;
+
+        // Verificar que el usuario esté activo
+        if (!activo) {
+          throw Exception('Tu cuenta ha sido desactivada. Contacta al administrador.');
+        }
+
+        final nombreCompleto = (datosRol?['Nombre_Completo'] ?? '')
             .toString()
             .replaceAll('{', '')
             .replaceAll('}', '')
             .trim();
         final nombre = nombreCompleto;
+
+        // Registrar login en bitácora (si fue creado por admin)
+        final String? creadoPor = datosRol?['creado_por'];
+        if (creadoPor != null && creadoPor.isNotEmpty) {
+          await BitacoraService().registrarActividad(
+            usuarioNombre: nombre,
+            accion: 'login',
+            descripcion: 'Inicio de sesión exitoso',
+          );
+        }
 
         // Verificar si ya tiene credenciales guardadas
         final hasCredentials =
@@ -202,12 +219,12 @@ class _CuotAppLoginCardState extends State<CuotAppLoginCard> {
           shouldNavigateToDashboard = result ?? true;
         }
 
-        // Navegar al Dashboard si es necesario
+        // Navegar al Dashboard (misma pantalla para todos los roles)
         if (shouldNavigateToDashboard && mounted) {
           Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(
                   builder: (context) =>
-                      DashboardScreen(correo: correo, userName: nombre)),
+                      DashboardScreen(correo: correo, userName: nombre, rol: rol)),
               (Route<dynamic> route) => false);
         }
       } else {

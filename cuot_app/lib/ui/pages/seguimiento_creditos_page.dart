@@ -9,6 +9,7 @@ import 'package:cuot_app/Model/pago_model.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/widget/seguimiento/tarjeta_financiamiento.dart';
 import 'package:cuot_app/service/credit_service.dart';
+import 'package:cuot_app/service/credito_compartido_service.dart';
 import 'package:cuot_app/widget/dashboard/custom_drawer.dart';
 import 'package:cuot_app/ui/pages/dashboard_screen.dart';
 import 'package:cuot_app/ui/pages/detalle_credito_page.dart';
@@ -21,10 +22,16 @@ import 'package:cuot_app/Model/miembro_grupo_model.dart';
 
 class SeguimientoCreditosPage extends StatefulWidget {
   final String nombreUsuario;
+  final bool modoTrabajador;
+  final String rol;
+  final String correo;
 
   const SeguimientoCreditosPage({
     super.key,
     required this.nombreUsuario,
+    this.modoTrabajador = false,
+    this.rol = 'cliente',
+    this.correo = '',
   });
 
   @override
@@ -43,13 +50,31 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      // 🚀 OPTIMIZACIÓN: Ya no reparamos cada vez, lo cual ahorra cientos de consultas.
-      /* await _creditService.repairDuplicateCuotas(widget.nombreUsuario); */
+      List<Map<String, dynamic>> rawCredits;
+      List<Map<String, dynamic>> rawGroups;
 
-      // 🚀 OPTIMIZACIÓN: Una sola consulta para traer todo (N+1 fixed)
-      final rawCredits =
-          await _creditService.getFullCreditsData(widget.nombreUsuario);
-      final rawGroups = await _savingsService.getGruposConMiembros(widget.nombreUsuario);
+      if (widget.modoTrabajador) {
+        // Modo trabajador: cargar créditos compartidos
+        final compartidoService = CreditoCompartidoService();
+        final asignados = await compartidoService.obtenerCreditosAsignados(widget.nombreUsuario);
+
+        // Obtener datos completos de cada crédito asignado
+        rawCredits = [];
+        for (var asignado in asignados) {
+          if (asignado.tipoEntidad == 'credito') {
+            final creditData = await _creditService.getCreditById(asignado.creditoId);
+            if (creditData != null) {
+              rawCredits.add(creditData);
+            }
+          }
+        }
+        // TODO: Cargar grupos de ahorro compartidos cuando se implemente
+        rawGroups = [];
+      } else {
+        // Modo normal: cargar créditos propios
+        rawCredits = await _creditService.getFullCreditsData(widget.nombreUsuario);
+        rawGroups = await _savingsService.getGruposConMiembros(widget.nombreUsuario);
+      }
 
       final List<dynamic> processedCredits = [];
 
@@ -765,8 +790,9 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             context,
             MaterialPageRoute(
               builder: (_) => DashboardScreen(
-                correo: '',
+                correo: widget.correo,
                 userName: widget.nombreUsuario,
+                rol: widget.rol,
               ),
             ),
             (route) => false,
@@ -779,10 +805,12 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
           key: _scaffoldKey,
           drawer: CustomDrawer(
             nombre_usuario: widget.nombreUsuario,
-            ventanaActiva: 'Cuotas Personales',
+            ventanaActiva: widget.modoTrabajador ? 'trabajador' : 'Cuotas Personales',
+            rol: widget.rol,
+            correo: widget.correo,
           ),
           appBar: AppBar(
-            title: const Text('Seguimiento de Cuotas'),
+            title: Text(widget.modoTrabajador ? 'Créditos Asignados' : 'Seguimiento de Cuotas'),
             backgroundColor: AppColors.primaryGreen,
             foregroundColor: Colors.white,
             elevation: 0,

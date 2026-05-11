@@ -108,6 +108,14 @@ class _CuotAppRegisterPageState extends State<CuotAppRegisterPage> {
         "Cedula": cedulaCtrl.text,
         "Contrasena": contrasenaCtrl.text,
         "cedula_url": cedulaUrl,
+        "rol": "cliente",
+        "activo": true,
+      });
+
+      // Insertar credenciales en tabla separada
+      await supabaseService.client.schema("Usuarios").from("Credenciales").insert({
+        "Correo_Electronico": emailCtrl.text,
+        "Contrasena": contrasenaCtrl.text,
       });
 
       if (mounted) {

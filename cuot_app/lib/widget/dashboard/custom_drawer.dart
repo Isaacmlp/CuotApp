@@ -1,5 +1,7 @@
+import 'package:cuot_app/service/credito_compartido_service.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/ui/credito_page.dart';
+import 'package:cuot_app/ui/pages/admin/admin_usuarios_page.dart';
 import 'package:cuot_app/ui/pages/cuotapp_login_page.dart';
 import 'package:cuot_app/ui/pages/dashboard_screen.dart';
 import 'package:cuot_app/ui/pages/historial_renovaciones_page.dart';
@@ -7,15 +9,82 @@ import 'package:cuot_app/ui/pages/seguimiento_creditos_page.dart';
 import 'package:cuot_app/ui/pages/settings_screen.dart';
 import 'package:flutter/material.dart';
 
-class CustomDrawer extends StatelessWidget {
+class CustomDrawer extends StatefulWidget {
   final String nombre_usuario;
-  final String ventanaActiva; // 👈 Recibe la ventana activa
+  final String ventanaActiva;
+  final String rol;
+  final String correo;
 
   const CustomDrawer({
     super.key,
     required this.nombre_usuario,
-    required this.ventanaActiva, // 👈 Requerido
+    required this.ventanaActiva,
+    this.rol = 'cliente',
+    this.correo = '',
   });
+
+  @override
+  State<CustomDrawer> createState() => _CustomDrawerState();
+}
+
+class _CustomDrawerState extends State<CustomDrawer> {
+  bool _tieneCreditosAsignados = false;
+  bool _checkingAsignados = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _verificarCreditosAsignados();
+  }
+
+  Future<void> _verificarCreditosAsignados() async {
+    try {
+      final tiene = await CreditoCompartidoService()
+          .tieneCreditosAsignados(widget.nombre_usuario);
+      if (mounted) {
+        setState(() {
+          _tieneCreditosAsignados = tiene;
+          _checkingAsignados = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _checkingAsignados = false;
+        });
+      }
+    }
+  }
+
+  String _getRolBadge() {
+    switch (widget.rol) {
+      case 'admin':
+        return '🔰 Administrador';
+      case 'supervisor':
+        return '👔 Supervisor';
+      case 'empleado':
+        return '👷 Empleado';
+      case 'cliente':
+        return '👤 Cliente';
+      default:
+        return '👤 Usuario';
+    }
+  }
+
+  Color _getRolColor() {
+    switch (widget.rol) {
+      case 'admin':
+        return Colors.blue;
+      case 'supervisor':
+        return Colors.orange;
+      case 'empleado':
+        return Colors.amber;
+      case 'cliente':
+        return AppColors.primaryGreen;
+      default:
+        return AppColors.mediumGrey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,8 +97,7 @@ class CustomDrawer extends StatelessWidget {
             // Header del Drawer con gradiente verde
             Container(
               padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top +
-                    16, // Espacio para el status bar
+                top: MediaQuery.of(context).padding.top + 16,
                 left: 16,
                 right: 16,
                 bottom: 16,
@@ -46,7 +114,7 @@ class CustomDrawer extends StatelessWidget {
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min, // Que crezca según su contenido
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const CircleAvatar(
                     radius: 30,
@@ -59,8 +127,8 @@ class CustomDrawer extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    nombre_usuario.isNotEmpty
-                        ? 'Hola, ${nombre_usuario.split(' ').first}'
+                    widget.nombre_usuario.isNotEmpty
+                        ? 'Hola, ${widget.nombre_usuario.split(' ').first}'
                         : 'Hola, Usuario',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -71,11 +139,20 @@ class CustomDrawer extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    'ver perfil',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 14,
+                  // Badge de rol
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      _getRolBadge(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -87,55 +164,61 @@ class CustomDrawer extends StatelessWidget {
               icon: Icons.dashboard,
               label: 'Menu Principal',
               onTap: () {
-                Navigator.pop(context); // Cerrar el drawer primero
+                Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (_) => DashboardScreen(
-                            correo: '',
-                            userName: nombre_usuario,
-                          )),
+                    builder: (_) => DashboardScreen(
+                      correo: widget.correo,
+                      userName: widget.nombre_usuario,
+                      rol: widget.rol,
+                    ),
+                  ),
                 );
               },
-              isSelected: ventanaActiva == 'dashboard', // 👈 Condición
+              isSelected: widget.ventanaActiva == 'dashboard',
             ),
 
             _buildDrawerItem(
               icon: Icons.credit_card,
               label: 'Cuotas Personales',
               onTap: () {
-                Navigator.pop(context); // Cerrar el drawer primero
+                Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (_) => SeguimientoCreditosPage(
-                            nombreUsuario: nombre_usuario,
-                          )),
+                    builder: (_) => SeguimientoCreditosPage(
+                      nombreUsuario: widget.nombre_usuario,
+                      rol: widget.rol,
+                      correo: widget.correo,
+                    ),
+                  ),
                 );
               },
-              isSelected: ventanaActiva == 'Cuotas Personales', // 👈 Condición
+              isSelected: widget.ventanaActiva == 'Cuotas Personales',
             ),
 
-           /* _buildDrawerItem(
-              icon: Icons.payment,
-              label: 'Cuotas Comunitarias',
-              onTap: () {
-                // TODO: Implementar navegación a pagos
-              },
-              isSelected:
-                  ventanaActiva == 'Cuotas Comunitarias', // 👈 Condición
-            ),*/
-
-            /*_buildDrawerItem(
-              icon: Icons.calendar_today,
-              label: 'Cuotas Empresariales',
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Implementar navegación a calendario
-              },
-              isSelected:
-                  ventanaActiva == 'Cuotas Empresariales', // 👈 Condición
-            ),*/
+            // Opción "Trabajador" — solo visible si tiene créditos asignados
+            if (!_checkingAsignados && _tieneCreditosAsignados)
+              _buildDrawerItem(
+                icon: Icons.work_outline,
+                label: 'Trabajador',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SeguimientoCreditosPage(
+                        nombreUsuario: widget.nombre_usuario,
+                        modoTrabajador: true,
+                        rol: widget.rol,
+                        correo: widget.correo,
+                      ),
+                    ),
+                  );
+                },
+                isSelected: widget.ventanaActiva == 'trabajador',
+              ),
 
             _buildDrawerItem(
               icon: Icons.history,
@@ -146,12 +229,12 @@ class CustomDrawer extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (_) => HistorialRenovacionesPage(
-                      nombreUsuario: nombre_usuario,
+                      nombreUsuario: widget.nombre_usuario,
                     ),
                   ),
                 );
               },
-              isSelected: ventanaActiva == 'historial', // 👈 Condición
+              isSelected: widget.ventanaActiva == 'historial',
             ),
 
             const Divider(
@@ -170,8 +253,29 @@ class CustomDrawer extends StatelessWidget {
               },
               showBadge: true,
               badgeCount: 3,
-              isSelected: ventanaActiva == 'notificaciones', // 👈 Condición
+              isSelected: widget.ventanaActiva == 'notificaciones',
             ),
+
+            // Gestión de Usuarios — solo para admin
+            if (widget.rol == 'admin')
+              _buildDrawerItem(
+                icon: Icons.admin_panel_settings,
+                label: 'Gestión de Usuarios',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AdminUsuariosPage(
+                        nombreUsuario: widget.nombre_usuario,
+                        rol: widget.rol,
+                        correo: widget.correo,
+                      ),
+                    ),
+                  );
+                },
+                isSelected: widget.ventanaActiva == 'gestion_usuarios',
+              ),
 
             _buildDrawerItem(
               icon: Icons.settings,
@@ -181,12 +285,12 @@ class CustomDrawer extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => SettingsScreen(
-                      nombreUsuario: nombre_usuario,
+                      nombreUsuario: widget.nombre_usuario,
                     ),
                   ),
                 );
               },
-              isSelected: ventanaActiva == 'Configuración', // 👈 Condición
+              isSelected: widget.ventanaActiva == 'Configuración',
             ),
 
             _buildDrawerItem(
@@ -196,7 +300,7 @@ class CustomDrawer extends StatelessWidget {
                 Navigator.pop(context);
                 // TODO: Implementar navegación a ayuda
               },
-              isSelected: ventanaActiva == 'ayuda', // 👈 Condición
+              isSelected: widget.ventanaActiva == 'ayuda',
             ),
 
             const Divider(
@@ -216,7 +320,7 @@ class CustomDrawer extends StatelessWidget {
                 );
               },
               color: AppColors.error,
-              isSelected: false, // Nunca está seleccionado
+              isSelected: false,
             ),
 
             const SizedBox(height: 20),

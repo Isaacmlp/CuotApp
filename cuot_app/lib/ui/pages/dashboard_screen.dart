@@ -14,11 +14,12 @@ import 'package:cuot_app/ui/pages/cuotapp_login_page.dart';
 class DashboardScreen extends StatelessWidget {
   final String? userName;
   final String? correo;
+  final String rol;
 
   // Llave global del Scaffold para controlar el Drawer manualmente
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  DashboardScreen({super.key, required this.correo, required this.userName});
+  DashboardScreen({super.key, required this.correo, required this.userName, this.rol = 'cliente'});
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +69,9 @@ class DashboardScreen extends StatelessWidget {
               key: _scaffoldKey,
               drawer: CustomDrawer(
                 nombre_usuario: userName ?? "Usuario no encontrado", 
-                ventanaActiva: "dashboard"
+                ventanaActiva: "dashboard",
+                rol: rol,
+                correo: correo ?? '',
               ),
               body: RefreshIndicator(
                 onRefresh: () => controller.refreshData(),

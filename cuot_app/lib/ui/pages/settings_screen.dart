@@ -3,11 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SettingsScreen extends StatefulWidget {
-  final String? nombreUsuario; // Callback para navegación segura
+  final String? nombreUsuario; 
+  final String rol;
+  final String correo;
   
   const SettingsScreen({
     super.key,
-    required this.nombreUsuario
+    required this.nombreUsuario,
+    this.rol = 'cliente',
+    this.correo = '',
   });
 
   @override
@@ -97,7 +101,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
     
-      drawer: CustomDrawer(nombre_usuario: widget.nombreUsuario ?? "Usuario", ventanaActiva: "Configuración"),
+      drawer: CustomDrawer(
+        nombre_usuario: widget.nombreUsuario ?? "Usuario", 
+        ventanaActiva: "Configuración",
+        rol: widget.rol,
+        correo: widget.correo,
+      ),
       appBar: AppBar(
         title: const Text('Configuración'),
       ),

@@ -19,7 +19,7 @@ class CreditoCompartidoService {
           .from('Creditos_Compartidos')
           .select('id')
           .eq('credito_id', creditoId)
-          .eq('trabajador_nombre', trabajadorNombre)
+          .eq('trabajador_nombre', trabajadorNombre.trim())
           .eq('activo', true)
           .maybeSingle();
 
@@ -33,8 +33,8 @@ class CreditoCompartidoService {
           .insert({
             'credito_id': creditoId,
             'tipo_entidad': tipoEntidad,
-            'propietario_nombre': propietarioNombre,
-            'trabajador_nombre': trabajadorNombre,
+            'propietario_nombre': propietarioNombre.trim(),
+            'trabajador_nombre': trabajadorNombre.trim(),
             'permisos': permisos,
             'activo': true,
           })
@@ -55,7 +55,7 @@ class CreditoCompartidoService {
           .schema('Usuarios')
           .from('Creditos_Compartidos')
           .select()
-          .eq('trabajador_nombre', trabajadorNombre)
+          .eq('trabajador_nombre', trabajadorNombre.trim())
           .eq('activo', true);
 
       return List<Map<String, dynamic>>.from(response)
@@ -74,7 +74,7 @@ class CreditoCompartidoService {
           .schema('Usuarios')
           .from('Creditos_Compartidos')
           .select('id')
-          .eq('trabajador_nombre', nombreUsuario)
+          .eq('trabajador_nombre', nombreUsuario.trim())
           .eq('activo', true)
           .limit(1);
 
@@ -106,7 +106,7 @@ class CreditoCompartidoService {
           .schema('Usuarios')
           .from('Creditos_Compartidos')
           .select()
-          .eq('propietario_nombre', propietarioNombre)
+          .eq('propietario_nombre', propietarioNombre.trim())
           .eq('activo', true);
 
       return List<Map<String, dynamic>>.from(response)

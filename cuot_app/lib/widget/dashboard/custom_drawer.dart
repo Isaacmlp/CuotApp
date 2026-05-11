@@ -2,6 +2,7 @@ import 'package:cuot_app/service/credito_compartido_service.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/ui/credito_page.dart';
 import 'package:cuot_app/ui/pages/admin/admin_usuarios_page.dart';
+import 'package:cuot_app/ui/pages/admin/empleados_page.dart';
 import 'package:cuot_app/ui/pages/cuotapp_login_page.dart';
 import 'package:cuot_app/ui/pages/dashboard_screen.dart';
 import 'package:cuot_app/ui/pages/historial_renovaciones_page.dart';
@@ -30,17 +31,19 @@ class CustomDrawer extends StatefulWidget {
 class _CustomDrawerState extends State<CustomDrawer> {
   bool _tieneCreditosAsignados = false;
   bool _checkingAsignados = true;
+  bool _tieneEmpleados = false;
 
   @override
   void initState() {
     super.initState();
     _verificarCreditosAsignados();
+    if (widget.rol == 'admin') _verificarEmpleados();
   }
 
   Future<void> _verificarCreditosAsignados() async {
     try {
       final tiene = await CreditoCompartidoService()
-          .tieneCreditosAsignados(widget.nombre_usuario);
+          .tieneCreditosAsignados(widget.nombre_usuario.trim());
       if (mounted) {
         setState(() {
           _tieneCreditosAsignados = tiene;
@@ -53,6 +56,20 @@ class _CustomDrawerState extends State<CustomDrawer> {
           _checkingAsignados = false;
         });
       }
+    }
+  }
+
+  Future<void> _verificarEmpleados() async {
+    try {
+      final lista = await CreditoCompartidoService()
+          .obtenerCreditosCompartidosPorPropietario(widget.nombre_usuario.trim());
+      if (mounted) {
+        setState(() {
+          _tieneEmpleados = lista.isNotEmpty;
+        });
+      }
+    } catch (e) {
+      // silenciar
     }
   }
 
@@ -230,12 +247,35 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   MaterialPageRoute(
                     builder: (_) => HistorialRenovacionesPage(
                       nombreUsuario: widget.nombre_usuario,
+                      rol: widget.rol,
+                      correo: widget.correo,
                     ),
                   ),
                 );
               },
               isSelected: widget.ventanaActiva == 'historial',
             ),
+
+            // Opción "Empleados" — solo para admin con empleados asignados
+            if (widget.rol == 'admin' && _tieneEmpleados)
+              _buildDrawerItem(
+                icon: Icons.people_alt,
+                label: 'Empleados',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EmpleadosPage(
+                        adminNombre: widget.nombre_usuario,
+                        rol: widget.rol,
+                        correo: widget.correo,
+                      ),
+                    ),
+                  );
+                },
+                isSelected: widget.ventanaActiva == 'empleados',
+              ),
 
             const Divider(
               height: 32,
@@ -286,6 +326,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   MaterialPageRoute(
                     builder: (context) => SettingsScreen(
                       nombreUsuario: widget.nombre_usuario,
+                      rol: widget.rol,
+                      correo: widget.correo,
                     ),
                   ),
                 );

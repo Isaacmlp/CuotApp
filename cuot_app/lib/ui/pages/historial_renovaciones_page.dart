@@ -7,10 +7,14 @@ import 'package:cuot_app/ui/pages/dashboard_screen.dart';
 
 class HistorialRenovacionesPage extends StatefulWidget {
   final String nombreUsuario;
+  final String rol;
+  final String correo;
 
   const HistorialRenovacionesPage({
     super.key,
     required this.nombreUsuario,
+    this.rol = 'cliente',
+    this.correo = '',
   });
 
   @override
@@ -597,8 +601,9 @@ class _HistorialRenovacionesPageState extends State<HistorialRenovacionesPage> {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (context) => DashboardScreen(
-              correo: null,
+              correo: widget.correo,
               userName: widget.nombreUsuario,
+              rol: widget.rol,
             ),
           ),
           (Route<dynamic> route) => false,
@@ -609,6 +614,8 @@ class _HistorialRenovacionesPageState extends State<HistorialRenovacionesPage> {
       drawer: CustomDrawer(
         nombre_usuario: widget.nombreUsuario,
         ventanaActiva: 'historial',
+        rol: widget.rol,
+        correo: widget.correo,
       ),
       appBar: AppBar(
         title: const Text('Historial de Renovaciones'),

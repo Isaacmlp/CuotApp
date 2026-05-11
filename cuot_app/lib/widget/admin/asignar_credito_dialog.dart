@@ -1,5 +1,5 @@
-// lib/widget/admin/asignar_credito_dialog.dart
 import 'package:cuot_app/Model/usuario_model.dart';
+import 'package:cuot_app/service/bitacora_service.dart';
 import 'package:cuot_app/service/credit_service.dart';
 import 'package:cuot_app/service/credito_compartido_service.dart';
 import 'package:cuot_app/theme/app_colors.dart';
@@ -89,22 +89,33 @@ class _AsignarCreditoDialogState extends State<AsignarCreditoDialog> {
     try {
       await _compartidoService.compartirCredito(
         creditoId: _creditoSeleccionado!['id'].toString(),
-        propietarioNombre: widget.adminNombre,
-        trabajadorNombre: widget.usuarioDestino.nombreCompleto,
+        propietarioNombre: widget.adminNombre.trim(),
+        trabajadorNombre: widget.usuarioDestino.nombreCompleto.trim(),
         permisos: _permisos,
       );
 
       if (mounted) {
-        Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '✅ Crédito asignado a ${widget.usuarioDestino.nombreCompleto}',
-            ),
-            backgroundColor: AppColors.primaryGreen,
-            behavior: SnackBarBehavior.floating,
-          ),
+        // Registrar en bitácora
+        await BitacoraService().registrarActividad(
+          usuarioNombre: widget.adminNombre,
+          accion: 'compartir_credito',
+          descripcion: 'Asignó crédito ${_creditoSeleccionado!['id']} a ${widget.usuarioDestino.nombreCompleto}',
+          entidadTipo: 'credito',
+          entidadId: _creditoSeleccionado!['id'].toString(),
         );
+
+        if (mounted) {
+          Navigator.pop(context, true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '✅ Crédito asignado a ${widget.usuarioDestino.nombreCompleto}',
+              ),
+              backgroundColor: AppColors.primaryGreen,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

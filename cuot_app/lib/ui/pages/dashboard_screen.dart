@@ -270,6 +270,8 @@ class DashboardScreen extends StatelessWidget {
                                   MaterialPageRoute(
                                     builder: (_) => SeguimientoCreditosPage(
                                       nombreUsuario: userName ?? "Usuario",
+                                      rol: rol,
+                                      correo: correo ?? '',
                                     ),
                                   ),
                                 );

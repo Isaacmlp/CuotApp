@@ -198,11 +198,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
               isSelected: widget.ventanaActiva == 'Cuotas Personales',
             ),
 
-            // Opción "Trabajador" — solo visible si tiene créditos asignados
+            // Opción "Trabajo" — solo visible si tiene créditos asignados
             if (!_checkingAsignados && _tieneCreditosAsignados)
               _buildDrawerItem(
-                icon: Icons.work_outline,
-                label: 'Trabajador',
+                icon: Icons.work,
+                label: 'Trabajo',
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(

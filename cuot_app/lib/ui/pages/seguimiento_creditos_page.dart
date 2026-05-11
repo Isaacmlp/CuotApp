@@ -876,18 +876,20 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
               _buildListado(TipoCredito.grupal),
             ],
           ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) =>
-                        CreditoPage(nombreUsuario: widget.nombreUsuario)),
-              ).then((_) => _loadData());
-            },
-            tooltip: 'Nuevo crédito',
-            child: const Icon(Icons.add),
-          ),
+          floatingActionButton: widget.modoTrabajador
+              ? null
+              : FloatingActionButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) =>
+                              CreditoPage(nombreUsuario: widget.nombreUsuario)),
+                    ).then((_) => _loadData());
+                  },
+                  tooltip: 'Nuevo crédito',
+                  child: const Icon(Icons.add),
+                ),
         ),
       ),
     );
@@ -980,7 +982,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
       return TarjetaCreditoUnico(
         credito: item,
         onPagoRealizado: (pago) => _pagarCreditoUnico(item, pago),
-        onEditar: () {
+        onEditar: widget.modoTrabajador ? null : () {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -991,11 +993,11 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             ),
           ).then((_) => _loadData());
         },
-        onEliminar: () => _eliminarCredito(
+        onEliminar: widget.modoTrabajador ? null : () => _eliminarCredito(
           item.id,
           item.nombreCliente,
         ),
-        onFallido: () => _cambiarFallido(
+        onFallido: widget.modoTrabajador ? null : () => _cambiarFallido(
           item.id,
           item.nombreCliente,
           item.estadoDB ?? '',
@@ -1050,7 +1052,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         numeroCredito: item['numeroCredito'],
         notas: item['notas'],
         estadoDB: item['estadoDB'],
-        onFallido: () => _cambiarFallido(
+        onFallido: widget.modoTrabajador ? null : () => _cambiarFallido(
           item['id'],
           item['nombre'],
           item['estadoDB'] ?? '',
@@ -1081,7 +1083,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             ),
           );
         },
-        onEditar: () {
+        onEditar: widget.modoTrabajador ? null : () {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -1092,7 +1094,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             ),
           ).then((_) => _loadData());
         },
-        onEliminar: () => _eliminarCredito(
+        onEliminar: widget.modoTrabajador ? null : () => _eliminarCredito(
           item['id'],
           item['nombre'],
         ),

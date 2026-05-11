@@ -3,6 +3,7 @@ import 'package:cuot_app/service/bitacora_service.dart';
 import 'package:cuot_app/service/user_admin_service.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/ui/pages/admin/crear_usuario_page.dart';
+import 'package:cuot_app/widget/admin/asignar_credito_dialog.dart';
 import 'package:cuot_app/widget/admin/usuario_card.dart';
 import 'package:cuot_app/widget/dashboard/custom_drawer.dart';
 import 'package:flutter/material.dart';
@@ -212,6 +213,16 @@ class _AdminUsuariosPageState extends State<AdminUsuariosPage> {
     );
   }
 
+  Future<void> _asignarCredito(Usuario usuario) async {
+    await showDialog(
+      context: context,
+      builder: (context) => AsignarCreditoDialog(
+        adminNombre: widget.nombreUsuario,
+        usuarioDestino: usuario,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -367,6 +378,7 @@ class _AdminUsuariosPageState extends State<AdminUsuariosPage> {
                                   onEditarRol: () => _editarRol(usuario),
                                   onToggleActivo: () => _toggleActivo(usuario),
                                   onResetearContrasena: () => _resetearContrasena(usuario),
+                                  onAsignarCredito: () => _asignarCredito(usuario),
                                 );
                               },
                             ),

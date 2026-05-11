@@ -7,6 +7,7 @@ class UsuarioCard extends StatelessWidget {
   final VoidCallback onEditarRol;
   final VoidCallback onToggleActivo;
   final VoidCallback onResetearContrasena;
+  final VoidCallback onAsignarCredito;
 
   const UsuarioCard({
     super.key,
@@ -14,6 +15,7 @@ class UsuarioCard extends StatelessWidget {
     required this.onEditarRol,
     required this.onToggleActivo,
     required this.onResetearContrasena,
+    required this.onAsignarCredito,
   });
 
   Color _getRolColor() {
@@ -193,6 +195,13 @@ class UsuarioCard extends StatelessWidget {
                   label: 'Contraseña',
                   color: Colors.purple,
                   onTap: onResetearContrasena,
+                ),
+                const SizedBox(width: 8),
+                _ActionButton(
+                  icon: Icons.assignment_ind_outlined,
+                  label: 'Crédito',
+                  color: AppColors.primaryGreen,
+                  onTap: onAsignarCredito,
                 ),
               ],
             ),

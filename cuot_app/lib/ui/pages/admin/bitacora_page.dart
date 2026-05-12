@@ -1,5 +1,6 @@
 import 'package:cuot_app/Model/bitacora_model.dart';
 import 'package:cuot_app/service/bitacora_service.dart';
+import 'package:cuot_app/service/credito_compartido_service.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -31,7 +32,15 @@ class _BitacoraPageState extends State<BitacoraPage> {
       _errorMessage = null;
     });
     try {
-      final acts = await _bitacoraService.obtenerActividades(limit: 100);
+      // 1. Obtener los empleados afiliados a este Admin
+      final asignaciones = await CreditoCompartidoService().obtenerCreditosCompartidosPorPropietario(widget.nombreUsuario);
+      final listEmpleados = asignaciones.map((a) => a.trabajadorNombre).toSet().toList();
+      final List<String> filtros = [widget.nombreUsuario, ...listEmpleados];
+
+      final acts = await _bitacoraService.obtenerActividades(
+        limit: 100,
+        usuariosFilter: filtros,
+      );
       if (mounted) {
         setState(() {
           _actividades = acts;

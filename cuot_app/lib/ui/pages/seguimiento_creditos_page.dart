@@ -65,6 +65,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
           if (asignado.tipoEntidad == 'credito') {
             final creditData = await _creditService.getCreditById(asignado.creditoId);
             if (creditData != null) {
+              creditData['permiso_compartido'] = asignado.permisos;
               rawCredits.add(creditData);
             }
           }
@@ -182,6 +183,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             notas: c['notas'],
             numeroCredito: c['numero_credito'],
             estadoDB: c['estado'],
+            permisoCompartido: c['permiso_compartido'],
           ));
         } else {
           processedCredits.add({
@@ -200,6 +202,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             'numeroCredito': c['numero_credito'],
             'notas': c['notas'],
             'estadoDB': c['estado'],
+            'permiso_compartido': c['permiso_compartido'],
           });
         }
       }
@@ -468,6 +471,18 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
   ) async {
     final f = _financiamientos[financiamientoIndex];
     // Soporte tanto para Map como para CreditoUnico
+    
+    // VALIDACIÓN DE PERMISOS
+    final String? permiso = (f is Map) ? f['permiso_compartido'] : (f as CreditoUnico).permisoCompartido;
+    if (widget.modoTrabajador && permiso == 'lectura') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('🛑 Permiso denegado: Funciones de lectura no permiten registrar pagos.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     try {
       // 1. Guardar en base de datos
@@ -529,6 +544,16 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
   }
 
   Future<void> _pagarCreditoUnico(CreditoUnico credito, Pago pago) async {
+    if (widget.modoTrabajador && credito.permisoCompartido == 'lectura') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('🛑 Permiso denegado: Funciones de lectura no permiten registrar pagos.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     try {
       // 1. Guardar en base de datos
       await _creditService.savePayment(

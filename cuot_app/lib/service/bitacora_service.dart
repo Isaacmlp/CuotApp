@@ -33,7 +33,7 @@ class BitacoraService {
   /// Obtener actividades de la bitácora (para panel admin)
   Future<List<BitacoraActividad>> obtenerActividades({
     int limit = 50,
-    String? usuarioFilter,
+    List<String>? usuariosFilter,
   }) async {
     try {
       var query = _supabase.client
@@ -41,8 +41,8 @@ class BitacoraService {
           .from('Bitacora_Actividad')
           .select();
 
-      if (usuarioFilter != null && usuarioFilter.isNotEmpty) {
-        query = query.eq('usuario_nombre', usuarioFilter.trim());
+      if (usuariosFilter != null && usuariosFilter.isNotEmpty) {
+        query = query.inFilter('usuario_nombre', usuariosFilter.map((u) => u.trim()).toList());
       }
 
       final response = await query

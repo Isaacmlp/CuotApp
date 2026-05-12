@@ -1,5 +1,6 @@
 import 'package:cuot_app/Model/bitacora_model.dart';
 import 'package:cuot_app/service/bitacora_service.dart';
+import 'package:cuot_app/service/credito_compartido_service.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -28,9 +29,18 @@ class _RecentActivityWidgetState extends State<RecentActivityWidget> {
 
   Future<void> _cargarActividades() async {
     try {
+      List<String>? filtros;
+      if (widget.rol == 'admin') {
+        final asignaciones = await CreditoCompartidoService().obtenerCreditosCompartidosPorPropietario(widget.userName);
+        final empleados = asignaciones.map((a) => a.trabajadorNombre).toSet().toList();
+        filtros = [widget.userName, ...empleados];
+      } else {
+        filtros = [widget.userName];
+      }
+
       final acts = await _bitacoraService.obtenerActividades(
         limit: 10,
-        usuarioFilter: widget.rol == 'admin' ? null : widget.userName,
+        usuariosFilter: filtros,
       );
       if (mounted) {
         setState(() {

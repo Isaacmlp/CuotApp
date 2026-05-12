@@ -26,6 +26,7 @@ class CreditoUnico {
   final String? notas;
   final int? numeroCredito;
   final String? estadoDB; // Estado desde la BD (ej: 'Fallido')
+  final String? permisoCompartido;
 
   CreditoUnico({
     required this.id,
@@ -41,6 +42,7 @@ class CreditoUnico {
     this.notas,
     this.numeroCredito,
     this.estadoDB,
+    this.permisoCompartido,
   });
 
   double get totalPagado => 

@@ -56,7 +56,7 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
         try {
           final acts = await _bitacoraService.obtenerActividades(
             limit: 10,
-            usuarioFilter: emp,
+            usuariosFilter: [emp],
           );
           actividades[emp] = acts;
         } catch (e) {

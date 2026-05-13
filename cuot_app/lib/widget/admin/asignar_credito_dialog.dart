@@ -46,12 +46,22 @@ class _AsignarCreditoDialogState extends State<AsignarCreditoDialog> {
 
   Future<void> _cargarCreditos() async {
     try {
+      // 1. Cargar créditos del administrador
       final raw = await _creditService.getFullCreditsData(widget.adminNombre);
+      
+      // 2. Cargar créditos que YA tiene asignados el usuario destino
+      final asignados = await _compartidoService.obtenerCreditosAsignados(widget.usuarioDestino.nombreCompleto);
+      final setIdsAsignados = asignados.map((a) => a.creditoId).toSet();
+
       if (mounted) {
         setState(() {
-          _creditos = raw
-              .where((c) => c['estado'] != 'Fallido')
-              .toList();
+          // Filtrar: No fallidos Y que no estén ya asignados a este usuario específico
+          _creditos = raw.where((c) {
+            final bool noFallido = c['estado'] != 'Fallido';
+            final bool noAsignadoYa = !setIdsAsignados.contains(c['id'].toString());
+            return noFallido && noAsignadoYa;
+          }).toList();
+          
           _creditosFiltrados = List.from(_creditos);
           _isLoading = false;
         });
@@ -95,11 +105,14 @@ class _AsignarCreditoDialogState extends State<AsignarCreditoDialog> {
       );
 
       if (mounted) {
-        // Registrar en bitácora
+        // Registrar en bitácora con información descriptiva (Número de crédito y Cliente)
+        final String numCredito = _creditoSeleccionado!['numero_credito']?.toString() ?? 'S/N';
+        final String nombreCliente = _creditoSeleccionado!['Clientes']?['nombre'] ?? 'Sin nombre';
+
         await BitacoraService().registrarActividad(
           usuarioNombre: widget.adminNombre,
           accion: 'compartir_credito',
-          descripcion: 'Asignó crédito ${_creditoSeleccionado!['id']} a ${widget.usuarioDestino.nombreCompleto}',
+          descripcion: 'Asignó crédito #$numCredito ($nombreCliente) a ${widget.usuarioDestino.nombreCompleto}',
           entidadTipo: 'credito',
           entidadId: _creditoSeleccionado!['id'].toString(),
         );

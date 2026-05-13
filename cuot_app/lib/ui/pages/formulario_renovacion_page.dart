@@ -544,10 +544,11 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
       
       // 🎯 REGISTRO EN BITÁCORA
       final String nombreCliente = cliente['nombre'] ?? 'N/A';
+      final String numCredito = _credito?['numero_credito']?.toString() ?? 'S/N';
       await BitacoraService().registrarActividad(
         usuarioNombre: widget.nombreUsuario,
         accion: 'renovacion_credito',
-        descripcion: 'Renovó préstamo para $nombreCliente. Nuevo total: \$${_nuevoMontoTotal.toStringAsFixed(2)}',
+        descripcion: 'Renovó préstamo #$numCredito para $nombreCliente. Nuevo total: \$${_nuevoMontoTotal.toStringAsFixed(2)}',
         entidadTipo: 'credito',
         entidadId: widget.creditoId,
       );

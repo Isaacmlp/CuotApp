@@ -59,45 +59,86 @@ class UserAdminService {
     required String contrasena,
     required String rol,
     required String creadoPor,
+    String? cedula,
   }) async {
     try {
-      // 1. Verificar que el correo no exista
-      final existente = await _supabase.client
+      // 1. Verificar que el correo no exista en ninguna de las dos tablas
+      final existenteUsuarios = await _supabase.client
           .schema('Usuarios')
           .from('Usuarios')
-          .select('id')
+          .select('Correo_Electronico')
           .eq('Correo_Electronico', correo)
           .maybeSingle();
 
-      if (existente != null) {
+      final existenteCredenciales = await _supabase.client
+          .schema('Usuarios')
+          .from('Credenciales')
+          .select('Correo_Electronico')
+          .eq('Correo_Electronico', correo)
+          .maybeSingle();
+
+      if (existenteUsuarios != null || existenteCredenciales != null) {
         throw Exception('Ya existe un usuario con ese correo electrónico');
       }
 
-      // 2. Insertar en tabla Usuarios
-      final usuarioResponse = await _supabase.client
+      // 2. Verificar que el teléfono no exista
+      final existenteTelefono = await _supabase.client
           .schema('Usuarios')
           .from('Usuarios')
-          .insert({
-            'Nombre_Completo': nombre,
-            'Correo_Electronico': correo,
-            'Telefono': telefono,
-            'rol': rol,
-            'creado_por': creadoPor,
-            'activo': true,
-          })
-          .select()
-          .single();
+          .select('Telefono')
+          .eq('Telefono', telefono)
+          .maybeSingle();
 
-      // 3. Insertar en tabla Credenciales
-      await _supabase.client
-          .schema('Usuarios')
-          .from('Credenciales')
-          .insert({
-            'Correo_Electronico': correo,
-            'Contrasena': contrasena,
-          });
+      if (existenteTelefono != null) {
+        throw Exception('Ya existe un usuario con ese número de teléfono');
+      }
 
-      return Usuario.fromJson(usuarioResponse);
+      // 3. Verificar que la cédula no exista
+      if (cedula != null && cedula.isNotEmpty) {
+        final existenteCedula = await _supabase.client
+            .schema('Usuarios')
+            .from('Usuarios')
+            .select('Cedula')
+            .eq('Cedula', cedula)
+            .maybeSingle();
+
+        if (existenteCedula != null) {
+          throw Exception('Ya existe un usuario con esa cédula / ID');
+        }
+      }
+
+      try {
+        // 4. Insertar en tabla Usuarios
+        // NOTA: No insertamos en 'Credenciales' manualmente porque la base de datos 
+        // tiene un trigger que lo hace automáticamente al insertar en 'Usuarios'.
+        await _supabase.client
+            .schema('Usuarios')
+            .from('Usuarios')
+            .insert({
+              'Nombre_Completo': nombre,
+              'Correo_Electronico': correo,
+              'Telefono': telefono,
+              'Cedula': cedula,
+              'Contrasena': contrasena,
+              'rol': rol,
+              'creado_por': creadoPor,
+              'activo': true,
+            });
+      } catch (e) {
+        print('❌ Error al insertar en Usuarios: $e');
+        rethrow;
+      }
+
+      // 6. Retornar el objeto usuario construido manualmente con los datos que enviamos
+      return Usuario(
+        nombreCompleto: nombre,
+        correoElectronico: correo,
+        telefono: telefono,
+        cedula: cedula,
+        rol: rol,
+        creadoPor: creadoPor,
+        activo: true,
+      );
     } catch (e) {
       print('❌ Error en crearUsuario: $e');
       rethrow;
@@ -181,11 +222,24 @@ class UserAdminService {
             u.nombreCompleto.toLowerCase().contains(q) ||
             u.correoElectronico.toLowerCase().contains(q)).toList();
       }
-
       return usuarios;
     } catch (e) {
       print('❌ Error en buscarUsuarios: $e');
       return [];
+    }
+  }
+
+  /// Eliminar un usuario permanentemente
+  Future<void> eliminarUsuario(String usuarioId) async {
+    try {
+      await _supabase.client
+          .schema('Usuarios')
+          .from('Usuarios')
+          .delete()
+          .eq('id', usuarioId);
+    } catch (e) {
+      print('❌ Error en eliminarUsuario: $e');
+      rethrow;
     }
   }
 }

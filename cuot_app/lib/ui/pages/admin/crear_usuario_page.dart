@@ -24,6 +24,7 @@ class _CrearUsuarioPageState extends State<CrearUsuarioPage> {
   final TextEditingController _nombreCtrl = TextEditingController();
   final TextEditingController _emailCtrl = TextEditingController();
   final TextEditingController _telefonoCtrl = TextEditingController();
+  final TextEditingController _cedulaCtrl = TextEditingController();
   final TextEditingController _contrasenaCtrl = TextEditingController();
   final TextEditingController _confirmarCtrl = TextEditingController();
 
@@ -36,6 +37,7 @@ class _CrearUsuarioPageState extends State<CrearUsuarioPage> {
     _nombreCtrl.dispose();
     _emailCtrl.dispose();
     _telefonoCtrl.dispose();
+    _cedulaCtrl.dispose();
     _contrasenaCtrl.dispose();
     _confirmarCtrl.dispose();
     super.dispose();
@@ -62,6 +64,7 @@ class _CrearUsuarioPageState extends State<CrearUsuarioPage> {
         nombre: _nombreCtrl.text.trim(),
         correo: _emailCtrl.text.trim(),
         telefono: _telefonoCtrl.text.trim(),
+        cedula: _cedulaCtrl.text.trim(),
         contrasena: _contrasenaCtrl.text,
         rol: _rolSeleccionado,
         creadoPor: widget.creadoPor,
@@ -75,7 +78,6 @@ class _CrearUsuarioPageState extends State<CrearUsuarioPage> {
       );
 
       if (mounted) {
-        _showSnackBar('✅ Usuario creado correctamente', Colors.green);
         Navigator.pop(context, true);
       }
     } catch (e) {
@@ -196,6 +198,14 @@ class _CrearUsuarioPageState extends State<CrearUsuarioPage> {
                   label: 'Teléfono',
                   icon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
+                  validator: (v) => v == null || v.isEmpty ? 'Campo requerido' : null,
+                ),
+                const SizedBox(height: 16),
+                
+                _buildField(
+                  controller: _cedulaCtrl,
+                  label: 'Cédula / ID',
+                  icon: Icons.badge_outlined,
                   validator: (v) => v == null || v.isEmpty ? 'Campo requerido' : null,
                 ),
                 const SizedBox(height: 16),

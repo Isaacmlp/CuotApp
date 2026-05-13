@@ -22,9 +22,14 @@ class NetworkUtils {
     }
     
     if (errorStr.contains('postgrestexception')) {
-      // Intentar extraer un mensaje más limpio de PostgrestException si es posible
       if (errorStr.contains('invalid login credentials') || errorStr.contains('invalid_credentials')) {
         return 'Credenciales inválidas. Por favor intenta de nuevo.';
+      }
+      if (errorStr.contains('unique_violation') || errorStr.contains('duplicate key') || errorStr.contains('23505')) {
+        if (errorStr.contains('correo_electronico')) return 'Este correo ya está registrado.';
+        if (errorStr.contains('telefono')) return 'Este número de teléfono ya está registrado.';
+        if (errorStr.contains('cedula')) return 'Esta cédula/ID ya está registrada.';
+        return 'Ya existe un registro con estos datos.';
       }
       return 'Error de base de datos. Por favor intenta más tarde.';
     }

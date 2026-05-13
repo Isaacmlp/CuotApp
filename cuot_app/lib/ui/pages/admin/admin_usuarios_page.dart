@@ -230,6 +230,48 @@ class _AdminUsuariosPageState extends State<AdminUsuariosPage> {
     }
     passController.dispose();
   }
+  
+  Future<void> _eliminarUsuario(Usuario usuario) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('⚠️ Eliminar Usuario'),
+        content: Text(
+          '¿Estás seguro de eliminar permanentemente a ${usuario.nombreCompleto}?\n\nEsta acción no se puede deshacer.'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _userService.eliminarUsuario(usuario.id!);
+        await _bitacoraService.registrarActividad(
+          usuarioNombre: widget.nombreUsuario,
+          accion: 'eliminar_usuario',
+          descripcion: 'Eliminó permanentemente al usuario ${usuario.nombreCompleto}',
+          entidadId: usuario.id,
+        );
+        _showSnackBar('✅ Usuario eliminado correctamente', Colors.green);
+        _cargarUsuarios();
+      } catch (e) {
+        _showSnackBar('❌ Error al eliminar usuario: $e', Colors.red);
+      }
+    }
+  }
 
   void _showSnackBar(String message, Color color) {
     if (!mounted) return;
@@ -404,6 +446,7 @@ class _AdminUsuariosPageState extends State<AdminUsuariosPage> {
                                   onToggleActivo: () => _toggleActivo(usuario),
                                   onResetearContrasena: () => _resetearContrasena(usuario),
                                   onAsignarCredito: () => _asignarCredito(usuario),
+                                  onEliminar: () => _eliminarUsuario(usuario),
                                 );
                               },
                             ),
@@ -423,6 +466,7 @@ class _AdminUsuariosPageState extends State<AdminUsuariosPage> {
           );
           if (result == true) {
             _cargarUsuarios();
+            _showSnackBar('✅ Usuario creado correctamente', Colors.green);
           }
         },
         backgroundColor: AppColors.primaryGreen,

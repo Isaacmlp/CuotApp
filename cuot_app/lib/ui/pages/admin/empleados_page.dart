@@ -31,7 +31,7 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
 
   List<CreditoCompartido> _asignaciones = [];
   Map<String, List<BitacoraActividad>> _actividadesPorEmpleado = {};
-  Map<String, String> _nombresClientes = {};
+  Map<String, Map<String, dynamic>> _detallesCreditos = {}; // 👈 CAMBIADO: Guardar mapa completo de detalles
   bool _isLoading = true;
   String? _error;
 
@@ -66,15 +66,17 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
         }
       }
 
-      // Obtener nombres de clientes para los créditos
-      Map<String, String> nombres = {};
+      // Obtener detalles completos de los créditos
+      Map<String, Map<String, dynamic>> detalles = {};
       for (var a in asignaciones) {
-        if (!nombres.containsKey(a.creditoId)) {
+        if (!detalles.containsKey(a.creditoId)) {
           try {
             final creditData = await _creditService.getCreditById(a.creditoId);
-            nombres[a.creditoId] = creditData?['Clientes']?['nombre'] ?? 'ID: ${a.creditoId}';
-          } catch (_) {
-            nombres[a.creditoId] = 'ID: ${a.creditoId}';
+            if (creditData != null) {
+              detalles[a.creditoId] = creditData;
+            }
+          } catch (e) {
+            print('Error cargando detalle de crédito ${a.creditoId}: $e');
           }
         }
       }
@@ -83,7 +85,7 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
         setState(() {
           _asignaciones = asignaciones;
           _actividadesPorEmpleado = actividades;
-          _nombresClientes = nombres;
+          _detallesCreditos = detalles;
           _isLoading = false;
         });
       }
@@ -180,41 +182,125 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
           final asignacionesEmp = empleadosMap[nombre]!;
           final actividades = _actividadesPorEmpleado[nombre] ?? [];
 
-          return Card(
+          return Container(
             margin: const EdgeInsets.only(bottom: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            elevation: 2,
-            child: ExpansionTile(
-              leading: CircleAvatar(
-                backgroundColor: AppColors.primaryGreen.withOpacity(0.1),
-                child: Text(nombre[0].toUpperCase(), 
-                  style: const TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.bold)),
-              ),
-              title: Text(nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text('${asignacionesEmp.length} crédito(s) asignado(s)'),
-              children: [
-                const Divider(),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Créditos Asignados', 
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryGreen)),
-                      const SizedBox(height: 8),
-                      ...asignacionesEmp.map((a) => _buildAsignacionItem(a)),
-                      const SizedBox(height: 16),
-                      const Text('Actividad Reciente', 
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryGreen)),
-                      const SizedBox(height: 8),
-                      if (actividades.isEmpty)
-                        const Text('Sin actividad reciente', style: TextStyle(fontSize: 12, color: Colors.grey))
-                      else
-                        ...actividades.map((act) => _buildBitacoraItem(act)),
-                    ],
-                  ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 15,
+                  offset: const Offset(0, 6),
                 ),
               ],
+            ),
+            child: Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                leading: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.primaryGreen.withOpacity(0.1), AppColors.lightGreen.withOpacity(0.05)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      nombre[0].toUpperCase(), 
+                      style: const TextStyle(
+                        color: AppColors.primaryGreen, 
+                        fontWeight: FontWeight.w900,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                ),
+                title: Text(
+                  nombre, 
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: AppColors.darkGrey,
+                  ),
+                ),
+                subtitle: Row(
+                  children: [
+                    const Icon(Icons.assignment_ind_outlined, size: 12, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${asignacionesEmp.length} registro(s) asignado(s)',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+                children: [
+                  const Divider(indent: 16, endIndent: 16, height: 1),
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.credit_card_outlined, size: 16, color: AppColors.primaryGreen.withOpacity(0.7)),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Registros Asignados', 
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800, 
+                                fontSize: 13, 
+                                color: AppColors.primaryGreen,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        ...asignacionesEmp.map((a) => _buildAsignacionItem(a)),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Icon(Icons.history_toggle_off, size: 16, color: AppColors.primaryGreen.withOpacity(0.7)),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Actividad Reciente', 
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800, 
+                                fontSize: 13, 
+                                color: AppColors.primaryGreen,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (actividades.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.info_outline, size: 14, color: Colors.grey),
+                                SizedBox(width: 8),
+                                Text('Sin actividad reciente', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                              ],
+                            ),
+                          )
+                        else
+                          ...actividades.map((act) => _buildBitacoraItem(act)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -223,35 +309,123 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
   }
 
   Widget _buildAsignacionItem(CreditoCompartido a) {
+    final detalle = _detallesCreditos[a.creditoId];
+    final String cliente = detalle?['Clientes']?['nombre'] ?? 'Desconocido';
+    final String concepto = detalle?['concepto'] ?? 'Sin concepto';
+    final String numReg = detalle?['numero_credito']?.toString() ?? '--';
+    
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.credit_card, size: 16, color: AppColors.darkGrey),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(_nombresClientes[a.creditoId] ?? 'Cargando...', 
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                Text('Permisos: ${a.permisos}', style: const TextStyle(fontSize: 11)),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.error),
-            onPressed: () => _revocarAcceso(a),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              // Barra lateral de color según permisos
+              Container(
+                width: 6,
+                color: _getPermisoColor(a.permisos),
+              ),
+              const SizedBox(width: 12),
+              
+              // Información Principal
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryGreen.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'Reg #$numReg',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryGreen,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            a.permisos.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              color: _getPermisoColor(a.permisos),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        cliente,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.darkGrey,
+                        ),
+                      ),
+                      Text(
+                        concepto,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              // Acciones
+              Container(
+                decoration: BoxDecoration(
+                  border: Border(left: BorderSide(color: Colors.grey.shade50)),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.delete_sweep_outlined, color: AppColors.error),
+                  onPressed: () => _revocarAcceso(a),
+                  tooltip: 'Revocar Acceso',
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  Color _getPermisoColor(String permisos) {
+    switch (permisos.toLowerCase()) {
+      case 'total':
+        return Colors.blue.shade700;
+      case 'cobro':
+        return Colors.orange.shade700;
+      default:
+        return AppColors.primaryGreen;
+    }
   }
 
   Widget _buildBitacoraItem(BitacoraActividad act) {

@@ -8,6 +8,7 @@ class UsuarioCard extends StatelessWidget {
   final VoidCallback onToggleActivo;
   final VoidCallback onResetearContrasena;
   final VoidCallback onAsignarCredito;
+  final VoidCallback onEliminar; // 👈 NUEVO
 
   const UsuarioCard({
     super.key,
@@ -16,6 +17,7 @@ class UsuarioCard extends StatelessWidget {
     required this.onToggleActivo,
     required this.onResetearContrasena,
     required this.onAsignarCredito,
+    required this.onEliminar, // 👈 NUEVO
   });
 
   Color _getRolColor() {
@@ -173,37 +175,46 @@ class UsuarioCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             // Botones de acción
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                _ActionButton(
-                  icon: Icons.badge_outlined,
-                  label: 'Rol',
-                  color: Colors.blue,
-                  onTap: onEditarRol,
-                ),
-                const SizedBox(width: 8),
-                _ActionButton(
-                  icon: usuario.activo ? Icons.block : Icons.check_circle_outline,
-                  label: usuario.activo ? 'Desactivar' : 'Activar',
-                  color: usuario.activo ? Colors.orange : AppColors.primaryGreen,
-                  onTap: onToggleActivo,
-                ),
-                const SizedBox(width: 8),
-                _ActionButton(
-                  icon: Icons.lock_reset,
-                  label: 'Contraseña',
-                  color: Colors.purple,
-                  onTap: onResetearContrasena,
-                ),
-                const SizedBox(width: 8),
-                _ActionButton(
-                  icon: Icons.assignment_ind_outlined,
-                  label: 'Crédito',
-                  color: AppColors.primaryGreen,
-                  onTap: onAsignarCredito,
-                ),
-              ],
+            SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _ActionButton(
+                    icon: Icons.badge_outlined,
+                    label: 'Rol',
+                    color: Colors.blue,
+                    onTap: onEditarRol,
+                  ),
+                  _ActionButton(
+                    icon: usuario.activo ? Icons.block : Icons.check_circle_outline,
+                    label: usuario.activo ? 'Desactivar' : 'Activar',
+                    color: usuario.activo ? Colors.orange : AppColors.primaryGreen,
+                    onTap: onToggleActivo,
+                  ),
+                  _ActionButton(
+                    icon: Icons.lock_reset,
+                    label: 'Contraseña',
+                    color: Colors.purple,
+                    onTap: onResetearContrasena,
+                  ),
+                  if (usuario.rol != 'cliente') // 👈 RESTRICCIÓN DE ROL
+                    _ActionButton(
+                      icon: Icons.assignment_ind_outlined,
+                      label: 'Asignar',
+                      color: AppColors.primaryGreen,
+                      onTap: onAsignarCredito,
+                    ),
+                  _ActionButton(
+                    icon: Icons.delete_forever_outlined,
+                    label: 'Eliminar',
+                    color: AppColors.error,
+                    onTap: onEliminar,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

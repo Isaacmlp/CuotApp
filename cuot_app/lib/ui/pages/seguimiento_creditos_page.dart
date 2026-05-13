@@ -500,10 +500,14 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
 
       // 2. Registrar en bitácora
       final String nombreCliente = (f is Map) ? f['nombre'] : (f as CreditoUnico).nombreCliente;
+      final String numCredito = (f is Map) 
+          ? (f['numeroCredito']?.toString() ?? 'S/N') 
+          : ((f as CreditoUnico).numeroCredito?.toString() ?? 'S/N');
+
       await BitacoraService().registrarActividad(
         usuarioNombre: widget.nombreUsuario,
         accion: 'pago_cuota',
-        descripcion: 'Registró pago de cuota #$numeroCuota para $nombreCliente',
+        descripcion: 'Registró pago de cuota #$numeroCuota (Crédito #$numCredito) para $nombreCliente',
         entidadTipo: 'credito',
         entidadId: (f is Map) ? f['id'].toString() : (f as CreditoUnico).id,
       );
@@ -568,10 +572,11 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
       );
 
       // 2. Registrar en bitácora
+      final String numCredito = credito.numeroCredito?.toString() ?? 'S/N';
       await BitacoraService().registrarActividad(
         usuarioNombre: widget.nombreUsuario,
         accion: 'pago_credito_unico',
-        descripcion: 'Registró pago de \$${pago.monto.toStringAsFixed(2)} para ${credito.nombreCliente}',
+        descripcion: 'Registró pago de \$${pago.monto.toStringAsFixed(2)} para ${credito.nombreCliente} (Crédito #$numCredito)',
         entidadTipo: 'credito',
         entidadId: credito.id,
       );
@@ -855,7 +860,20 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             correo: widget.correo,
           ),
           appBar: AppBar(
-            title: Text(widget.modoTrabajador ? 'Créditos Asignados' : 'Seguimiento de Cuotas'),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.modoTrabajador ? 'Panel de Trabajo' : 'Seguimiento de Cuotas',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                if (widget.modoTrabajador && (widget.rol == 'supervisor' || widget.rol == 'empleado'))
+                  Text(
+                    widget.rol == 'supervisor' ? 'Rol: Supervisor' : 'Rol: Empleado',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal, color: Colors.white70),
+                  ),
+              ],
+            ),
             backgroundColor: AppColors.primaryGreen,
             foregroundColor: Colors.white,
             elevation: 0,

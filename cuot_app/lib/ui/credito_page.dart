@@ -50,16 +50,33 @@ class _CreditoPageState extends State<CreditoPage> {
     try {
       final service = UserAdminService();
       final users = await service.listarUsuarios();
-      final currentUser = users.firstWhere((u) => u.nombre == widget.nombreUsuario);
+      
+      // Búsqueda más segura ignorando espacios y mayúsculas
+      final currentUser = users.firstWhere(
+        (u) => u.nombre.trim().toLowerCase() == widget.nombreUsuario.trim().toLowerCase(),
+        orElse: () => Usuario(
+          nombreCompleto: widget.nombreUsuario,
+          correoElectronico: '',
+          rol: 'empleado', // Si no lo encuentra, asume empleado por seguridad
+          creadoPor: 'admin',
+        ),
+      );
       
       if (mounted) {
         setState(() {
           _rolUsuario = currentUser.rol;
           _adminResponsable = currentUser.creadoPor ?? widget.nombreUsuario;
         });
+        debugPrint('🔵 Usuario cargado - Rol: $_rolUsuario, Admin: $_adminResponsable');
       }
     } catch (e) {
-      print('Error cargando datos de usuario: $e');
+      print('❌ Error cargando datos de usuario: $e');
+      if (mounted) {
+        setState(() {
+          _rolUsuario = 'empleado'; // Fallback seguro
+          _adminResponsable = 'admin';
+        });
+      }
     }
   }
 

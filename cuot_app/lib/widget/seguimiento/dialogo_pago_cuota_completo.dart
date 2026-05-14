@@ -1241,7 +1241,7 @@ class _DialogoPagoCuotaCompletoState extends State<DialogoPagoCuotaCompleto>
                                       _aplicarMora,
                                       _aplicarMora ? _montoMora : null,
                                       esPagoParcial,
-                                      comprobanteUrl ?? _comprobantePath,
+                                      comprobanteUrl,
                                     );
                                     
                                     if (mounted) {

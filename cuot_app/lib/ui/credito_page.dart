@@ -265,10 +265,11 @@ class _CreditoPageState extends State<CreditoPage> {
         }
 
         // DETERMINAR ROL PARA EL CONTROLADOR
-        // Si es empleado y está en modo trabajo, el crédito debe ser pendiente
-        final String? rolParaController = (widget.rolActual == 'empleado' && widget.esModoTrabajo) 
-            ? 'empleado' 
-            : 'admin';
+        // 1. Si es Admin, siempre es inmediato (rol 'admin')
+        // 2. Si es Empleado en Panel de Trabajo, queda pendiente (rol 'empleado')
+        // 3. Si es Empleado en Personal, es inmediato (rol 'admin')
+        final bool esAdmin = _rolUsuario?.toLowerCase() == 'admin';
+        final String rolParaController = (esAdmin || !widget.esModoTrabajo) ? 'admin' : 'empleado';
 
         debugPrint('🔵 Llamando controller.guardarCredito con rol: $rolParaController...');
         final String? creditId = await controller.guardarCredito(
@@ -361,9 +362,11 @@ class _CreditoPageState extends State<CreditoPage> {
     try {
       final service = SavingsService();
       
-      // Si entra por Cuotas Personales (esModoTrabajo = false), forzamos rol 'admin' para que no quede pendiente.
-      // Si entra por Panel Trabajo, usamos rol 'empleado' para que SIEMPRE quede pendiente (sea cual sea su rol real).
-      final rolParaGrupo = widget.esModoTrabajo ? 'empleado' : 'admin';
+      // 1. Si es Admin, siempre es activo de inmediato.
+      // 2. Si es Empleado en Panel de Trabajo, queda pendiente.
+      // 3. Si es Empleado en su Panel Personal, se aprueba de inmediato.
+      final bool esAdmin = _rolUsuario?.toLowerCase() == 'admin';
+      final String rolParaGrupo = (esAdmin || !widget.esModoTrabajo) ? 'admin' : 'empleado';
       
       final nuevoGrupo = await service.createGrupo(
         grupo,

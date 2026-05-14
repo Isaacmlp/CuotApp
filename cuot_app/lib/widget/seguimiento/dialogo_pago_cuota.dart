@@ -744,7 +744,7 @@ class _DialogoPagoCuotaState extends State<DialogoPagoCuota> with SingleTickerPr
                               monto, 
                               _combinarFechaConHoraActual(_fechaPago), 
                               _metodoPago,
-                              comprobanteUrl ?? _comprobantePath,
+                              comprobanteUrl, // Solo la URL (null si no hay imagen)
                             );
                             
                             if (mounted) {

@@ -533,10 +533,14 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
         };
       }).toList();
 
-      // DETERMINAR ROL PARA LA RENOVACIÓN
-      // Todo lo que viene del Panel de Trabajo (esModoTrabajo = true) queda pendiente.
-      // Lo que viene de Cuotas Personales (esModoTrabajo = false) es inmediato.
-      final String? rolParaRenovacion = widget.esModoTrabajo ? 'empleado' : 'admin';
+      // DETERMINAR ROL Y ESTADO:
+      // 1. Si es Admin, siempre se aprueba de inmediato.
+      // 2. Si es Empleado en Panel de Trabajo, queda pendiente.
+      // 3. Si es Empleado en su Panel Personal, se aprueba de inmediato.
+      final bool esAdmin = widget.rolActual?.toLowerCase() == 'admin';
+      final String estadoInicial = (esAdmin || !widget.esModoTrabajo) ? 'aprobada' : 'pendiente';
+      
+      debugPrint('🔵 Iniciando guardado de renovación - Rol: ${widget.rolActual}, ModoTrabajo: ${widget.esModoTrabajo}, Estado: $estadoInicial');
 
       final renovacion = Renovacion(
         creditoOriginalId: widget.creditoId,

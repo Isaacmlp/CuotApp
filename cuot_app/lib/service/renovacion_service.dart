@@ -23,10 +23,11 @@ class RenovacionService {
 
       // 3. Si está aprobada, actualizar el crédito original
       if (renovacion.estado == 'aprobada') {
+        print('✅ Aplicando renovación aprobada al crédito: ${renovacion.creditoOriginalId}');
         await _aplicarRenovacionAlCredito(renovacion);
       } else {
-        // Si está pendiente, no aplicamos nada al crédito todavía
-        print('🕒 Renovación pendiente de aprobación. No se aplica al crédito.');
+        // Si está pendiente o solicitada, no aplicamos nada al crédito todavía
+        print('🕒 Renovación estado: ${renovacion.estado}. No se aplica al crédito todavía.');
       }
 
       // 4. Registrar en historial
@@ -36,14 +37,27 @@ class RenovacionService {
           .insert(HistorialRenovacion(
             renovacionId: nuevaRenovacion.id!,
             estadoAnterior: null,
-            estadoNuevo: renovacion.estado,
             usuarioId: renovacion.usuarioAutoriza,
-            observaciones: 'Renovación creada y aplicada',
+            observaciones: nuevaRenovacion.estado == 'aprobada' 
+                ? 'Renovación creada y aplicada' 
+                : 'Renovación solicitada (pendiente de aprobación)',
           ).toJson());
+
+      // Determinar si debemos aplicar el efecto financiero de inmediato
+      // IMPORTANTE: Solo se aplica si el estado es 'aprobada' (por ejemplo, si lo creó un Admin)
+      final String estadoFinal = nuevaRenovacion.estado;
+      debugPrint('🕒 Renovación ID: ${nuevaRenovacion.id} - Estado: $estadoFinal');
+
+      if (estadoFinal == 'aprobada') {
+        debugPrint('🚀 Aplicando efecto financiero de renovación inmediata...');
+        await _aplicarRenovacionAlCredito(nuevaRenovacion);
+      } else {
+        debugPrint('🕒 Renovación estado: $estadoFinal. No se aplica al crédito todavía (esperando aprobación).');
+      }
 
       return nuevaRenovacion;
     } catch (e) {
-      print('Error al crear renovación: $e');
+      debugPrint('❌ Error en crearRenovacion: $e');
       rethrow;
     }
   }

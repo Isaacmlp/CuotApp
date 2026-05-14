@@ -909,7 +909,7 @@ class _DialogoPagoUnicoState extends State<DialogoPagoUnico>
       metodoPago: _metodoPago,
       referencia: _referenciaController.text,
       observaciones: _observacionesController.text,
-      comprobantePath: comprobanteUrl ?? _comprobantePath, // Guardamos la URL si existe
+      comprobantePath: comprobanteUrl, // Solo la URL pública
     );
 
     widget.onPagoRealizado(nuevoPago);

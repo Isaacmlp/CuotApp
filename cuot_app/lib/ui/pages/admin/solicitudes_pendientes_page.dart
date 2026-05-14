@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:cuot_app/service/credit_service.dart';
 import 'package:cuot_app/service/savings_service.dart';
@@ -14,10 +16,12 @@ class SolicitudesPendientesPage extends StatefulWidget {
   const SolicitudesPendientesPage({super.key, required this.adminNombre});
 
   @override
-  State<SolicitudesPendientesPage> createState() => _SolicitudesPendientesPageState();
+  State<SolicitudesPendientesPage> createState() =>
+      _SolicitudesPendientesPageState();
 }
 
-class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> with SingleTickerProviderStateMixin {
+class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final CreditService _creditService = CreditService();
   final SavingsService _savingsService = SavingsService();
@@ -28,7 +32,7 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
   List<Map<String, dynamic>> _pagosPendientes = [];
   List<Map<String, dynamic>> _renovacionesPendientes = [];
   List<Map<String, dynamic>> _aportesPendientes = [];
-  
+
   bool _isLoading = true;
 
   @override
@@ -100,20 +104,20 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
           ],
         ),
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : _totalPendientes == 0
-          ? _buildEmptyState()
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildList(_creditosPendientes, 'credito'),
-                _buildList(_gruposPendientes, 'grupo'),
-                _buildList(_pagosPendientes, 'pago'),
-                _buildList(_renovacionesPendientes, 'renovacion'),
-                _buildList(_aportesPendientes, 'aporte'),
-              ],
-            ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _totalPendientes == 0
+              ? _buildEmptyState()
+              : TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildList(_creditosPendientes, 'credito'),
+                    _buildList(_gruposPendientes, 'grupo'),
+                    _buildList(_pagosPendientes, 'pago'),
+                    _buildList(_renovacionesPendientes, 'renovacion'),
+                    _buildList(_aportesPendientes, 'aporte'),
+                  ],
+                ),
     );
   }
 
@@ -128,12 +132,16 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
               color: AppColors.primaryGreen.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.check_circle_outline, size: 72, color: AppColors.primaryGreen),
+            child: const Icon(Icons.check_circle_outline,
+                size: 72, color: AppColors.primaryGreen),
           ),
           const SizedBox(height: 24),
           const Text(
             '¡Todo verificado!',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.darkGrey),
+            style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.darkGrey),
           ),
           const SizedBox(height: 8),
           Text(
@@ -153,7 +161,8 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
           children: [
             Icon(Icons.check_circle_outline, size: 64, color: Colors.grey[300]),
             const SizedBox(height: 16),
-            Text('No hay solicitudes pendientes', style: TextStyle(color: Colors.grey[500])),
+            Text('No hay solicitudes pendientes',
+                style: TextStyle(color: Colors.grey[500])),
           ],
         ),
       );
@@ -203,7 +212,8 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
   }
 
   Widget _buildGroupRequestCard(Map<String, dynamic> item) {
-    final String nombre = item['nombre'] ?? item['nombre_grupo'] ?? 'Sin nombre';
+    final String nombre =
+        item['nombre'] ?? item['nombre_grupo'] ?? 'Sin nombre';
     final int participantes = item['cantidad_participantes'] ?? 0;
     final double meta = ((item['meta_ahorro'] ?? 0) as num).toDouble();
     final String creador = item['creado_por'] ?? 'Sistema';
@@ -220,8 +230,12 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
           Row(
             children: [
               _buildInfoItem('Participantes', '$participantes', Icons.group),
-              _buildInfoItem('Recaudación', '\$${meta.toStringAsFixed(2)}', Icons.flag),
-              _buildInfoItem('Frecuencia', (item['periodo'] ?? 'semanal').toString().toUpperCase(), Icons.timer),
+              _buildInfoItem(
+                  'Recaudación', '\$${meta.toStringAsFixed(2)}', Icons.flag),
+              _buildInfoItem(
+                  'Frecuencia',
+                  (item['periodo'] ?? 'semanal').toString().toUpperCase(),
+                  Icons.timer),
             ],
           ),
           if (descripcion.isNotEmpty) ...[
@@ -236,19 +250,25 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
 
   Widget _buildPaymentRequestCard(Map<String, dynamic> item) {
     final double monto = ((item['monto'] ?? 0) as num).toDouble();
-    final double? montoBs = item['monto_bs'] != null ? ((item['monto_bs']) as num).toDouble() : null;
-    final double? montoUsd = item['monto_usd'] != null ? ((item['monto_usd']) as num).toDouble() : null;
-    
+    final double? montoBs = item['monto_bs'] != null
+        ? ((item['monto_bs']) as num).toDouble()
+        : null;
+    final double? montoUsd = item['monto_usd'] != null
+        ? ((item['monto_usd']) as num).toDouble()
+        : null;
+
     final String concepto = item['Creditos']?['concepto'] ?? 'N/A';
     final String cliente = item['Creditos']?['Clientes']?['nombre'] ?? 'N/A';
     final String ref = item['referencia'] ?? 'N/A';
-    final String fecha = item['fecha_pago_real'] != null 
-        ? DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(item['fecha_pago_real']))
+    final String fecha = item['fecha_pago_real'] != null
+        ? DateFormat('dd/MM/yyyy HH:mm')
+            .format(DateTime.parse(item['fecha_pago_real']))
         : 'N/A';
     final String? captureUrl = item['comprobante_path'];
-    final String creador = item['creado_por'] ?? item['usuario_nombre'] ?? 'Empleado';
+    final String creador =
+        item['creado_por'] ?? item['usuario_nombre'] ?? 'Empleado';
     final String notas = item['observaciones'] ?? '';
-    
+
     return _buildPremiumCard(
       tipo: 'pago',
       item: item,
@@ -264,15 +284,24 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
             children: [
               _buildInfoItem('Fecha', fecha, Icons.calendar_today),
               _buildInfoItem('Referencia', ref, Icons.receipt_long),
-              _buildInfoItem('Método', (item['metodo_pago'] ?? 'Efectivo').toString().toUpperCase(), Icons.payment),
+              _buildInfoItem(
+                  'Método',
+                  (item['metodo_pago'] ?? 'Efectivo').toString().toUpperCase(),
+                  Icons.payment),
             ],
           ),
           if (montoBs != null || montoUsd != null) ...[
             const SizedBox(height: 12),
             Row(
               children: [
-                if (montoBs != null) _buildInfoItem('Monto Bs', 'Bs ${montoBs.toStringAsFixed(2)}', Icons.account_balance),
-                if (montoUsd != null) _buildInfoItem('Monto $', '\$ ${montoUsd.toStringAsFixed(2)}', Icons.monetization_on),
+                if (montoBs != null)
+                  _buildInfoItem('Monto Bs', 'Bs ${montoBs.toStringAsFixed(2)}',
+                      Icons.account_balance),
+                if (montoUsd != null)
+                  _buildInfoItem(
+                      'Monto USD',
+                      '\$ ${montoUsd.toStringAsFixed(2)}',
+                      Icons.monetization_on),
               ],
             ),
           ],
@@ -282,7 +311,11 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
           ],
           if (captureUrl != null && captureUrl.isNotEmpty) ...[
             const SizedBox(height: 16),
-            const Text('COMPROBANTE / CAPTURE:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryGreen)),
+            const Text('COMPROBANTE / CAPTURE:',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryGreen)),
             const SizedBox(height: 8),
             GestureDetector(
               onTap: () => _showFullImage(captureUrl),
@@ -292,39 +325,64 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(color: Colors.grey[300]!),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.05), blurRadius: 10)
+                  ],
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(15),
-                  child: captureUrl.startsWith('http')
+                  child: (captureUrl != null && captureUrl.startsWith('http'))
                       ? Image.network(
                           captureUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const Center(
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.broken_image, size: 40, color: Colors.grey),
+                                Icon(Icons.broken_image,
+                                    size: 40, color: Colors.grey),
                                 SizedBox(height: 8),
-                                Text('Error al cargar comprobante', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                Text('Error al cargar comprobante',
+                                    style: TextStyle(
+                                        fontSize: 10, color: Colors.grey)),
                               ],
                             ),
                           ),
                         )
-                      : Image.file(
-                          File(captureUrl),
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.broken_image, size: 40, color: Colors.grey),
-                                SizedBox(height: 8),
-                                Text('Imagen local o no disponible', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                              ],
+                      : (captureUrl != null && captureUrl.isNotEmpty && File(captureUrl).existsSync())
+                          ? Image.file(
+                              File(captureUrl),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.broken_image,
+                                        size: 40, color: Colors.grey),
+                                    SizedBox(height: 8),
+                                    Text('Imagen local no disponible',
+                                        style: TextStyle(
+                                            fontSize: 10, color: Colors.grey)),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.image_not_supported,
+                                      size: 40, color: Colors.grey),
+                                  SizedBox(height: 8),
+                                  Text('Sin imagen o no disponible',
+                                      style: TextStyle(
+                                          fontSize: 10, color: Colors.grey)),
+                                ],
+                              ),
                             ),
-                          ),
-                        ),
                 ),
               ),
             ),
@@ -339,8 +397,10 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
     final String concepto = item['Creditos']?['concepto'] ?? 'N/A';
     final String cliente = item['Creditos']?['Clientes']?['nombre'] ?? 'N/A';
     final condiciones = item['condiciones_nuevas'] ?? {};
-    final double nuevoMonto = ((condiciones['monto_total'] ?? 0) as num).toDouble();
-    final String creador = item['creado_por'] ?? item['usuario_autoriza'] ?? 'Sistema';
+    final double nuevoMonto =
+        ((condiciones['monto_total'] ?? 0) as num).toDouble();
+    final String creador =
+        item['creado_por'] ?? item['usuario_autoriza'] ?? 'Sistema';
 
     return _buildPremiumCard(
       tipo: 'renovacion',
@@ -355,9 +415,14 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
           const Divider(height: 24),
           Row(
             children: [
-              _buildInfoItem('Nuevo Total', '\$${nuevoMonto.toStringAsFixed(2)}', Icons.monetization_on),
-              _buildInfoItem('Cuotas', '${condiciones['numero_cuotas'] ?? 0}', Icons.repeat),
-              _buildInfoItem('Modalidad', (condiciones['modalidad_pago_nombre'] ?? 'N/A'), Icons.schedule),
+              _buildInfoItem('Nuevo Total',
+                  '\$${nuevoMonto.toStringAsFixed(2)}', Icons.monetization_on),
+              _buildInfoItem('Cuotas', '${condiciones['numero_cuotas'] ?? 0}',
+                  Icons.repeat),
+              _buildInfoItem(
+                  'Modalidad',
+                  (condiciones['modalidad_pago_nombre'] ?? 'N/A'),
+                  Icons.schedule),
             ],
           ),
         ],
@@ -386,14 +451,24 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
           const Divider(height: 24),
           Row(
             children: [
-              _buildInfoItem('Monto', '\$${monto.toStringAsFixed(2)}', Icons.savings),
-              _buildInfoItem('Método', (item['metodo_pago'] ?? 'Efectivo').toString().toUpperCase(), Icons.payment),
-              _buildInfoItem('Turno', '#${item['numero_turno'] ?? 'N/A'}', Icons.tag),
+              _buildInfoItem(
+                  'Monto', '\$${monto.toStringAsFixed(2)}', Icons.savings),
+              _buildInfoItem(
+                  'Método',
+                  (item['metodo_pago'] ?? 'Efectivo').toString().toUpperCase(),
+                  Icons.payment),
+              _buildInfoItem(
+                  'Turno', '#${item['numero_turno'] ?? 'N/A'}', Icons.tag),
             ],
           ),
-          if (item['comprobante_path'] != null && (item['comprobante_path'] as String).isNotEmpty) ...[
+          if (item['comprobante_path'] != null &&
+              (item['comprobante_path'] as String).isNotEmpty) ...[
             const SizedBox(height: 16),
-            const Text('COMPROBANTE / CAPTURE:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryGreen)),
+            const Text('COMPROBANTE / CAPTURE:',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryGreen)),
             const SizedBox(height: 8),
             GestureDetector(
               onTap: () => _showFullImage(item['comprobante_path']),
@@ -410,13 +485,23 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
                       ? Image.network(
                           item['comprobante_path'],
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const Center(child: Icon(Icons.broken_image, size: 40, color: Colors.grey)),
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Center(
+                                  child: Icon(Icons.broken_image,
+                                      size: 40, color: Colors.grey)),
                         )
-                      : Image.file(
-                          File(item['comprobante_path']),
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const Center(child: Icon(Icons.broken_image, size: 40, color: Colors.grey)),
-                        ),
+                      : (File(item['comprobante_path']).existsSync())
+                          ? Image.file(
+                              File(item['comprobante_path']),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Center(
+                                      child: Icon(Icons.broken_image,
+                                          size: 40, color: Colors.grey)),
+                            )
+                          : const Center(
+                              child: Icon(Icons.image_not_supported,
+                                  size: 40, color: Colors.grey)),
                 ),
               ),
             ),
@@ -462,25 +547,31 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: Colors.white24,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     tag,
-                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700),
                   ),
                 ),
               ],
             ),
           ),
-          
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -490,18 +581,21 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    Icon(Icons.person_outline, size: 16, color: Colors.grey[400]),
+                    Icon(Icons.person_outline,
+                        size: 16, color: Colors.grey[400]),
                     const SizedBox(width: 6),
                     Text(
                       'Creado por: $creador',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500], fontStyle: FontStyle.italic),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                          fontStyle: FontStyle.italic),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          
           _buildActionButtons(item, tipo),
         ],
       ),
@@ -518,7 +612,10 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: Colors.black87),
             ),
           ),
         ],
@@ -538,9 +635,17 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('NOTAS / OBSERVACIONES:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+          const Text('NOTAS / OBSERVACIONES:',
+              style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey)),
           const SizedBox(height: 6),
-          Text(note, style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: Colors.black87)),
+          Text(note,
+              style: const TextStyle(
+                  fontSize: 13,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.black87)),
         ],
       ),
     );
@@ -552,20 +657,25 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
     final double total = inversion + ganancia;
     final String concepto = item['concepto'] ?? 'Sin concepto';
     final String cliente = item['Clientes']?['nombre'] ?? 'N/A';
-    final String creador = item['creado_por'] ?? item['usuario_nombre'] ?? 'Sistema';
+    final String creador =
+        item['creado_por'] ?? item['usuario_nombre'] ?? 'Sistema';
     final String notas = item['notas'] ?? '';
     final int numCuotas = item['numero_cuotas'] ?? 1;
-    
+
     // Cálculo de duración aproximada en meses
     String duracionStr = '';
     final int modalidadIdx = item['modalidad_pago'] ?? 0;
-    if (modalidadIdx == 1) { // Semanal
+    if (modalidadIdx == 1) {
+      // Semanal
       duracionStr = '${(numCuotas / 4).toStringAsFixed(1)} Meses';
-    } else if (modalidadIdx == 2) { // Quincenal
+    } else if (modalidadIdx == 2) {
+      // Quincenal
       duracionStr = '${(numCuotas / 2).toStringAsFixed(1)} Meses';
-    } else if (modalidadIdx == 3) { // Mensual
+    } else if (modalidadIdx == 3) {
+      // Mensual
       duracionStr = '$numCuotas Meses';
-    } else if (modalidadIdx == 0) { // Diario
+    } else if (modalidadIdx == 0) {
+      // Diario
       duracionStr = '${(numCuotas / 30).toStringAsFixed(1)} Meses';
     } else {
       duracionStr = 'Personalizado';
@@ -599,25 +709,32 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
                 Expanded(
                   child: Text(
                     'Concepto: $concepto',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white24,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
                     'Cuota simple',
-                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
             ),
           ),
-          
+
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -626,35 +743,44 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
                 // Info del Cliente
                 Row(
                   children: [
-                    const Icon(Icons.person, size: 18, color: AppColors.primaryGreen),
+                    const Icon(Icons.person,
+                        size: 18, color: AppColors.primaryGreen),
                     const SizedBox(width: 8),
                     Text(
                       'Cliente: $cliente',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                   ],
                 ),
                 const Divider(height: 24),
-                
+
                 // Grid de Montos e Inversión
                 Row(
                   children: [
-                    _buildInfoItem('Inversión', '\$${inversion.toStringAsFixed(2)}', Icons.account_balance_wallet_outlined),
-                    _buildInfoItem('Ganancia', '\$${ganancia.toStringAsFixed(2)}', Icons.trending_up),
-                    _buildInfoItem('Monto Total', '\$${total.toStringAsFixed(2)}', Icons.monetization_on, isTotal: true),
+                    _buildInfoItem(
+                        'Inversión',
+                        '\$${inversion.toStringAsFixed(2)}',
+                        Icons.account_balance_wallet_outlined),
+                    _buildInfoItem('Ganancia',
+                        '\$${ganancia.toStringAsFixed(2)}', Icons.trending_up),
+                    _buildInfoItem('Monto Total',
+                        '\$${total.toStringAsFixed(2)}', Icons.monetization_on,
+                        isTotal: true),
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Duración y Creador
                 Row(
                   children: [
-                    _buildSmallInfo(Icons.calendar_today, 'Duración: $duracionStr'),
+                    _buildSmallInfo(
+                        Icons.calendar_today, 'Duración: $duracionStr'),
                     const SizedBox(width: 16),
                     _buildSmallInfo(Icons.edit_note, 'Cuotas: $numCuotas'),
                   ],
                 ),
-                
+
                 if (notas.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Container(
@@ -668,47 +794,60 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Notas / Observaciones:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        const Text('Notas / Observaciones:',
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey)),
                         const SizedBox(height: 4),
-                        Text(notas, style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic)),
+                        Text(notas,
+                            style: const TextStyle(
+                                fontSize: 13, fontStyle: FontStyle.italic)),
                       ],
                     ),
                   ),
                 ],
 
                 const SizedBox(height: 12),
-                
+
                 // Calendario de Pagos (Colapsable o Resumido)
                 _buildCompactSchedule(item['Cuotas'] as List? ?? []),
 
                 const SizedBox(height: 16),
-                
+
                 // Footer con creador
                 Row(
                   children: [
-                    Icon(Icons.person_outline, size: 14, color: Colors.grey[400]),
+                    Icon(Icons.person_outline,
+                        size: 14, color: Colors.grey[400]),
                     const SizedBox(width: 4),
                     Text(
                       'Creado por: $creador',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500], fontStyle: FontStyle.italic),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                          fontStyle: FontStyle.italic),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          
+
           _buildActionButtons(item, 'credito'),
         ],
       ),
     );
   }
 
-  Widget _buildInfoItem(String label, String value, IconData icon, {bool isTotal = false}) {
+  Widget _buildInfoItem(String label, String value, IconData icon,
+      {bool isTotal = false}) {
     return Expanded(
       child: Column(
         children: [
-          Icon(icon, size: 20, color: isTotal ? AppColors.primaryGreen : Colors.grey[600]),
+          Icon(icon,
+              size: 20,
+              color: isTotal ? AppColors.primaryGreen : Colors.grey[600]),
           const SizedBox(height: 4),
           Text(label, style: TextStyle(fontSize: 10, color: Colors.grey[500])),
           Text(
@@ -737,22 +876,28 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
 
   Widget _buildCompactSchedule(List cuotas) {
     if (cuotas.isEmpty) return const SizedBox.shrink();
-    
-    cuotas.sort((a, b) => (a['numero_cuota'] as int).compareTo(b['numero_cuota'] as int));
-    
+
+    cuotas.sort((a, b) =>
+        (a['numero_cuota'] as int).compareTo(b['numero_cuota'] as int));
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('PLAN DE PAGOS:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryGreen)),
+          const Text('PLAN DE PAGOS:',
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryGreen)),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: cuotas.take(6).map((c) {
-              final fecha = DateFormat('dd/MM').format(DateTime.parse(c['fecha_pago']));
+              final fecha =
+                  DateFormat('dd/MM').format(DateTime.parse(c['fecha_pago']));
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -761,7 +906,10 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
                 ),
                 child: Text(
                   '$fecha: \$${((c['monto'] ?? 0) as num).toStringAsFixed(0)}',
-                  style: const TextStyle(fontSize: 11, color: AppColors.primaryGreen, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.primaryGreen,
+                      fontWeight: FontWeight.w600),
                 ),
               );
             }).toList(),
@@ -769,7 +917,8 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
           if (cuotas.length > 6)
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text('... y ${cuotas.length - 6} cuotas más', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+              child: Text('... y ${cuotas.length - 6} cuotas más',
+                  style: const TextStyle(fontSize: 10, color: Colors.grey)),
             ),
         ],
       ),
@@ -801,7 +950,8 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryGreen,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             icon: const Icon(Icons.check, size: 18),
             label: const Text('Aprobar'),
@@ -839,7 +989,8 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
                         errorBuilder: (context, error, stackTrace) => Container(
                           color: Colors.white,
                           padding: const EdgeInsets.all(20),
-                          child: const Text('Imagen local no disponible en este dispositivo'),
+                          child: const Text(
+                              'Imagen local no disponible en este dispositivo'),
                         ),
                       ),
               ),
@@ -865,14 +1016,15 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
     try {
       if (tipo == 'credito') {
         await _creditService.aprobarCredito(id);
-        
+
         // Preguntar si desea asignar al creador
         if (mounted) {
           final String? creadorNombre = item['usuario_nombre'];
           final bool? asignar = await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
               title: const Row(
                 children: [
                   Icon(Icons.check_circle, color: AppColors.primaryGreen),
@@ -880,12 +1032,17 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
                   Text('Aprobación Exitosa'),
                 ],
               ),
-              content: Text('El crédito ha sido aprobado y asignado a tu panel.\n\n¿Deseas asignárselo a ${creadorNombre ?? "el empleado"} para que lo gestione?'),
+              content: Text(
+                  'El crédito ha sido aprobado y asignado a tu panel.\n\n¿Deseas asignárselo a ${creadorNombre ?? "el empleado"} para que lo gestione?'),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Más tarde')),
+                TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Más tarde')),
                 ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx, true), 
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryGreen, foregroundColor: Colors.white),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white),
                   child: const Text('Asignar ahora'),
                 ),
               ],
@@ -898,9 +1055,10 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
               final users = await userService.listarUsuarios();
               final creator = users.firstWhere(
                 (u) => u.nombre == creadorNombre,
-                orElse: () => Usuario(nombreCompleto: creadorNombre, correoElectronico: ''),
+                orElse: () => Usuario(
+                    nombreCompleto: creadorNombre, correoElectronico: ''),
               );
-              
+
               if (mounted) {
                 await showDialog(
                   context: context,
@@ -927,14 +1085,18 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Solicitud aprobada'), backgroundColor: Colors.green),
+          const SnackBar(
+              content: Text('✅ Solicitud aprobada'),
+              backgroundColor: Colors.green),
         );
       }
       _loadAllPending();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Error al aprobar: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('❌ Error al aprobar: $e'),
+              backgroundColor: Colors.red),
         );
       }
       setState(() => _isLoading = false);
@@ -953,12 +1115,16 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
             Text('Confirmar Rechazo'),
           ],
         ),
-        content: const Text('¿Estás seguro de que deseas rechazar esta solicitud? El registro será eliminado.'),
+        content: const Text(
+            '¿Estás seguro de que deseas rechazar esta solicitud? El registro será eliminado.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
           ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true), 
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, foregroundColor: Colors.white),
             child: const Text('Rechazar'),
           ),
         ],
@@ -978,8 +1144,8 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
         await _creditService.deletePayment(id);
       } else if (tipo == 'renovacion') {
         await _renovacionService.actualizarEstado(
-          renovacionId: id, 
-          estadoAnterior: 'pendiente', 
+          renovacionId: id,
+          estadoAnterior: 'pendiente',
           estadoNuevo: 'rechazada',
         );
       } else if (tipo == 'aporte') {
@@ -990,14 +1156,18 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('🚫 Solicitud rechazada'), backgroundColor: Colors.orange),
+          const SnackBar(
+              content: Text('🚫 Solicitud rechazada'),
+              backgroundColor: Colors.orange),
         );
       }
       _loadAllPending();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Error al rechazar: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('❌ Error al rechazar: $e'),
+              backgroundColor: Colors.red),
         );
       }
       setState(() => _isLoading = false);

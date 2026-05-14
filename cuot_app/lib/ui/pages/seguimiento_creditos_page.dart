@@ -562,19 +562,29 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
       // 3. Refrescar datos desde la base de datos
       await _loadData();
 
-      String mensaje = esPagoParcial
-          ? '✅ Pago parcial de cuota #$numeroCuota registrado'
-          : '✅ Pago de cuota #$numeroCuota registrado';
+      // Diferenciar mensaje según rol
+      final bool esEmpleado = widget.rol == 'empleado';
+      String mensaje;
+      Color colorMensaje;
 
-      if (aplicarMora && montoMora != null && montoMora > 0) {
-        mensaje += ' (incluye mora de \$${montoMora.toStringAsFixed(2)})';
+      if (esEmpleado) {
+        mensaje = '🕒 Pago de cuota #$numeroCuota registrado. En espera de aprobación.';
+        colorMensaje = Colors.orange;
+      } else {
+        mensaje = esPagoParcial
+            ? '✅ Pago parcial de cuota #$numeroCuota registrado'
+            : '✅ Pago de cuota #$numeroCuota registrado';
+        colorMensaje = AppColors.success;
+        if (aplicarMora && montoMora != null && montoMora > 0) {
+          mensaje += ' (incluye mora de \$${montoMora.toStringAsFixed(2)})';
+        }
       }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(mensaje),
-            backgroundColor: AppColors.success,
+            backgroundColor: colorMensaje,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -634,11 +644,13 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
       await _loadData();
 
       if (mounted) {
+        final bool esEmpleado = widget.rol == 'empleado';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-                Text('✅ Pago de \$${pago.monto.toStringAsFixed(2)} registrado'),
-            backgroundColor: AppColors.success,
+            content: Text(esEmpleado
+                ? '🕒 Pago de \$${pago.monto.toStringAsFixed(2)} registrado. En espera de aprobación.'
+                : '✅ Pago de \$${pago.monto.toStringAsFixed(2)} registrado'),
+            backgroundColor: esEmpleado ? Colors.orange : AppColors.success,
             behavior: SnackBarBehavior.floating,
           ),
         );

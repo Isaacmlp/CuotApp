@@ -25,6 +25,9 @@ class Usuario {
     this.configAsignacion,
   });
 
+  // Alias para compatibilidad — muchos widgets usan `u.nombre`
+  String get nombre => nombreCompleto;
+
   // Helpers de rol
   bool get isAdmin => rol == 'admin';
   bool get isSupervisor => rol == 'supervisor';

@@ -13,6 +13,7 @@ import 'package:cuot_app/widget/creditos/formulario_grupo.dart';
 import 'package:cuot_app/service/savings_service.dart';
 import 'package:cuot_app/Model/grupo_ahorro_model.dart';
 import 'package:cuot_app/ui/pages/savings/grupo_dashboard_page.dart';
+import 'package:cuot_app/service/user_admin_service.dart';
 import 'package:provider/provider.dart';
 
 class CreditoPage extends StatefulWidget {
@@ -257,6 +258,20 @@ class _CreditoPageState extends State<CreditoPage> {
             entidadId: creditId,
           );
 
+          // Si es empleado, el crédito queda pendiente — no redirigir a detalle
+          if (_rolUsuario == 'empleado') {
+            scaffoldMessenger.showSnackBar(
+              const SnackBar(
+                content: Text('🕒 Crédito registrado. En espera de aprobación por tu administrador.'),
+                backgroundColor: Colors.orange,
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 4),
+              ),
+            );
+            navigator.pop();
+            return;
+          }
+
           scaffoldMessenger.showSnackBar(
             const SnackBar(
               content: Text('✅ Crédito guardado exitosamente'),
@@ -319,23 +334,36 @@ class _CreditoPageState extends State<CreditoPage> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Grupo de ahorro creado exitosamente'),
-            backgroundColor: AppColors.success,
-            duration: Duration(seconds: 2),
-          ),
-        );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => GrupoDashboardPage(
-              grupoId: nuevoGrupo.id!,
-              usuarioNombre: widget.nombreUsuario,
-              autoOpenAddMember: true, // REQUERIMIENTO 4
+        // Si es empleado, el grupo queda pendiente — no redirigir al dashboard del grupo
+        if (_rolUsuario == 'empleado') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('🕒 Grupo registrado. En espera de aprobación por tu administrador.'),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 4),
             ),
-          ),
-        );
+          );
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Grupo de ahorro creado exitosamente'),
+              backgroundColor: AppColors.success,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => GrupoDashboardPage(
+                grupoId: nuevoGrupo.id!,
+                usuarioNombre: widget.nombreUsuario,
+                autoOpenAddMember: true,
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

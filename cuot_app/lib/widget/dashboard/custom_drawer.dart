@@ -111,8 +111,10 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
   Future<void> _verificarEmpleados() async {
     try {
+      // Para supervisores, verificar empleados del admin raíz
+      final nombreParaVerificar = _rootAdmin ?? widget.nombre_usuario;
       final tiene = await CreditoCompartidoService()
-          .tieneEmpleados(widget.nombre_usuario.trim());
+          .tieneEmpleados(nombreParaVerificar.trim());
       if (mounted) {
         setState(() {
           _tieneEmpleados = tiene;
@@ -290,8 +292,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
               isSelected: widget.ventanaActiva == 'historial',
             ),
 
-            // Opción "Empleados" — solo para admin con empleados asignados
-            if (widget.rol == 'admin' && _tieneEmpleados)
+            // Opción "Empleados" — para admin y supervisores con empleados asignados
+            if ((widget.rol == 'admin' || widget.rol == 'supervisor') && _tieneEmpleados)
               _buildDrawerItem(
                 icon: Icons.people_alt,
                 label: 'Empleados',
@@ -301,7 +303,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => EmpleadosPage(
-                        adminNombre: widget.nombre_usuario,
+                        adminNombre: _rootAdmin ?? widget.nombre_usuario,
                         rol: widget.rol,
                         correo: widget.correo,
                       ),

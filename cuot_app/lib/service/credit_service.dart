@@ -530,13 +530,16 @@ class CreditService {
   }
 
   /// Aprobar un crédito pendiente
+  /// Convención: 'pendiente' (minúscula) = esperando aprobación del admin
+  ///             'Pendiente' (mayúscula) = crédito activo, pendiente de pago
   Future<void> aprobarCredito(String id) async {
     try {
       await _supabase.client
           .schema('Financiamientos')
           .from('Creditos')
-          .update({'estado': 'Pendiente'}) // El estado 'Pendiente' en tu DB parece ser el inicial activo, 'pendiente' (minúscula) será el de espera.
+          .update({'estado': 'Pendiente'})
           .eq('id', id);
+      invalidateCache();
     } catch (e) {
       print('❌ Error en aprobarCredito: $e');
       rethrow;

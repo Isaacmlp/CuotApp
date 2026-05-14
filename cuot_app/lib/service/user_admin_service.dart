@@ -234,6 +234,11 @@ class UserAdminService {
     }
   }
 
+  /// Alias de compatibilidad — usado por widgets que necesitan lista completa
+  Future<List<Usuario>> listarUsuarios() async {
+    return getUsuarios();
+  }
+
   /// Eliminar un usuario permanentemente
   Future<void> eliminarUsuario(String usuarioId) async {
     try {

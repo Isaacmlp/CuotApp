@@ -275,6 +275,8 @@ class RenovacionService {
       print('Error al obtener historial: $e');
       return [];
     }
+  }
+
   /// Obtener renovaciones pendientes para un administrador
   Future<List<Map<String, dynamic>>> getRenovacionesPendientes(String adminNombre) async {
     try {

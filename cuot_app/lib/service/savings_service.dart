@@ -674,6 +674,8 @@ class SavingsService {
       print('❌ Error en aprobarGrupo: $e');
       rethrow;
     }
+  }
+
   /// Obtiene aportes pendientes para un administrador
   Future<List<Map<String, dynamic>>> getAportesPendientes(String adminNombre) async {
     try {
@@ -792,5 +794,19 @@ class SavingsService {
           'recaudado_turno': nuevoRecaudadoTurno,
         })
         .eq('id', grupoId);
+  }
+
+  /// Eliminar un aporte (para rechazar solicitudes pendientes)
+  Future<void> deleteAporte(String id) async {
+    try {
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Aportes_Grupo')
+          .delete()
+          .eq('id', id);
+    } catch (e) {
+      print('❌ Error en deleteAporte: $e');
+      rethrow;
+    }
   }
 }

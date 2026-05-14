@@ -1317,10 +1317,4 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
     }
     return const SizedBox.shrink();
   }
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
 }

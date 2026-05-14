@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:cuot_app/Controller/credito_controller.dart';
 import 'package:cuot_app/Model/credito_model.dart';
+import 'package:cuot_app/Model/usuario_model.dart';
 import 'package:cuot_app/service/bitacora_service.dart';
 import 'package:cuot_app/widget/creditos/formulario_cuotas.dart';
 import 'package:cuot_app/widget/creditos/formulario_pagounico.dart';

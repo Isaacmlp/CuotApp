@@ -26,6 +26,7 @@ class SeguimientoCreditosPage extends StatefulWidget {
   final bool modoTrabajador;
   final String rol;
   final String correo;
+  final String? adminNombre; // 👈 NUEVO: Nombre del admin raíz
 
   const SeguimientoCreditosPage({
     super.key,
@@ -33,6 +34,7 @@ class SeguimientoCreditosPage extends StatefulWidget {
     this.modoTrabajador = false,
     this.rol = 'cliente',
     this.correo = '',
+    this.adminNombre,
   });
 
   @override
@@ -46,8 +48,15 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
   final SavingsService _savingsService = SavingsService();
   List<dynamic> _financiamientos = [];
   List<Map<String, dynamic>> _grupos = [];
-  String? _adminNombre; // 👈 NUEVO: Nombre del administrador dueño de los créditos
+  String? _adminNombre; 
   bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _adminNombre = widget.adminNombre; // 👈 Inicializar con el parámetro
+    _loadData();
+  }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);

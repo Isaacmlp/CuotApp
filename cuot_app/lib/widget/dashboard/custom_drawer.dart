@@ -251,8 +251,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
               isSelected: widget.ventanaActiva == 'Cuotas Personales',
             ),
 
-            // Opción "Trabajo" — solo visible si NO es cliente y tiene créditos asignados
-            if (widget.rol != 'cliente' && !_checkingAsignados && _tieneCreditosAsignados)
+            // Opción "Trabajo" — siempre visible para empleados y supervisores
+            if (widget.rol == 'empleado' || widget.rol == 'supervisor')
               _buildDrawerItem(
                 icon: Icons.work,
                 label: 'Trabajo',
@@ -263,6 +263,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     MaterialPageRoute(
                       builder: (_) => SeguimientoCreditosPage(
                         nombreUsuario: widget.nombre_usuario,
+                        adminNombre: _rootAdmin, // 👈 Pasar admin raíz
                         modoTrabajador: true,
                         rol: widget.rol,
                         correo: widget.correo,
@@ -292,8 +293,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
               isSelected: widget.ventanaActiva == 'historial',
             ),
 
-            // Opción "Empleados" — para admin y supervisores con empleados asignados
-            if ((widget.rol == 'admin' || widget.rol == 'supervisor') && _tieneEmpleados)
+            // Opción "Empleados" — siempre visible para admin y supervisores
+            if (widget.rol == 'admin' || widget.rol == 'supervisor')
               _buildDrawerItem(
                 icon: Icons.people_alt,
                 label: 'Empleados',

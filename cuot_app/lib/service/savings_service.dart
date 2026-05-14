@@ -655,7 +655,7 @@ class SavingsService {
           .schema('Financiamientos')
           .from('Grupos_Ahorro')
           .select('*, Miembros_Grupo(*, Clientes(*))')
-          .eq('admin_responsable', adminNombre)
+          .ilike('admin_responsable', adminNombre)
           .eq('estado', 'pendiente')
           .order('fecha_creacion', ascending: false);
       return List<Map<String, dynamic>>.from(response);
@@ -690,7 +690,7 @@ class SavingsService {
             Miembros_Grupo(grupo_id, Clientes(nombre)),
             Grupos_Ahorro:Miembros_Grupo!inner(Grupos_Ahorro(nombre_grupo))
           ''')
-          .eq('admin_responsable', adminNombre)
+          .ilike('admin_responsable', adminNombre)
           .eq('estado_verificacion', 'pendiente')
           .order('fecha_aporte', ascending: false);
       return List<Map<String, dynamic>>.from(response);

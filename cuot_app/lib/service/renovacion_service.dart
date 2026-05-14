@@ -157,7 +157,7 @@ class RenovacionService {
           .from('Renovaciones')
           .select('''
             *,
-            Creditos!credito_original_id(concepto, Clientes(nombre))
+            Creditos!Renovaciones_credito_original_id_fkey(concepto, Clientes(nombre))
           ''')
           .eq('usuario_autoriza', usuarioNombre)
           .order('fecha_renovacion', ascending: false);
@@ -179,7 +179,7 @@ class RenovacionService {
           .from('Renovaciones')
           .select('''
             *,
-            Creditos!credito_original_id(concepto, costo_inversion, margen_ganancia, numero_cuotas, modalidad_pago, Clientes(nombre, telefono))
+            Creditos!Renovaciones_credito_original_id_fkey(concepto, costo_inversion, margen_ganancia, numero_cuotas, modalidad_pago, Clientes(nombre, telefono))
           ''')
           .eq('usuario_autoriza', usuarioNombre)
           .order('fecha_renovacion', ascending: false);
@@ -285,10 +285,10 @@ class RenovacionService {
           .from('Renovaciones')
           .select('''
             *,
-            Creditos!credito_original_id(concepto, Clientes(nombre))
+            Creditos!Renovaciones_credito_original_id_fkey(concepto, Clientes(nombre))
           ''')
           .eq('estado', 'solicitada')
-          .eq('usuario_autoriza', adminNombre) // El usuario autoriza final es el admin que lo debe ver
+          .ilike('usuario_autoriza', adminNombre) // El admin que lo debe ver (case-insensitive)
           .order('fecha_renovacion', ascending: false);
 
       return List<Map<String, dynamic>>.from(response);

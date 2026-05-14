@@ -519,7 +519,7 @@ class CreditService {
           .schema('Financiamientos')
           .from('Creditos')
           .select('*, Clientes(*), Cuotas(*)')
-          .eq('admin_responsable', adminNombre)
+          .ilike('admin_responsable', adminNombre)
           .eq('estado', 'pendiente')
           .order('fecha_inicio', ascending: false);
       return List<Map<String, dynamic>>.from(response);
@@ -571,7 +571,7 @@ class CreditService {
             *,
             Creditos(concepto, Clientes(nombre))
           ''')
-          .eq('admin_responsable', adminNombre)
+          .ilike('admin_responsable', adminNombre)
           .eq('estado_verificacion', 'pendiente')
           .order('fecha_pago_real', ascending: false);
       return List<Map<String, dynamic>>.from(response);

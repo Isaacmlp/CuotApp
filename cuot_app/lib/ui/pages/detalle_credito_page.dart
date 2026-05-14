@@ -1326,7 +1326,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
             break;
           case 'tipo_credito':
             label = 'Tipo de Préstamo';
-            displayValue = value == 'unico' ? 'Pago Único' : 'Cuotas';
+            displayValue = value == 'unico' ? 'Cuota simple' : 'Cuotas';
             break;
           case 'abono':
             final abonoNum =
@@ -1563,7 +1563,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     final tipoCredito = condNuevas['tipo_credito'] ??
         condAnteriores['tipo_credito'] ??
         'cuotas';
-    final labelTipo = tipoCredito == 'unico' ? 'Pago Único' : 'Cuota Fija';
+    final labelTipo = tipoCredito == 'unico' ? 'Cuota simple' : 'Cuota Fija';
     final colorEstado = _getColorEstado(renovacion.estado ?? '');
 
     showModalBottomSheet(
@@ -1667,7 +1667,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                     // Condiciones Anteriores
                     Text(
                       tipoCredito == 'unico'
-                          ? 'Condiciones Anteriores (Pago Único)'
+                          ? 'Condiciones Anteriores (Cuota simple)'
                           : 'Condiciones Anteriores',
                       style: const TextStyle(
                           fontSize: 15, fontWeight: FontWeight.bold),

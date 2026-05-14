@@ -63,7 +63,7 @@ class GrupoAhorro {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
+    if (id != null) 'id': id,
     'nombre': nombre,
     'meta_ahorro': metaAhorro,
     'tipo_aporte': tipoAporte == TipoAporte.diferente ? 'diferente' : 'comun',

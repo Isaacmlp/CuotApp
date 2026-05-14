@@ -273,7 +273,7 @@ class _HistorialRenovacionesPageState extends State<HistorialRenovacionesPage> {
                     // Condiciones Anteriores
                     Text(
                         tipoCredito == 'unico'
-                            ? 'Condiciones Anteriores (Pago Único)'
+                            ? 'Condiciones Anteriores (Cuota simple)'
                             : 'Condiciones Anteriores',
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold)),

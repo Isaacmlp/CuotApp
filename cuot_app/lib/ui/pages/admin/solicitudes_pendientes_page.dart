@@ -320,7 +320,7 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
                               children: [
                                 Icon(Icons.broken_image, size: 40, color: Colors.grey),
                                 SizedBox(height: 8),
-                                Text('Imagen no subida al servidor', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                Text('Imagen local o no disponible', style: TextStyle(fontSize: 10, color: Colors.grey)),
                               ],
                             ),
                           ),
@@ -391,6 +391,36 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
               _buildInfoItem('Turno', '#${item['numero_turno'] ?? 'N/A'}', Icons.tag),
             ],
           ),
+          if (item['comprobante_path'] != null && (item['comprobante_path'] as String).isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Text('COMPROBANTE / CAPTURE:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryGreen)),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () => _showFullImage(item['comprobante_path']),
+              child: Container(
+                height: 180,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: (item['comprobante_path'] as String).startsWith('http')
+                      ? Image.network(
+                          item['comprobante_path'],
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Center(child: Icon(Icons.broken_image, size: 40, color: Colors.grey)),
+                        )
+                      : Image.file(
+                          File(item['comprobante_path']),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Center(child: Icon(Icons.broken_image, size: 40, color: Colors.grey)),
+                        ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
       creador: creador,
@@ -793,9 +823,9 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
             InteractiveViewer(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: imageUrl.startsWith('http')
+                child: url.startsWith('http')
                     ? Image.network(
-                        imageUrl,
+                        url,
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) => Container(
                           color: Colors.white,
@@ -804,7 +834,7 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
                         ),
                       )
                     : Image.file(
-                        File(imageUrl),
+                        File(url),
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) => Container(
                           color: Colors.white,

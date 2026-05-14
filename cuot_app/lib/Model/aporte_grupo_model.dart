@@ -8,6 +8,9 @@ class AporteGrupo {
   final String metodoPago;
   final String? referencia;
   final String? observaciones;
+  final String? comprobantePath; // 👈 NUEVO
+  final String? adminResponsable; // 👈 NUEVO
+  final String? estadoVerificacion; // 👈 NUEVO
 
   AporteGrupo({
     this.id,
@@ -17,6 +20,9 @@ class AporteGrupo {
     this.metodoPago = 'efectivo',
     this.referencia,
     this.observaciones,
+    this.comprobantePath,
+    this.adminResponsable,
+    this.estadoVerificacion,
   });
 
   factory AporteGrupo.fromJson(Map<String, dynamic> json) {
@@ -28,6 +34,9 @@ class AporteGrupo {
       metodoPago: json['metodo_pago'] ?? 'efectivo',
       referencia: json['referencia'],
       observaciones: json['observaciones'],
+      comprobantePath: json['comprobante_path'],
+      adminResponsable: json['admin_responsable'],
+      estadoVerificacion: json['estado_verificacion'],
     );
   }
 
@@ -38,5 +47,8 @@ class AporteGrupo {
     'metodo_pago': metodoPago,
     'referencia': referencia,
     'observaciones': observaciones,
+    'comprobante_path': comprobantePath,
+    'admin_responsable': adminResponsable,
+    'estado_verificacion': estadoVerificacion,
   };
 }

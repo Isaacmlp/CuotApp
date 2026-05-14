@@ -59,12 +59,14 @@ class _CreditoPageState extends State<CreditoPage> {
       final users = await service.listarUsuarios();
       
       // Búsqueda más segura ignorando espacios y mayúsculas
+      final String loginName = widget.nombreLogueado ?? widget.nombreUsuario;
+      
       final currentUser = users.firstWhere(
-        (u) => u.nombre.trim().toLowerCase() == widget.nombreUsuario.trim().toLowerCase(),
+        (u) => u.nombre.trim().toLowerCase() == loginName.trim().toLowerCase(),
         orElse: () => Usuario(
-          nombreCompleto: widget.nombreUsuario,
+          nombreCompleto: loginName,
           correoElectronico: '',
-          rol: 'empleado', // Si no lo encuentra, asume empleado por seguridad
+          rol: widget.rolActual ?? 'empleado', 
           creadoPor: 'admin',
         ),
       );
@@ -360,8 +362,8 @@ class _CreditoPageState extends State<CreditoPage> {
       final service = SavingsService();
       
       // Si entra por Cuotas Personales (esModoTrabajo = false), forzamos rol 'admin' para que no quede pendiente.
-      // Si entra por Panel Trabajo, usamos el rol real (si es empleado o supervisor, quedará pendiente).
-      final rolParaGrupo = widget.esModoTrabajo ? _rolUsuario : 'admin';
+      // Si entra por Panel Trabajo, usamos rol 'empleado' para que SIEMPRE quede pendiente (sea cual sea su rol real).
+      final rolParaGrupo = widget.esModoTrabajo ? 'empleado' : 'admin';
       
       final nuevoGrupo = await service.createGrupo(
         grupo,

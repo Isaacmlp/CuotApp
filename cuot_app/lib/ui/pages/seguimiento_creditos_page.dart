@@ -174,6 +174,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                   metodoPago: p['metodo_pago'] ?? 'efectivo',
                   referencia: p['referencia'] ?? '',
                   observaciones: p['observaciones'] ?? '',
+                  comprobantePath: p['comprobante_path'],
                 ))
             .where((p) {
               // Excluir abonos de renovación (ya incorporados en el monto total de la renovación)
@@ -635,6 +636,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         referencia: pago.referencia ?? '',
         observaciones: pago.observaciones ?? '',
         esPagoParcial: pago.monto < credito.saldoPendiente,
+        comprobantePath: pago.comprobantePath,
         rolUsuario: widget.rol,
         adminNombre: _adminNombre ?? widget.nombreUsuario,
       );

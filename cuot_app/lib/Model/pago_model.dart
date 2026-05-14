@@ -31,34 +31,34 @@ class Pago {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'creditoId': creditoId,
-      'numeroCuota': numeroCuota,
-      'fechaPago': fechaPago.toUtc().toIso8601String(),
+      'credito_id': creditoId,
+      'numero_cuota': numeroCuota,
+      'fecha_pago': fechaPago.toUtc().toIso8601String(),
       'monto': monto,
-      'fechaPagoReal': fechaPagoReal?.toUtc().toIso8601String(),
+      'fecha_pago_real': fechaPagoReal?.toUtc().toIso8601String(),
       'estado': estado,
-      'metodoPago': metodoPago,
+      'metodo_pago': metodoPago,
       'referencia': referencia,
       'observaciones': observaciones,
-      'comprobantePath': comprobantePath,
+      'comprobante_path': comprobantePath,
     };
   }
 
   factory Pago.fromJson(Map<String, dynamic> json) {
     return Pago(
       id: json['id'].toString(),
-      creditoId: json['creditoId'].toString(),
-      numeroCuota: json['numeroCuota'],
-      fechaPago: DateUt.parsePureDate(json['fechaPago']),
+      creditoId: (json['credito_id'] ?? json['creditoId']).toString(),
+      numeroCuota: json['numero_cuota'] ?? json['numeroCuota'],
+      fechaPago: DateUt.parsePureDate(json['fecha_pago'] ?? json['fechaPago']),
       monto: (json['monto'] as num).toDouble(),
-      fechaPagoReal: json['fechaPagoReal'] != null 
-          ? DateUt.parsePureDate(json['fechaPagoReal']) 
+      fechaPagoReal: (json['fecha_pago_real'] ?? json['fechaPagoReal']) != null 
+          ? DateUt.parsePureDate(json['fecha_pago_real'] ?? json['fechaPagoReal']) 
           : null,
       estado: json['estado'] ?? 'pendiente',
-      metodoPago: json['metodoPago'],
+      metodoPago: json['metodo_pago'] ?? json['metodoPago'],
       referencia: json['referencia'],
       observaciones: json['observaciones'],
-      comprobantePath: json['comprobantePath'],
+      comprobantePath: json['comprobante_path'] ?? json['comprobantePath'],
     );
   }
 

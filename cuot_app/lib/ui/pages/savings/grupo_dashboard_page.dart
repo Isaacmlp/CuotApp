@@ -1043,6 +1043,7 @@ class _GrupoDashboardPageState extends State<GrupoDashboardPage> {
             fechaAporte: fecha,
             metodoPago: metodo,
             observaciones: 'Pago Cuota #${cuota.numeroCuota}',
+            comprobantePath: comprobante, // 👈 PASAR EL CAPTURE
           );
 
           try {

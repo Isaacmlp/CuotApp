@@ -295,8 +295,10 @@ class SavingsService {
     try {
       final String estadoVerificacion = (rolUsuario == 'empleado') ? 'pendiente' : 'aprobado';
       final Map<String, dynamic> data = aporte.toJson();
-      data['estado_verificacion'] = estadoVerificacion;
-      data['admin_responsable'] = adminNombre;
+      
+      // Asegurar que usamos los valores pasados por parámetro si existen
+      data['estado_verificacion'] = aporte.estadoVerificacion ?? estadoVerificacion;
+      data['admin_responsable'] = aporte.adminResponsable ?? adminNombre;
 
       // 1. Insertar el aporte
       await _supabase.client
@@ -304,7 +306,7 @@ class SavingsService {
           .from('Aportes_Grupo')
           .insert(data);
 
-      if (estadoVerificacion == 'pendiente') {
+      if (data['estado_verificacion'] == 'pendiente') {
         print('🕒 Aporte registrado como PENDIENTE. No se actualizan totales.');
         return;
       }

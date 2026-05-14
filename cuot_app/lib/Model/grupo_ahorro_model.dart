@@ -2,7 +2,7 @@ import 'package:cuot_app/utils/date_utils.dart';
 
 enum TipoAporte { comun, diferente }
 enum PeriodoAhorro { diario, semanal, quincenal, mensual }
-enum EstadoGrupo { activo, finalizado, cancelado }
+enum EstadoGrupo { activo, finalizado, cancelado, pendiente }
 
 class GrupoAhorro {
   final String? id;
@@ -135,6 +135,7 @@ class GrupoAhorro {
       case 'activo': return EstadoGrupo.activo;
       case 'finalizado': return EstadoGrupo.finalizado;
       case 'cancelado': return EstadoGrupo.cancelado;
+      case 'pendiente': return EstadoGrupo.pendiente;
       default: return EstadoGrupo.activo;
     }
   }

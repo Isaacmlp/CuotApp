@@ -518,7 +518,7 @@ class CreditService {
       final response = await _supabase.client
           .schema('Financiamientos')
           .from('Creditos')
-          .select('*, Clientes(*)')
+          .select('*, Clientes(*), Cuotas(*)')
           .eq('admin_responsable', adminNombre)
           .eq('estado', 'pendiente')
           .order('fecha_inicio', ascending: false);

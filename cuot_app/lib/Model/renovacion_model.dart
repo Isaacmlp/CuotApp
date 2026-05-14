@@ -18,6 +18,7 @@ class Renovacion {
   final String? usuarioAutoriza;
   final String estado; // solicitada, aprobada, rechazada, cancelada
   final String? observaciones;
+  final String? creadoPor;
   final DateTime? createdAt;
 
   Renovacion({
@@ -39,6 +40,7 @@ class Renovacion {
     this.usuarioAutoriza,
     this.estado = 'solicitada',
     this.observaciones,
+    this.creadoPor,
     this.createdAt,
   }) : fechaRenovacion = fechaRenovacion ?? DateTime.now();
 
@@ -68,6 +70,7 @@ class Renovacion {
       usuarioAutoriza: json['usuario_autoriza'],
       estado: json['estado'] ?? 'solicitada',
       observaciones: json['observaciones'],
+      creadoPor: json['creado_por'],
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : null,
@@ -90,6 +93,7 @@ class Renovacion {
         'monto_mora': montoMora,
         'fecha_renovacion': fechaRenovacion.toIso8601String(),
         'usuario_autoriza': usuarioAutoriza,
+        'creado_por': creadoPor,
         'estado': estado,
         'observaciones': observaciones,
       };

@@ -127,6 +127,7 @@ class CreditoController extends ChangeNotifier {
     File? facturaArchivo,
     String? rolUsuario,
     String? adminResponsable,
+    String? nombreLogueado,
   }) async {
     debugPrint('🟡 CONTROLLER: guardarCredito iniciado. isEditing=$isEditing');
     try {
@@ -286,6 +287,7 @@ class CreditoController extends ChangeNotifier {
         'usuario_nombre': usuarioNombre,
         'estado': (rolUsuario == 'empleado') ? 'pendiente' : 'Pendiente',
         'admin_responsable': adminResponsable ?? usuarioNombre, // Si es admin, él es el responsable
+        'creado_por': nombreLogueado ?? usuarioNombre,
         'notas': credito.notas,
         'numero_credito': nextNumber,
       };

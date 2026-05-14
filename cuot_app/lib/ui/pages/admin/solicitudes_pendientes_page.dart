@@ -92,7 +92,7 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
           tabs: [
-            Tab(text: 'Créditos (${_creditosPendientes.length})'),
+            Tab(text: 'Registros (${_creditosPendientes.length})'),
             Tab(text: 'Grupos (${_gruposPendientes.length})'),
             Tab(text: 'Abonos (${_pagosPendientes.length})'),
             Tab(text: 'Renovaciones (${_renovacionesPendientes.length})'),
@@ -180,12 +180,25 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
     String? creador;
 
     if (tipo == 'credito') {
-      title = 'Crédito: ${item['concepto']}';
+      final String tipoCred = item['tipo_credito'] == 'unico' ? 'Cuota Única' : 'Cuotas';
+      title = 'Registro ($tipoCred): ${item['concepto']}';
       subtitle = 'Cliente: ${item['Clientes']?['nombre'] ?? 'N/A'}';
       final double total = ((item['costo_inversion'] ?? 0) as num).toDouble() + 
                            ((item['margen_ganancia'] ?? 0) as num).toDouble();
-      extra = 'Monto: \$${total.toStringAsFixed(2)}';
-      creador = item['usuario_nombre'];
+      extra = 'Monto Total: \$${total.toStringAsFixed(2)}';
+      creador = item['creado_por'] ?? item['usuario_nombre'];
+      
+      // Detalles de cuotas
+      final cuotas = item['Cuotas'] as List? ?? [];
+      if (cuotas.isNotEmpty) {
+        cuotas.sort((a, b) => (a['numero_cuota'] as int).compareTo(b['numero_cuota'] as int));
+        extra += '\n\nCALENDARIO DE PAGOS:';
+        for (var c in cuotas) {
+          final fecha = DateFormat('dd/MM/yyyy').format(DateTime.parse(c['fecha_pago']));
+          final monto = ((c['monto'] ?? 0) as num).toStringAsFixed(2);
+          extra += '\n• $fecha: \$$monto';
+        }
+      }
     } else if (tipo == 'grupo') {
       title = 'Grupo: ${item['nombre'] ?? item['nombre_grupo'] ?? 'Sin nombre'}';
       subtitle = 'Participantes: ${item['cantidad_participantes'] ?? 'N/A'}';
@@ -196,17 +209,20 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
       subtitle = 'Préstamo: ${item['Creditos']?['concepto'] ?? 'N/A'}';
       extra = 'Cliente: ${item['Creditos']?['Clientes']?['nombre'] ?? 'N/A'}';
       imageUrl = item['comprobante_path'];
+      creador = item['creado_por'] ?? item['usuario_nombre'];
     } else if (tipo == 'renovacion') {
       title = 'Renovación';
       subtitle = 'Préstamo: ${item['Creditos']?['concepto'] ?? 'N/A'}';
       final condiciones = item['condiciones_nuevas'] ?? {};
       extra = 'Nuevo Total: \$${((condiciones['monto_total'] ?? 0) as num).toStringAsFixed(2)}';
+      creador = item['creado_por'] ?? item['usuario_autoriza']; 
     } else if (tipo == 'aporte') {
       final double monto = ((item['monto'] ?? 0) as num).toDouble();
       title = 'Aporte: \$${monto.toStringAsFixed(2)}';
       final miembro = item['Miembros_Grupo'];
       subtitle = 'Miembro: ${miembro?['Clientes']?['nombre'] ?? 'N/A'}';
       extra = 'Método: ${item['metodo_pago'] ?? 'efectivo'}';
+      creador = item['creado_por'] ?? (miembro?['Clientes']?['nombre']);
     }
 
     return Card(

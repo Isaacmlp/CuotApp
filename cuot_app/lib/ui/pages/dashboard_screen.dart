@@ -325,6 +325,7 @@ class DashboardScreen extends StatelessWidget {
                       context,
                       MaterialPageRoute(builder: (_) => CreditoPage(
                         nombreUsuario: userName ?? "Usuario",
+                        nombreLogueado: userName ?? "Usuario",
                         rolActual: rol,
                         esModoTrabajo: false,
                       )),

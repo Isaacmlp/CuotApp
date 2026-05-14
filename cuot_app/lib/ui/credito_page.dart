@@ -18,6 +18,7 @@ import 'package:provider/provider.dart';
 
 class CreditoPage extends StatefulWidget {
   final String nombreUsuario;
+  final String? nombreLogueado;
   final String? creditoIdEditar;
   final bool esModoTrabajo;
   final String? rolActual;
@@ -25,6 +26,7 @@ class CreditoPage extends StatefulWidget {
   const CreditoPage({
     super.key,
     required this.nombreUsuario,
+    this.nombreLogueado,
     this.creditoIdEditar,
     this.esModoTrabajo = false,
     this.rolActual,
@@ -272,6 +274,7 @@ class _CreditoPageState extends State<CreditoPage> {
           facturaArchivo: facturaFile,
           rolUsuario: rolParaController,
           adminResponsable: _adminResponsable,
+          nombreLogueado: widget.nombreLogueado,
         );
         debugPrint('🔵 guardarCredito retornó creditId: $creditId');
 

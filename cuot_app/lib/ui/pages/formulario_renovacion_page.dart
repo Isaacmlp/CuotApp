@@ -11,6 +11,7 @@ import 'package:cuot_app/widget/creditos/custom_date_picker.dart';
 class FormularioRenovacionPage extends StatefulWidget {
   final String creditoId;
   final String nombreUsuario;
+  final String? nombreLogueado;
   final bool esModoTrabajo;
   final String? rolActual;
 
@@ -18,6 +19,7 @@ class FormularioRenovacionPage extends StatefulWidget {
     super.key,
     required this.creditoId,
     required this.nombreUsuario,
+    this.nombreLogueado,
     this.esModoTrabajo = false,
     this.rolActual,
   });
@@ -583,6 +585,7 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
         montoMora: _incluirMora ? _montoMora : 0,
         usuarioAutoriza: _adminResponsable ?? widget.nombreUsuario,
         estado: (rolParaRenovacion == 'empleado') ? 'pendiente' : 'aprobada',
+        creadoPor: widget.nombreLogueado ?? widget.nombreUsuario,
         observaciones: _observacionesController.text.trim(),
       );
 

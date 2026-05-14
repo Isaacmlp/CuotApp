@@ -1010,6 +1010,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                           builder: (_) =>
                               CreditoPage(
                                 nombreUsuario: _adminNombre ?? widget.nombreUsuario,
+                                nombreLogueado: widget.nombreUsuario,
                                 esModoTrabajo: widget.modoTrabajador,
                                 rolActual: widget.rol,
                               )),
@@ -1116,6 +1117,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             MaterialPageRoute(
               builder: (_) => CreditoPage(
                 nombreUsuario: widget.nombreUsuario,
+                nombreLogueado: widget.nombreUsuario,
                 creditoIdEditar: item.id.toString(),
                 esModoTrabajo: widget.modoTrabajador,
                 rolActual: widget.rol,
@@ -1146,6 +1148,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                     MaterialPageRoute(
                       builder: (_) => CreditoPage(
                         nombreUsuario: widget.nombreUsuario,
+                        nombreLogueado: widget.nombreUsuario,
                         creditoIdEditar: item.id.toString(),
                         esModoTrabajo: widget.modoTrabajador,
                         rolActual: widget.rol,
@@ -1206,6 +1209,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                     MaterialPageRoute(
                       builder: (_) => CreditoPage(
                         nombreUsuario: widget.nombreUsuario,
+                        nombreLogueado: widget.nombreUsuario,
                         creditoIdEditar: item['id'].toString(),
                         esModoTrabajo: widget.modoTrabajador,
                         rolActual: widget.rol,
@@ -1229,6 +1233,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             MaterialPageRoute(
               builder: (_) => CreditoPage(
                 nombreUsuario: widget.nombreUsuario,
+                nombreLogueado: widget.nombreUsuario,
                 creditoIdEditar: item['id'].toString(),
                 esModoTrabajo: widget.modoTrabajador,
                 rolActual: widget.rol,

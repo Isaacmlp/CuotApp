@@ -1,5 +1,6 @@
 import 'package:cuot_app/Model/renovacion_model.dart';
 import 'package:cuot_app/core/supabase/supabase_service.dart';
+import 'package:flutter/material.dart';
 
 class RenovacionService {
   final SupabaseService _supabase = SupabaseService();
@@ -17,42 +18,27 @@ class RenovacionService {
 
       final nuevaRenovacion = Renovacion.fromJson(data);
 
-      // NOTA: El abono ya está incorporado en el cálculo de verdaderoGrossTotal
-      // dentro de _aplicarRenovacionAlCredito, por lo que NO se inserta en Pagos
-      // para evitar doble descuento del abono al calcular el saldo pendiente.
-
-      // 3. Si está aprobada, actualizar el crédito original
-      if (renovacion.estado == 'aprobada') {
-        print('✅ Aplicando renovación aprobada al crédito: ${renovacion.creditoOriginalId}');
-        await _aplicarRenovacionAlCredito(renovacion);
-      } else {
-        // Si está pendiente o solicitada, no aplicamos nada al crédito todavía
-        print('🕒 Renovación estado: ${renovacion.estado}. No se aplica al crédito todavía.');
-      }
-
-      // 4. Registrar en historial
+      // 3. Registrar en historial inicial
       await _supabase.client
           .schema('Financiamientos')
           .from('Historial_Renovaciones')
           .insert(HistorialRenovacion(
             renovacionId: nuevaRenovacion.id!,
             estadoAnterior: null,
+            estadoNuevo: nuevaRenovacion.estado,
             usuarioId: renovacion.usuarioAutoriza,
             observaciones: nuevaRenovacion.estado == 'aprobada' 
-                ? 'Renovación creada y aplicada' 
-                : 'Renovación solicitada (en espera)',
+                ? 'Renovación creada y aplicada de inmediato' 
+                : 'Renovación registrada en espera de aprobación',
           ).toJson());
 
-      // Determinar si debemos aplicar el efecto financiero de inmediato
+      // 4. Determinar si debemos aplicar el efecto financiero de inmediato
       // IMPORTANTE: Solo se aplica si el estado es 'aprobada' (por ejemplo, si lo creó un Admin)
-      final String estadoFinal = nuevaRenovacion.estado;
-      debugPrint('🕒 Renovación ID: ${nuevaRenovacion.id} - Estado: $estadoFinal');
-
-      if (estadoFinal == 'aprobada') {
+      if (nuevaRenovacion.estado == 'aprobada') {
         debugPrint('🚀 Aplicando efecto financiero de renovación inmediata...');
         await _aplicarRenovacionAlCredito(nuevaRenovacion);
       } else {
-        debugPrint('🕒 Renovación estado: $estadoFinal. No se aplica al crédito todavía (esperando aprobación).');
+        debugPrint('🕒 Renovación estado: ${nuevaRenovacion.estado}. No se aplica al crédito todavía (esperando aprobación).');
       }
 
       return nuevaRenovacion;

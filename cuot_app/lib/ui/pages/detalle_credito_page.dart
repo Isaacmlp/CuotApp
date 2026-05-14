@@ -372,7 +372,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
               },
               tooltip: 'Editar Préstamo',
             ),
-          if (widget.nombreUsuario != null && !isPagado && _tienePermiso(requiereSupervisor: true))
+          if (widget.nombreUsuario != null && !isPagado && _tienePermiso())
             IconButton(
               icon: const Icon(
                 Icons.refresh,
@@ -621,7 +621,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                         ),
                         tooltip: 'Enviar ficha por WhatsApp',
                       ),
-                      if (widget.nombreUsuario != null && !isPagado && _tienePermiso(requiereSupervisor: true))
+                      if (widget.nombreUsuario != null && !isPagado && _tienePermiso())
                         SizedBox(
                           height: 32,
                           child: ElevatedButton.icon(

@@ -534,9 +534,9 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
       }).toList();
 
       // DETERMINAR ROL PARA LA RENOVACIÓN
-      final String? rolParaRenovacion = (widget.rolActual == 'empleado' && widget.esModoTrabajo) 
-          ? 'empleado' 
-          : 'admin';
+      // Todo lo que viene del Panel de Trabajo (esModoTrabajo = true) queda pendiente.
+      // Lo que viene de Cuotas Personales (esModoTrabajo = false) es inmediato.
+      final String? rolParaRenovacion = widget.esModoTrabajo ? 'empleado' : 'admin';
 
       final renovacion = Renovacion(
         creditoOriginalId: widget.creditoId,
@@ -562,6 +562,7 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
           'plazo': _tipoCredito == 'unico' ? 1 : _cuotasEditables.length,
           'incluye_mora': _incluirMora,
           'monto_mora': _incluirMora ? _montoMora : 0,
+          'modalidad_pago_nombre': _modalidadOriginal,
           'fecha_renovacion': DateTime.now().toIso8601String(),
           if (_tipoCredito == 'unico') ...{
             'fecha_inicio_nueva': _fechaInicioRenovacion?.toIso8601String(),

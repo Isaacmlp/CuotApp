@@ -173,94 +173,320 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
   }
 
   Widget _buildRequestCard(Map<String, dynamic> item, String tipo) {
-    if (tipo == 'credito') {
-      return _buildCreditRequestCard(item);
+    switch (tipo) {
+      case 'credito':
+        return _buildCreditRequestCard(item);
+      case 'grupo':
+        return _buildGroupRequestCard(item);
+      case 'pago':
+        return _buildPaymentRequestCard(item);
+      case 'renovacion':
+        return _buildRenovationRequestCard(item);
+      case 'aporte':
+        return _buildContributionRequestCard(item);
+      default:
+        return _buildGenericRequestCard(item, tipo);
     }
-    
-    String title = '';
-    String subtitle = '';
-    String extra = '';
-    String? imageUrl;
-    String? creador;
+  }
 
-    if (tipo == 'grupo') {
-      title = 'Grupo: ${item['nombre'] ?? item['nombre_grupo'] ?? 'Sin nombre'}';
-      subtitle = 'Participantes: ${item['cantidad_participantes'] ?? 'N/A'}';
-      extra = 'Meta: \$${((item['meta_ahorro'] ?? 0) as num).toStringAsFixed(2)}';
-      creador = item['creado_por'];
-    } else if (tipo == 'pago') {
-      title = 'Abono: \$${((item['monto'] ?? 0) as num).toStringAsFixed(2)}';
-      subtitle = 'Préstamo: ${item['Creditos']?['concepto'] ?? 'N/A'}';
-      extra = 'Cliente: ${item['Creditos']?['Clientes']?['nombre'] ?? 'N/A'}';
-      imageUrl = item['comprobante_path'];
-      creador = item['creado_por'] ?? item['usuario_nombre'];
-    } else if (tipo == 'renovacion') {
-      title = 'Renovación';
-      subtitle = 'Préstamo: ${item['Creditos']?['concepto'] ?? 'N/A'}';
-      final condiciones = item['condiciones_nuevas'] ?? {};
-      extra = 'Nuevo Total: \$${((condiciones['monto_total'] ?? 0) as num).toStringAsFixed(2)}';
-      creador = item['creado_por'] ?? item['usuario_autoriza']; 
-    } else if (tipo == 'aporte') {
-      final double monto = ((item['monto'] ?? 0) as num).toDouble();
-      title = 'Aporte: \$${monto.toStringAsFixed(2)}';
-      final miembro = item['Miembros_Grupo'];
-      subtitle = 'Miembro: ${miembro?['Clientes']?['nombre'] ?? 'N/A'}';
-      extra = 'Método: ${item['metodo_pago'] ?? 'efectivo'}';
-      creador = item['creado_por'] ?? (miembro?['Clientes']?['nombre']);
-    }
-
+  Widget _buildGenericRequestCard(Map<String, dynamic> item, String tipo) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 2,
-      child: Column(
+      child: ListTile(
+        title: Text('Solicitud: $tipo'),
+        subtitle: Text('ID: ${item['id']}'),
+        trailing: _buildActionButtons(item, tipo),
+      ),
+    );
+  }
+
+  Widget _buildGroupRequestCard(Map<String, dynamic> item) {
+    final String nombre = item['nombre'] ?? item['nombre_grupo'] ?? 'Sin nombre';
+    final int participantes = item['cantidad_participantes'] ?? 0;
+    final double meta = ((item['meta_ahorro'] ?? 0) as num).toDouble();
+    final String creador = item['creado_por'] ?? 'Sistema';
+    final String descripcion = item['descripcion'] ?? 'Sin descripción';
+
+    return _buildPremiumCard(
+      tipo: 'grupo',
+      item: item,
+      title: 'Nuevo Grupo: $nombre',
+      tag: 'Grupo de Ahorro',
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(
-            contentPadding: const EdgeInsets.all(16),
-            title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
+            children: [
+              _buildInfoItem('Participantes', '$participantes', Icons.group),
+              _buildInfoItem('Recaudación', '\$${meta.toStringAsFixed(2)}', Icons.flag),
+              _buildInfoItem('Frecuencia', (item['periodo'] ?? 'semanal').toString().toUpperCase(), Icons.timer),
+            ],
+          ),
+          if (descripcion.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildNoteSection(descripcion),
+          ],
+        ],
+      ),
+      creador: creador,
+    );
+  }
+
+  Widget _buildPaymentRequestCard(Map<String, dynamic> item) {
+    final double monto = ((item['monto'] ?? 0) as num).toDouble();
+    final double? montoBs = item['monto_bs'] != null ? ((item['monto_bs']) as num).toDouble() : null;
+    final double? montoUsd = item['monto_usd'] != null ? ((item['monto_usd']) as num).toDouble() : null;
+    
+    final String concepto = item['Creditos']?['concepto'] ?? 'N/A';
+    final String cliente = item['Creditos']?['Clientes']?['nombre'] ?? 'N/A';
+    final String ref = item['referencia'] ?? 'N/A';
+    final String fecha = item['fecha_pago_real'] != null 
+        ? DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(item['fecha_pago_real']))
+        : 'N/A';
+    final String? captureUrl = item['comprobante_path'];
+    final String creador = item['creado_por'] ?? item['usuario_nombre'] ?? 'Empleado';
+    final String notas = item['observaciones'] ?? '';
+    
+    return _buildPremiumCard(
+      tipo: 'pago',
+      item: item,
+      title: 'Abono Recibido: \$${monto.toStringAsFixed(2)}',
+      tag: 'Verificación de Pago',
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDetailRow(Icons.person, 'Cliente: $cliente'),
+          _buildDetailRow(Icons.description, 'Préstamo: $concepto'),
+          const Divider(height: 24),
+          Row(
+            children: [
+              _buildInfoItem('Fecha', fecha, Icons.calendar_today),
+              _buildInfoItem('Referencia', ref, Icons.receipt_long),
+              _buildInfoItem('Método', (item['metodo_pago'] ?? 'Efectivo').toString().toUpperCase(), Icons.payment),
+            ],
+          ),
+          if (montoBs != null || montoUsd != null) ...[
+            const SizedBox(height: 12),
+            Row(
               children: [
-                const SizedBox(height: 8),
-                Text(subtitle),
-                Text(extra, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.primaryGreen)),
-                if (creador != null && creador.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.person_outline, size: 14, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Creado por: $creador',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600], fontStyle: FontStyle.italic),
-                      ),
-                    ],
+                if (montoBs != null) _buildInfoItem('Monto Bs', 'Bs ${montoBs.toStringAsFixed(2)}', Icons.account_balance),
+                if (montoUsd != null) _buildInfoItem('Monto $', '\$ ${montoUsd.toStringAsFixed(2)}', Icons.monetization_on),
+              ],
+            ),
+          ],
+          if (notas.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildNoteSection(notas),
+          ],
+          if (captureUrl != null && captureUrl.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Text('COMPROBANTE / CAPTURE:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryGreen)),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () => _showFullImage(captureUrl),
+              child: Container(
+                height: 200,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.grey[300]!),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: Image.network(
+                    captureUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => const Center(child: Icon(Icons.broken_image, size: 40, color: Colors.grey)),
                   ),
-                ],
-                if (imageUrl != null && imageUrl.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: () => _showFullImage(imageUrl!),
-                    child: Container(
-                      height: 120,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: Colors.grey[100],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: imageUrl.startsWith('http') 
-                          ? Image.network(imageUrl, fit: BoxFit.cover)
-                          : const Center(child: Icon(Icons.image, color: Colors.grey)),
-                      ),
-                    ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+      creador: creador,
+    );
+  }
+
+  Widget _buildRenovationRequestCard(Map<String, dynamic> item) {
+    final String concepto = item['Creditos']?['concepto'] ?? 'N/A';
+    final String cliente = item['Creditos']?['Clientes']?['nombre'] ?? 'N/A';
+    final condiciones = item['condiciones_nuevas'] ?? {};
+    final double nuevoMonto = ((condiciones['monto_total'] ?? 0) as num).toDouble();
+    final String creador = item['creado_por'] ?? item['usuario_autoriza'] ?? 'Sistema';
+
+    return _buildPremiumCard(
+      tipo: 'renovacion',
+      item: item,
+      title: 'Solicitud de Renovación',
+      tag: 'Renovación',
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDetailRow(Icons.person, 'Cliente: $cliente'),
+          _buildDetailRow(Icons.history, 'Préstamo Actual: $concepto'),
+          const Divider(height: 24),
+          Row(
+            children: [
+              _buildInfoItem('Nuevo Total', '\$${nuevoMonto.toStringAsFixed(2)}', Icons.monetization_on),
+              _buildInfoItem('Cuotas', '${condiciones['numero_cuotas'] ?? 0}', Icons.repeat),
+              _buildInfoItem('Modalidad', (condiciones['modalidad_pago_nombre'] ?? 'N/A'), Icons.schedule),
+            ],
+          ),
+        ],
+      ),
+      creador: creador,
+    );
+  }
+
+  Widget _buildContributionRequestCard(Map<String, dynamic> item) {
+    final double monto = ((item['monto'] ?? 0) as num).toDouble();
+    final miembro = item['Miembros_Grupo'];
+    final String cliente = miembro?['Clientes']?['nombre'] ?? 'N/A';
+    final String grupo = item['Grupos_Ahorro']?['nombre'] ?? 'N/A';
+    final String creador = item['creado_por'] ?? cliente;
+
+    return _buildPremiumCard(
+      tipo: 'aporte',
+      item: item,
+      title: 'Aporte al Grupo: \$${monto.toStringAsFixed(2)}',
+      tag: 'Aporte / Susu',
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDetailRow(Icons.person, 'Miembro: $cliente'),
+          _buildDetailRow(Icons.group, 'Grupo: $grupo'),
+          const Divider(height: 24),
+          Row(
+            children: [
+              _buildInfoItem('Monto', '\$${monto.toStringAsFixed(2)}', Icons.savings),
+              _buildInfoItem('Método', (item['metodo_pago'] ?? 'Efectivo').toString().toUpperCase(), Icons.payment),
+              _buildInfoItem('Turno', '#${item['numero_turno'] ?? 'N/A'}', Icons.tag),
+            ],
+          ),
+        ],
+      ),
+      creador: creador,
+    );
+  }
+
+  Widget _buildPremiumCard({
+    required String tipo,
+    required Map<String, dynamic> item,
+    required String title,
+    required String tag,
+    required Widget content,
+    required String creador,
+  }) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      elevation: 6,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.primaryGreen, AppColors.lightGreen],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    tag,
+                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                ),
               ],
             ),
           ),
+          
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                content,
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Icon(Icons.person_outline, size: 16, color: Colors.grey[400]),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Creado por: $creador',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[500], fontStyle: FontStyle.italic),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
           _buildActionButtons(item, tipo),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.primaryGreen),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoteSection(String note) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('NOTAS / OBSERVACIONES:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+          const SizedBox(height: 6),
+          Text(note, style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: Colors.black87)),
         ],
       ),
     );

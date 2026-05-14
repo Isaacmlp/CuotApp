@@ -69,8 +69,9 @@ class SavingsService {
   Future<GrupoAhorro> createGrupo(GrupoAhorro grupo, {String? rolUsuario, String? adminResponsable}) async {
     final data = grupo.toJson();
     
-    // Si es empleado, el grupo nace pendiente
-    if (rolUsuario == 'empleado') {
+    // Si es trabajador (empleado o supervisor), el grupo nace pendiente
+    final String rol = rolUsuario?.toLowerCase() ?? '';
+    if (rol == 'empleado' || rol == 'supervisor') {
       data['estado'] = 'pendiente';
     }
     

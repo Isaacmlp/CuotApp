@@ -285,7 +285,7 @@ class CreditoController extends ChangeNotifier {
         'tipo_credito': esPagoUnico ? 'unico' : 'cuotas',
         'factura_url': facturaUrl,
         'usuario_nombre': usuarioNombre,
-        'estado': (rolUsuario == 'empleado') ? 'pendiente' : 'Pendiente',
+        'estado': (rolUsuario?.toLowerCase() == 'empleado' || rolUsuario?.toLowerCase() == 'supervisor') ? 'pendiente' : 'Pendiente',
         'admin_responsable': adminResponsable ?? usuarioNombre, // Si es admin, él es el responsable
         'creado_por': nombreLogueado ?? usuarioNombre,
         'notas': credito.notas,

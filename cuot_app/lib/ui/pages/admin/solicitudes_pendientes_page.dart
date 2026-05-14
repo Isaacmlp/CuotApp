@@ -296,11 +296,35 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(15),
-                  child: Image.network(
-                    captureUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const Center(child: Icon(Icons.broken_image, size: 40, color: Colors.grey)),
-                  ),
+                  child: captureUrl.startsWith('http')
+                      ? Image.network(
+                          captureUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.broken_image, size: 40, color: Colors.grey),
+                                SizedBox(height: 8),
+                                Text('Error al cargar comprobante', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              ],
+                            ),
+                          ),
+                        )
+                      : Image.file(
+                          File(captureUrl),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.broken_image, size: 40, color: Colors.grey),
+                                SizedBox(height: 8),
+                                Text('Imagen no subida al servidor', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              ],
+                            ),
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -769,7 +793,25 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage> w
             InteractiveViewer(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.network(url),
+                child: imageUrl.startsWith('http')
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: Colors.white,
+                          padding: const EdgeInsets.all(20),
+                          child: const Text('Error al cargar la imagen'),
+                        ),
+                      )
+                    : Image.file(
+                        File(imageUrl),
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: Colors.white,
+                          padding: const EdgeInsets.all(20),
+                          child: const Text('Imagen local no disponible en este dispositivo'),
+                        ),
+                      ),
               ),
             ),
             Positioned(

@@ -358,18 +358,23 @@ class _CreditoPageState extends State<CreditoPage> {
     setState(() => _isLoading = true);
     try {
       final service = SavingsService();
+      
+      // Si entra por Cuotas Personales (esModoTrabajo = false), forzamos rol 'admin' para que no quede pendiente.
+      // Si entra por Panel Trabajo, usamos el rol real (si es empleado o supervisor, quedará pendiente).
+      final rolParaGrupo = widget.esModoTrabajo ? _rolUsuario : 'admin';
+      
       final nuevoGrupo = await service.createGrupo(
         grupo,
-        rolUsuario: _rolUsuario,
+        rolUsuario: rolParaGrupo,
         adminResponsable: _adminResponsable,
       );
 
       if (mounted) {
-        // Si es empleado, el grupo queda pendiente — no redirigir al dashboard del grupo
-        if (_rolUsuario == 'empleado') {
+        // Si el grupo se creó como pendiente (trabajador en modo trabajo) no redirigir al dashboard
+        if (widget.esModoTrabajo && (_rolUsuario == 'empleado' || _rolUsuario == 'supervisor')) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('🕒 Grupo registrado. En espera de aprobación por tu administrador.'),
+              content: Text('🕒 Grupo registrado. En espera de aprobación por tu administrador/supervisor.'),
               backgroundColor: Colors.orange,
               behavior: SnackBarBehavior.floating,
               duration: Duration(seconds: 4),

@@ -1008,7 +1008,11 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                       context,
                       MaterialPageRoute(
                           builder: (_) =>
-                              CreditoPage(nombreUsuario: _adminNombre ?? widget.nombreUsuario)),
+                              CreditoPage(
+                                nombreUsuario: _adminNombre ?? widget.nombreUsuario,
+                                esModoTrabajo: widget.modoTrabajador,
+                                rolActual: widget.rol,
+                              )),
                     ).then((_) => _loadData());
                   },
                   tooltip: 'Nuevo crédito',
@@ -1113,6 +1117,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
               builder: (_) => CreditoPage(
                 nombreUsuario: widget.nombreUsuario,
                 creditoIdEditar: item.id.toString(),
+                esModoTrabajo: widget.modoTrabajador,
+                rolActual: widget.rol,
               ),
             ),
           ).then((_) => _loadData());
@@ -1141,6 +1147,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                       builder: (_) => CreditoPage(
                         nombreUsuario: widget.nombreUsuario,
                         creditoIdEditar: item.id.toString(),
+                        esModoTrabajo: widget.modoTrabajador,
+                        rolActual: widget.rol,
                       ),
                     ),
                   ).then((_) => _loadData());
@@ -1199,6 +1207,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                       builder: (_) => CreditoPage(
                         nombreUsuario: widget.nombreUsuario,
                         creditoIdEditar: item['id'].toString(),
+                        esModoTrabajo: widget.modoTrabajador,
+                        rolActual: widget.rol,
                       ),
                     ),
                   ).then((_) => _loadData());
@@ -1220,6 +1230,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
               builder: (_) => CreditoPage(
                 nombreUsuario: widget.nombreUsuario,
                 creditoIdEditar: item['id'].toString(),
+                esModoTrabajo: widget.modoTrabajador,
+                rolActual: widget.rol,
               ),
             ),
           ).then((_) => _loadData());

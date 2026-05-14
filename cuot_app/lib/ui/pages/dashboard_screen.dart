@@ -323,7 +323,11 @@ class DashboardScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => CreditoPage(nombreUsuario: userName ?? "Usuario")),
+                      MaterialPageRoute(builder: (_) => CreditoPage(
+                        nombreUsuario: userName ?? "Usuario",
+                        rolActual: rol,
+                        esModoTrabajo: false,
+                      )),
                     );
                   },
                   backgroundColor: AppColors.primaryGreen,

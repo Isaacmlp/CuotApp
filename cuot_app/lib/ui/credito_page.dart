@@ -19,11 +19,15 @@ import 'package:provider/provider.dart';
 class CreditoPage extends StatefulWidget {
   final String nombreUsuario;
   final String? creditoIdEditar;
+  final bool esModoTrabajo;
+  final String? rolActual;
 
   const CreditoPage({
     super.key,
     required this.nombreUsuario,
     this.creditoIdEditar,
+    this.esModoTrabajo = false,
+    this.rolActual,
   });
 
   @override
@@ -255,12 +259,18 @@ class _CreditoPageState extends State<CreditoPage> {
           }
         }
 
-        debugPrint('🔵 Llamando controller.guardarCredito...');
+        // DETERMINAR ROL PARA EL CONTROLADOR
+        // Si es empleado y está en modo trabajo, el crédito debe ser pendiente
+        final String? rolParaController = (widget.rolActual == 'empleado' && widget.esModoTrabajo) 
+            ? 'empleado' 
+            : 'admin';
+
+        debugPrint('🔵 Llamando controller.guardarCredito con rol: $rolParaController...');
         final String? creditId = await controller.guardarCredito(
           credito,
           widget.nombreUsuario,
           facturaArchivo: facturaFile,
-          rolUsuario: _rolUsuario,
+          rolUsuario: rolParaController,
           adminResponsable: _adminResponsable,
         );
         debugPrint('🔵 guardarCredito retornó creditId: $creditId');
@@ -275,8 +285,8 @@ class _CreditoPageState extends State<CreditoPage> {
             entidadId: creditId,
           );
 
-          // Si es empleado, el crédito queda pendiente — no redirigir a detalle
-          if (_rolUsuario == 'empleado') {
+          // Si es empleado en modo trabajo, el crédito queda pendiente — no redirigir a detalle
+          if (widget.rolActual == 'empleado' && widget.esModoTrabajo) {
             scaffoldMessenger.showSnackBar(
               const SnackBar(
                 content: Text('🕒 Crédito registrado. En espera de aprobación por tu administrador.'),

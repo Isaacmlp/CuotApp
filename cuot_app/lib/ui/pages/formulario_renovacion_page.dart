@@ -11,11 +11,15 @@ import 'package:cuot_app/widget/creditos/custom_date_picker.dart';
 class FormularioRenovacionPage extends StatefulWidget {
   final String creditoId;
   final String nombreUsuario;
+  final bool esModoTrabajo;
+  final String? rolActual;
 
   const FormularioRenovacionPage({
     super.key,
     required this.creditoId,
     required this.nombreUsuario,
+    this.esModoTrabajo = false,
+    this.rolActual,
   });
 
   @override
@@ -526,6 +530,11 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
         };
       }).toList();
 
+      // DETERMINAR ROL PARA LA RENOVACIÓN
+      final String? rolParaRenovacion = (widget.rolActual == 'empleado' && widget.esModoTrabajo) 
+          ? 'empleado' 
+          : 'admin';
+
       final renovacion = Renovacion(
         creditoOriginalId: widget.creditoId,
         clienteId: clienteId,
@@ -573,7 +582,7 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
         incluirMora: _incluirMora,
         montoMora: _incluirMora ? _montoMora : 0,
         usuarioAutoriza: _adminResponsable ?? widget.nombreUsuario,
-        estado: (_rolUsuario == 'empleado') ? 'pendiente' : 'aprobada',
+        estado: (rolParaRenovacion == 'empleado') ? 'pendiente' : 'aprobada',
         observaciones: _observacionesController.text.trim(),
       );
 
@@ -593,14 +602,11 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_rolUsuario == 'empleado' 
-              ? '🕒 Renovación solicitada. En espera de aprobación.' 
-              : '✅ Renovación registrada exitosamente'),
-            backgroundColor: _rolUsuario == 'empleado' ? Colors.orange : AppColors.success,
+            content: Text(rolParaRenovacion == 'empleado' 
+                ? '🕒 Renovación solicitada. En espera de aprobación.' 
+                : '✅ Renovación completada con éxito'),
+            backgroundColor: rolParaRenovacion == 'empleado' ? Colors.orange : AppColors.success,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
           ),
         );
         Navigator.pop(context, true);

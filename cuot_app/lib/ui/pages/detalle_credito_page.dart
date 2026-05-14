@@ -387,6 +387,8 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                       builder: (_) => FormularioRenovacionPage(
                         creditoId: widget.creditoId,
                         nombreUsuario: widget.nombreUsuario!,
+                        esModoTrabajo: widget.modoTrabajador,
+                        rolActual: widget.rol,
                       ),
                     ),
                   ).then((result) {
@@ -629,6 +631,8 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                                   builder: (_) => FormularioRenovacionPage(
                                     creditoId: widget.creditoId,
                                     nombreUsuario: widget.nombreUsuario!,
+                                    esModoTrabajo: widget.modoTrabajador,
+                                    rolActual: widget.rol,
                                   ),
                                 ),
                               ).then((result) {

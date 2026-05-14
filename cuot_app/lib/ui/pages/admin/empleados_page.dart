@@ -5,6 +5,7 @@ import 'package:cuot_app/service/credito_compartido_service.dart';
 import 'package:cuot_app/service/credit_service.dart';
 import 'package:cuot_app/theme/app_colors.dart';
 import 'package:cuot_app/widget/dashboard/custom_drawer.dart';
+import 'package:cuot_app/widget/admin/desasignar_credito_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -44,51 +45,43 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
   Future<void> _cargarDatos() async {
     setState(() => _isLoading = true);
     try {
+      // 1. Obtener todas las asignaciones
       final asignaciones = await _compartidoService
           .obtenerCreditosCompartidosPorPropietario(widget.adminNombre);
       
-      Map<String, List<BitacoraActividad>> actividades = {};
+      // 2. Obtener nombres únicos de empleados y sus actividades en BATCH
+      final empleados = asignaciones.map((a) => a.trabajadorNombre).toSet().toList();
+      Map<String, List<BitacoraActividad>> actividadesMap = {};
       
-      // Obtener nombres únicos de empleados
-      final empleados = asignaciones.map((a) => a.trabajadorNombre).toSet();
-      
-      for (var emp in empleados) {
-        try {
-          final acts = await _bitacoraService.obtenerActividades(
-            limit: 10,
-            usuariosFilter: [emp],
-          );
-          actividades[emp] = acts;
-        } catch (e) {
-          // Ignorar silenciosamente si hay RLS o error al obtener actividades
-          // de un empleado en particular para no romper toda la vista
-          actividades[emp] = [];
+      if (empleados.isNotEmpty) {
+        final todasActs = await _bitacoraService.obtenerActividades(
+          limit: 100, // Traer suficientes para repartir
+          usuariosFilter: empleados,
+        );
+        
+        for (var emp in empleados) {
+          actividadesMap[emp] = todasActs.where((a) => a.usuarioNombre == emp).take(10).toList();
         }
       }
 
-      // Obtener detalles completos de los créditos
-      Map<String, Map<String, dynamic>> detalles = {};
-      for (var a in asignaciones) {
-        if (!detalles.containsKey(a.creditoId)) {
-          try {
-            final creditData = await _creditService.getCreditById(a.creditoId);
-            if (creditData != null) {
-              detalles[a.creditoId] = creditData;
-            }
-          } catch (e) {
-            print('Error cargando detalle de crédito ${a.creditoId}: $e');
-          }
-        }
+      // 3. Obtener detalles de TODOS los créditos en una sola consulta BATCH
+      final idsCreditos = asignaciones.map((a) => a.creditoId).toSet().toList();
+      final List<Map<String, dynamic>> rawCredits = await _creditService.getCreditsByIds(idsCreditos);
+      
+      Map<String, Map<String, dynamic>> detallesMap = {};
+      for (var c in rawCredits) {
+        detallesMap[c['id'].toString()] = c;
       }
 
       if (mounted) {
         setState(() {
           _asignaciones = asignaciones;
-          _actividadesPorEmpleado = actividades;
-          _detallesCreditos = detalles;
+          _actividadesPorEmpleado = actividadesMap;
+          _detallesCreditos = detallesMap;
           _isLoading = false;
         });
       }
+
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -258,6 +251,31 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
                                 letterSpacing: 0.3,
                               ),
                             ),
+                            const Spacer(),
+                            if (asignacionesEmp.isNotEmpty)
+                              TextButton.icon(
+                                onPressed: () async {
+                                  final result = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => DesasignarCreditoDialog(
+                                      adminNombre: widget.adminNombre,
+                                      empleadoNombre: nombre,
+                                      asignaciones: asignacionesEmp,
+                                      detallesCreditos: _detallesCreditos,
+                                    ),
+                                  );
+                                  if (result == true) {
+                                    _cargarDatos();
+                                  }
+                                },
+                                icon: const Icon(Icons.settings_outlined, size: 14),
+                                label: const Text('Gestionar', style: TextStyle(fontSize: 11)),
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                              ),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -429,16 +447,17 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
   }
 
   Widget _buildBitacoraItem(BitacoraActividad act) {
-    final fecha = act.createdAt != null 
-        ? DateFormat('dd/MM HH:mm').format(act.createdAt!) 
-        : '--/--';
-    
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(fecha, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+          Text(
+            act.createdAt != null 
+                ? DateFormat('dd/MM HH:mm').format(act.createdAt!.toLocal()) 
+                : '--/--',
+            style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

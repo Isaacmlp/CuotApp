@@ -10,6 +10,11 @@ import 'package:cuot_app/ui/pages/historial_renovaciones_page.dart';
 import 'package:cuot_app/ui/pages/seguimiento_creditos_page.dart';
 import 'package:cuot_app/ui/pages/settings_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:cuot_app/service/credit_service.dart';
+import 'package:cuot_app/service/savings_service.dart';
+import 'package:cuot_app/service/renovacion_service.dart';
+import 'package:cuot_app/service/user_admin_service.dart';
+import 'package:cuot_app/ui/pages/admin/solicitudes_pendientes_page.dart';
 
 class CustomDrawer extends StatefulWidget {
   final String nombre_usuario;
@@ -33,12 +38,56 @@ class _CustomDrawerState extends State<CustomDrawer> {
   bool _tieneCreditosAsignados = false;
   bool _checkingAsignados = true;
   bool _tieneEmpleados = false;
+  int _totalPendientes = 0;
+  String? _rootAdmin;
 
   @override
   void initState() {
     super.initState();
     _verificarCreditosAsignados();
-    if (widget.rol == 'admin') _verificarEmpleados();
+    _cargarContextoYPendientes();
+  }
+
+  Future<void> _cargarContextoYPendientes() async {
+    try {
+      final userService = UserAdminService();
+      final users = await userService.listarUsuarios();
+      final currentUser = users.firstWhere((u) => u.nombre == widget.nombre_usuario);
+      
+      _rootAdmin = currentUser.rol == 'admin' ? currentUser.nombre : currentUser.creadoPor;
+
+      if (widget.rol == 'admin' || widget.rol == 'supervisor') {
+        _verificarEmpleados();
+        _verificarPendientes();
+      }
+    } catch (e) {
+      print('Error al cargar contexto en drawer: $e');
+    }
+  }
+
+  Future<void> _verificarPendientes() async {
+    if (_rootAdmin == null) return;
+    try {
+      final results = await Future.wait([
+        CreditService().getCreditosPendientes(_rootAdmin!),
+        SavingsService().getGruposPendientes(_rootAdmin!),
+        CreditService().getPagosPendientes(_rootAdmin!),
+        RenovacionService().getRenovacionesPendientes(_rootAdmin!),
+      ]);
+
+      int total = 0;
+      for (var list in results) {
+        total += list.length;
+      }
+
+      if (mounted) {
+        setState(() {
+          _totalPendientes = total;
+        });
+      }
+    } catch (e) {
+      print('Error verificando pendientes: $e');
+    }
   }
 
   Future<void> _verificarCreditosAsignados() async {
@@ -200,8 +249,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
               isSelected: widget.ventanaActiva == 'Cuotas Personales',
             ),
 
-            // Opción "Trabajo" — solo visible si tiene créditos asignados
-            if (!_checkingAsignados && _tieneCreditosAsignados)
+            // Opción "Trabajo" — solo visible si NO es cliente y tiene créditos asignados
+            if (widget.rol != 'cliente' && !_checkingAsignados && _tieneCreditosAsignados)
               _buildDrawerItem(
                 icon: Icons.work,
                 label: 'Trabajo',
@@ -260,6 +309,27 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   );
                 },
                 isSelected: widget.ventanaActiva == 'empleados',
+              ),
+
+            // Verificaciones — Para Admin y Supervisor
+            if (widget.rol == 'admin' || widget.rol == 'supervisor')
+              _buildDrawerItem(
+                icon: Icons.fact_check,
+                label: 'Verificaciones',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SolicitudesPendientesPage(
+                        adminNombre: _rootAdmin ?? widget.nombre_usuario,
+                      ),
+                    ),
+                  );
+                },
+                showBadge: _totalPendientes > 0,
+                badgeCount: _totalPendientes,
+                isSelected: widget.ventanaActiva == 'verificaciones',
               ),
 
             const Divider(

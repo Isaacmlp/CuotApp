@@ -33,11 +33,32 @@ class _CreditoPageState extends State<CreditoPage> {
   final CreditoController _controller = CreditoController();
   bool _isLoading = false;
 
+  String? _rolUsuario;
+  String? _adminResponsable;
+
   @override
   void initState() {
     super.initState();
+    _cargarDatosUsuario();
     if (widget.creditoIdEditar != null) {
       _cargarDatosEdicion();
+    }
+  }
+
+  Future<void> _cargarDatosUsuario() async {
+    try {
+      final service = UserAdminService();
+      final users = await service.listarUsuarios();
+      final currentUser = users.firstWhere((u) => u.nombre == widget.nombreUsuario);
+      
+      if (mounted) {
+        setState(() {
+          _rolUsuario = currentUser.rol;
+          _adminResponsable = currentUser.creadoPor ?? widget.nombreUsuario;
+        });
+      }
+    } catch (e) {
+      print('Error cargando datos de usuario: $e');
     }
   }
 
@@ -221,6 +242,8 @@ class _CreditoPageState extends State<CreditoPage> {
           credito,
           widget.nombreUsuario,
           facturaArchivo: facturaFile,
+          rolUsuario: _rolUsuario,
+          adminResponsable: _adminResponsable,
         );
         debugPrint('🔵 guardarCredito retornó creditId: $creditId');
 
@@ -289,7 +312,11 @@ class _CreditoPageState extends State<CreditoPage> {
     setState(() => _isLoading = true);
     try {
       final service = SavingsService();
-      final nuevoGrupo = await service.createGrupo(grupo);
+      final nuevoGrupo = await service.createGrupo(
+        grupo,
+        rolUsuario: _rolUsuario,
+        adminResponsable: _adminResponsable,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -199,18 +199,4 @@ class CreditoCompartidoService {
       return [];
     }
   }
-
-  /// Actualizar permisos de un crédito compartido
-  Future<void> actualizarPermisos(String compartidoId, String nuevosPermisos) async {
-    try {
-      await _supabase.client
-          .schema('Usuarios')
-          .from('Creditos_Compartidos')
-          .update({'permisos': nuevosPermisos})
-          .eq('id', compartidoId);
-    } catch (e) {
-      print('❌ Error en actualizarPermisos: $e');
-      rethrow;
-    }
-  }
 }

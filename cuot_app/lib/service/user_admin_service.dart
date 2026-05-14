@@ -146,12 +146,17 @@ class UserAdminService {
   }
 
   /// Editar rol de un usuario
-  Future<void> editarRol(String usuarioId, String nuevoRol) async {
+  Future<void> editarRol(String usuarioId, String nuevoRol, {Map<String, dynamic>? configAsignacion}) async {
     try {
+      final updates = {
+        'rol': nuevoRol,
+        if (configAsignacion != null) 'config_asignacion': configAsignacion,
+      };
+
       await _supabase.client
           .schema('Usuarios')
           .from('Usuarios')
-          .update({'rol': nuevoRol})
+          .update(updates)
           .eq('id', usuarioId);
     } catch (e) {
       print('❌ Error en editarRol: $e');

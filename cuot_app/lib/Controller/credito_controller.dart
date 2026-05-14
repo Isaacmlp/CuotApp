@@ -121,7 +121,13 @@ class CreditoController extends ChangeNotifier {
     notifyListeners();
   }
   
-  Future<String?> guardarCredito(Credito credito, String usuarioNombre, {File? facturaArchivo}) async {
+  Future<String?> guardarCredito(
+    Credito credito, 
+    String usuarioNombre, {
+    File? facturaArchivo,
+    String? rolUsuario,
+    String? adminResponsable,
+  }) async {
     debugPrint('🟡 CONTROLLER: guardarCredito iniciado. isEditing=$isEditing');
     try {
       // 1. Subir factura si existe
@@ -278,7 +284,8 @@ class CreditoController extends ChangeNotifier {
         'tipo_credito': esPagoUnico ? 'unico' : 'cuotas',
         'factura_url': facturaUrl,
         'usuario_nombre': usuarioNombre,
-        'estado': 'Pendiente',
+        'estado': (rolUsuario == 'empleado') ? 'pendiente' : 'Pendiente',
+        'admin_responsable': adminResponsable ?? usuarioNombre, // Si es admin, él es el responsable
         'notas': credito.notas,
         'numero_credito': nextNumber,
       };

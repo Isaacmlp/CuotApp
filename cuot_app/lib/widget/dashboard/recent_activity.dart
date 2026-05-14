@@ -136,7 +136,7 @@ class _RecentActivityWidgetState extends State<RecentActivityWidget> {
                             ),
                             Text(
                               a.createdAt != null 
-                                ? DateFormat('HH:mm').format(a.createdAt!)
+                                ? DateFormat('HH:mm').format(a.createdAt!.toLocal())
                                 : '-',
                               style: const TextStyle(fontSize: 11, color: Colors.grey),
                             ),

@@ -18,15 +18,21 @@ extension StringExtension on String {
 class DetalleCreditoPage extends StatefulWidget {
   final String creditoId;
   final String? nombreUsuario;
+  final String? rol;
   final VoidCallback? onEditar;
   final VoidCallback? onEliminar;
+  final bool modoTrabajador;
+  final String? permisoCompartido;
 
   const DetalleCreditoPage({
     super.key,
     required this.creditoId,
     this.nombreUsuario,
+    this.rol,
     this.onEditar,
     this.onEliminar,
+    this.modoTrabajador = false,
+    this.permisoCompartido,
   });
 
   @override
@@ -240,6 +246,22 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     }
   }
 
+  bool _tienePermiso({bool requiereSupervisor = false}) {
+    if (!widget.modoTrabajador) return true;
+    if (widget.rol == 'admin') return true;
+
+    final String? permiso = widget.permisoCompartido;
+    final String nivel = (widget.rol == 'supervisor' || permiso == 'supervisor' || permiso == 'total')
+        ? 'supervisor'
+        : (widget.rol == 'empleado' || permiso == 'empleado' || permiso == 'cobro')
+            ? 'empleado'
+            : permiso ?? 'lectura';
+
+    if (nivel == 'supervisor') return true;
+    if (requiereSupervisor) return false;
+    return nivel == 'empleado';
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -350,7 +372,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
               },
               tooltip: 'Editar Préstamo',
             ),
-          if (widget.nombreUsuario != null && !isPagado)
+          if (widget.nombreUsuario != null && !isPagado && _tienePermiso(requiereSupervisor: true))
             IconButton(
               icon: const Icon(
                 Icons.refresh,
@@ -596,7 +618,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                         ),
                         tooltip: 'Enviar ficha por WhatsApp',
                       ),
-                      if (widget.nombreUsuario != null && !isPagado)
+                      if (widget.nombreUsuario != null && !isPagado && _tienePermiso(requiereSupervisor: true))
                         SizedBox(
                           height: 32,
                           child: ElevatedButton.icon(
@@ -1208,7 +1230,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
     try {
       // Para fecha y hora, parseamos y convertimos a local para mostrar al usuario final
       return DateFormat('dd/MM/yyyy, HH:mm')
-          .format(DateUt.parsePureDate(fechaStr).toLocal());
+          .format(DateUt.parseFullDateTime(fechaStr).toLocal());
     } catch (_) {
       return fechaStr;
     }
@@ -1631,7 +1653,7 @@ class _DetalleCreditoPageState extends State<DetalleCreditoPage> {
                     _buildDetalleRow(
                       'Fecha',
                       DateFormat('dd/MM/yyyy HH:mm')
-                          .format(renovacion.fechaRenovacion),
+                          .format(renovacion.fechaRenovacion.toLocal()),
                     ),
 
                     const SizedBox(height: 16),

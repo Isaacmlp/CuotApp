@@ -264,7 +264,7 @@ class _HistorialRenovacionesPageState extends State<HistorialRenovacionesPage> {
                       renovacion['fecha_renovacion'] != null
                           ? DateFormat('dd/MM/yyyy HH:mm').format(
                               DateTime.parse(
-                                  renovacion['fecha_renovacion']))
+                                  renovacion['fecha_renovacion']).toLocal())
                           : 'N/A',
                     ),
 
@@ -504,7 +504,7 @@ class _HistorialRenovacionesPageState extends State<HistorialRenovacionesPage> {
                         children: [
                           Text(
                             DateFormat('dd/MM/yyyy HH:mm')
-                                .format(h.fechaCambio),
+                                .format(h.fechaCambio.toLocal()),
                             style: const TextStyle(fontSize: 11),
                           ),
                           if (h.observaciones != null &&

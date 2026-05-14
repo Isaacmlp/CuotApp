@@ -68,14 +68,34 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
   String _modalidadOriginal = '';
   String _tipoCredito = ''; // 'unico' o 'cuotas'
 
+  String? _rolUsuario;
+  String? _adminResponsable;
+
   @override
   void initState() {
     super.initState();
     _loadCreditData();
+    _cargarDatosUsuario();
 
     // Listeners para auto-ajuste de cuotas
     _abonoController.addListener(_onParametroCambiado);
-    // _moraManualController se maneja vía onChanged para evitar loops de cursor
+  }
+
+  Future<void> _cargarDatosUsuario() async {
+    try {
+      final service = UserAdminService();
+      final users = await service.listarUsuarios();
+      final currentUser = users.firstWhere((u) => u.nombre == widget.nombreUsuario);
+      
+      if (mounted) {
+        setState(() {
+          _rolUsuario = currentUser.rol;
+          _adminResponsable = currentUser.creadoPor ?? widget.nombreUsuario;
+        });
+      }
+    } catch (e) {
+      print('Error cargando datos de usuario: $e');
+    }
   }
 
   void _onParametroCambiado() {
@@ -535,8 +555,8 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
         montoAbono: _abono,
         incluirMora: _incluirMora,
         montoMora: _incluirMora ? _montoMora : 0,
-        usuarioAutoriza: widget.nombreUsuario,
-        estado: 'aprobada',
+        usuarioAutoriza: _adminResponsable ?? widget.nombreUsuario,
+        estado: (_rolUsuario == 'empleado') ? 'pendiente' : 'aprobada',
         observaciones: _observacionesController.text.trim(),
       );
 
@@ -556,8 +576,10 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('✅ Renovación registrada exitosamente'),
-            backgroundColor: AppColors.success,
+            content: Text(_rolUsuario == 'empleado' 
+              ? '🕒 Renovación solicitada. En espera de aprobación.' 
+              : '✅ Renovación registrada exitosamente'),
+            backgroundColor: _rolUsuario == 'empleado' ? Colors.orange : AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),

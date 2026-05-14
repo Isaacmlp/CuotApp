@@ -85,6 +85,7 @@ class Credito {
 
   /// Convierte a JSON
   Map<String, dynamic> toJson() => {
+    'id': id,
     'concepto': concepto,
     'costeInversion': costeInversion,
     'margenGanancia': margenGanancia,

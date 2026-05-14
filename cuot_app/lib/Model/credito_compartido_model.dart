@@ -21,17 +21,24 @@ class CreditoCompartido {
 
   // Helpers de permisos
   bool get puedeVer => true; // Todos los niveles pueden ver
-  bool get puedeCobrar => permisos == 'cobro' || permisos == 'total';
-  bool get puedeEditar => permisos == 'total';
+  bool get puedeCobrar =>
+      permisos == 'supervisor' ||
+      permisos == 'empleado' ||
+      permisos == 'cobro' ||
+      permisos == 'total';
+  bool get puedeEditar => permisos == 'supervisor' || permisos == 'total';
+  bool get puedeBorrar => permisos == 'supervisor' || permisos == 'total';
 
   String get permisosDisplayName {
     switch (permisos) {
+      case 'empleado':
+      case 'cobro':
+        return 'Rol: Empleado';
+      case 'supervisor':
+      case 'total':
+        return 'Rol: Supervisor';
       case 'lectura':
         return 'Solo lectura';
-      case 'cobro':
-        return 'Lectura + Cobro';
-      case 'total':
-        return 'Control total';
       default:
         return permisos;
     }

@@ -103,25 +103,55 @@ class _AdminUsuariosPageState extends State<AdminUsuariosPage> {
   }
 
   Future<void> _editarRol(Usuario usuario) async {
-    String? nuevoRol = await showDialog<String>(
+    await showDialog(
       context: context,
-      builder: (context) => _RolSelectorDialog(rolActual: usuario.rol),
+      barrierDismissible: false,
+      builder: (context) => _ConfigurarUsuarioDialog(
+        usuario: usuario,
+        adminNombre: widget.nombreUsuario,
+        onComplete: (role, types) {
+          _cargarUsuarios();
+          _showSnackBar('✅ Configuración actualizada', Colors.green);
+          
+          // Preguntar por asignación inmediata si el rol lo permite
+          if (role == 'empleado' || role == 'supervisor') {
+            _preguntarAsignacionInmediata(
+              usuario.copyWith(
+                rol: role,
+                configAsignacion: {'tipos': types},
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Future<void> _preguntarAsignacionInmediata(Usuario usuarioConfigurado) async {
+    final bool? assignNow = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('📋 ¿Asignar Registros?'),
+        content: Text('Has configurado a ${usuarioConfigurado.nombreCompleto}. ¿Deseas asignarle registros específicos ahora mismo?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Más tarde')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryGreen, foregroundColor: Colors.white),
+            child: const Text('Asignar ahora'),
+          ),
+        ],
+      ),
     );
 
-    if (nuevoRol != null && nuevoRol != usuario.rol) {
-      try {
-        await _userService.editarRol(usuario.id!, nuevoRol);
-        await _bitacoraService.registrarActividad(
-          usuarioNombre: widget.nombreUsuario,
-          accion: 'editar_rol',
-          descripcion: 'Cambió rol de ${usuario.nombreCompleto} de ${usuario.rol} a $nuevoRol',
-          entidadId: usuario.id,
-        );
-        _showSnackBar('✅ Rol actualizado correctamente', Colors.green);
-        _cargarUsuarios();
-      } catch (e) {
-        _showSnackBar('❌ Error al actualizar rol: $e', Colors.red);
-      }
+    if (assignNow == true && mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AsignarCreditoDialog(
+          adminNombre: widget.nombreUsuario,
+          usuarioDestino: usuarioConfigurado,
+        ),
+      );
     }
   }
 
@@ -498,40 +528,280 @@ class _AdminUsuariosPageState extends State<AdminUsuariosPage> {
   }
 }
 
-// Diálogo selector de rol
-class _RolSelectorDialog extends StatelessWidget {
-  final String rolActual;
+// ── DIÁLOGO DE CONFIGURACIÓN EN 3 PASOS ────────────────────────────────────
+class _ConfigurarUsuarioDialog extends StatefulWidget {
+  final Usuario usuario;
+  final String adminNombre;
+  final Function(String role, List<String> types) onComplete;
 
-  const _RolSelectorDialog({required this.rolActual});
+  const _ConfigurarUsuarioDialog({
+    required this.usuario,
+    required this.adminNombre,
+    required this.onComplete,
+  });
+
+  @override
+  State<_ConfigurarUsuarioDialog> createState() => _ConfigurarUsuarioDialogState();
+}
+
+class _ConfigurarUsuarioDialogState extends State<_ConfigurarUsuarioDialog> {
+  final UserAdminService _userService = UserAdminService();
+  
+  int _currentStep = 0;
+  String _selectedRol = '';
+  
+  // Preferencias de tipos
+  bool _prefSimples = true;
+  bool _prefFijas = true;
+  bool _prefGrupos = true;
+
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedRol = widget.usuario.rol;
+    _cargarPreferencias();
+  }
+
+  Future<void> _cargarPreferencias() async {
+    final dynamic config = widget.usuario.configAsignacion?['tipos'];
+    if (config is List && config.isNotEmpty && mounted) {
+      final List<String> prefs = List<String>.from(config);
+      setState(() {
+        _prefSimples = prefs.contains('simple');
+        _prefFijas = prefs.contains('fija');
+        _prefGrupos = prefs.contains('grupo');
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final roles = [
-      {'value': 'admin', 'label': 'Administrador', 'icon': Icons.admin_panel_settings, 'color': Colors.blue},
-      {'value': 'supervisor', 'label': 'Supervisor', 'icon': Icons.supervisor_account, 'color': Colors.orange},
-      {'value': 'empleado', 'label': 'Empleado', 'icon': Icons.person, 'color': Colors.amber},
-      {'value': 'cliente', 'label': 'Cliente', 'icon': Icons.person_outline, 'color': AppColors.primaryGreen},
-    ];
-
-    return AlertDialog(
-      title: const Text('👤 Seleccionar Rol'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: roles.map((r) {
-          final isSelected = r['value'] == rolActual;
-          return ListTile(
-            leading: Icon(r['icon'] as IconData, color: r['color'] as Color),
-            title: Text(
-              r['label'] as String,
-              style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        constraints: const BoxConstraints(maxWidth: 450),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Row(
+                children: [
+                  const Icon(Icons.settings_suggest_outlined, color: AppColors.primaryGreen),
+                  const SizedBox(width: 12),
+                  const Text('Configurar Usuario', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                ],
+              ),
             ),
-            trailing: isSelected ? const Icon(Icons.check, color: AppColors.primaryGreen) : null,
-            onTap: () => Navigator.pop(context, r['value'] as String),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            tileColor: isSelected ? AppColors.veryLightGreen : null,
-          );
-        }).toList(),
+            
+            Stepper(
+              physics: const NeverScrollableScrollPhysics(),
+              currentStep: _currentStep,
+              onStepContinue: _nextStep,
+              onStepCancel: _prevStep,
+              controlsBuilder: (context, details) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Row(
+                    children: [
+                      if (_currentStep > 0)
+                        TextButton(
+                          onPressed: details.onStepCancel,
+                          child: const Text('Atrás'),
+                        ),
+                      const Spacer(),
+                      ElevatedButton(
+                        onPressed: _isLoading ? null : details.onStepContinue,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryGreen,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: _isLoading 
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : Text(_currentStep == 2 ? 'Finalizar' : 'Siguiente'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              steps: [
+                Step(
+                  title: const Text('Rol'),
+                  subtitle: Text('Actual: ${_selectedRol.toUpperCase()}'),
+                  isActive: _currentStep >= 0,
+                  state: _currentStep > 0 ? StepState.complete : StepState.editing,
+                  content: _buildRoleStep(),
+                ),
+                Step(
+                  title: const Text('Tipos de Registros'),
+                  subtitle: const Text('Permitidos para trabajar'),
+                  isActive: _currentStep >= 1,
+                  state: _currentStep > 1 ? StepState.complete : StepState.editing,
+                  content: _buildTypesStep(),
+                ),
+                Step(
+                  title: const Text('Asignación'),
+                  subtitle: const Text('Confirmar cambios'),
+                  isActive: _currentStep >= 2,
+                  state: StepState.editing,
+                  content: _buildFinalStep(),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildRoleStep() {
+    final roles = [
+      {'val': 'admin', 'lab': 'Administrador', 'ico': Icons.admin_panel_settings, 'col': Colors.blue},
+      {'val': 'supervisor', 'lab': 'Supervisor', 'ico': Icons.supervisor_account, 'col': Colors.orange},
+      {'val': 'empleado', 'lab': 'Empleado', 'ico': Icons.person, 'col': Colors.amber},
+      {'val': 'cliente', 'lab': 'Cliente', 'ico': Icons.person_outline, 'col': AppColors.primaryGreen},
+    ];
+
+    return Column(
+      children: roles.map((r) => RadioListTile<String>(
+        title: Text(r['lab'] as String),
+        secondary: Icon(r['ico'] as IconData, color: r['col'] as Color),
+        value: r['val'] as String,
+        groupValue: _selectedRol,
+        onChanged: (v) => setState(() => _selectedRol = v!),
+        activeColor: AppColors.primaryGreen,
+      )).toList(),
+    );
+  }
+
+  Widget _buildTypesStep() {
+    if (_selectedRol == 'cliente' || _selectedRol == 'admin') {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Text('Este rol no requiere configuración de tipos de trabajo.', style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
+      );
+    }
+
+    return Column(
+      children: [
+        CheckboxListTile(
+          title: const Text('Cuotas Simples'),
+          subtitle: const Text('Préstamos de un solo pago'),
+          value: _prefSimples,
+          onChanged: (v) => setState(() => _prefSimples = v!),
+          activeColor: AppColors.primaryGreen,
+        ),
+        CheckboxListTile(
+          title: const Text('Cuotas Fijas'),
+          subtitle: const Text('Financiamientos recurrentes'),
+          value: _prefFijas,
+          onChanged: (v) => setState(() => _prefFijas = v!),
+          activeColor: AppColors.primaryGreen,
+        ),
+        CheckboxListTile(
+          title: const Text('Grupos de Ahorro'),
+          subtitle: const Text('Susu / Ahorros grupales'),
+          value: _prefGrupos,
+          onChanged: (v) => setState(() => _prefGrupos = v!),
+          activeColor: AppColors.primaryGreen,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFinalStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Se aplicarán los siguientes cambios:', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
+        _buildSummaryItem(Icons.badge, 'Rol', _selectedRol.toUpperCase()),
+        if (_selectedRol == 'empleado' || _selectedRol == 'supervisor') ...[
+          _buildSummaryItem(Icons.check_box, 'Tipos permitidos', 
+            [if(_prefSimples) 'Simples', if(_prefFijas) 'Fijas', if(_prefGrupos) 'Grupos'].join(', ')),
+        ],
+        const SizedBox(height: 16),
+        const Text('Al finalizar se actualizará el usuario en la nube.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+      ],
+    );
+  }
+
+  Widget _buildSummaryItem(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: Colors.grey),
+          const SizedBox(width: 8),
+          Text('$label: ', style: const TextStyle(color: Colors.grey)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  void _prevStep() {
+    if (_currentStep > 0) setState(() => _currentStep--);
+  }
+
+  Future<void> _nextStep() async {
+    if (_currentStep < 2) {
+      setState(() => _currentStep++);
+      return;
+    }
+
+    // FINALIZAR
+    setState(() => _isLoading = true);
+    try {
+      // Preparar configuración de tipos
+      Map<String, dynamic>? configAsignacion;
+      if (_selectedRol == 'empleado' || _selectedRol == 'supervisor') {
+        final List<String> tipos = [];
+        if (_prefSimples) tipos.add('simple');
+        if (_prefFijas) tipos.add('fija');
+        if (_prefGrupos) tipos.add('grupo');
+        configAsignacion = {'tipos': tipos};
+      }
+
+      // Guardar Rol y Configuración en un solo paso
+      await _userService.editarRol(
+        widget.usuario.id!, 
+        _selectedRol, 
+        configAsignacion: configAsignacion
+      );
+
+      // Registrar Actividad
+      if (_selectedRol != widget.usuario.rol) {
+        await BitacoraService().registrarActividad(
+          usuarioNombre: widget.adminNombre,
+          accion: 'editar_rol',
+          descripcion: 'Cambió rol de ${widget.usuario.nombreCompleto} a $_selectedRol',
+          entidadId: widget.usuario.id,
+        );
+      }
+
+      if (mounted) {
+        Navigator.pop(context);
+        
+        final List<String> tipos = [];
+        if (_prefSimples) tipos.add('simple');
+        if (_prefFijas) tipos.add('fija');
+        if (_prefGrupos) tipos.add('grupo');
+        
+        widget.onComplete(_selectedRol, tipos);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 }

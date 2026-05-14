@@ -46,6 +46,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
   final SavingsService _savingsService = SavingsService();
   List<dynamic> _financiamientos = [];
   List<Map<String, dynamic>> _grupos = [];
+  String? _adminNombre; // 👈 NUEVO: Nombre del administrador dueño de los créditos
   bool _isLoading = true;
 
   Future<void> _loadData() async {
@@ -59,19 +60,44 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         final compartidoService = CreditoCompartidoService();
         final asignados = await compartidoService.obtenerCreditosAsignados(widget.nombreUsuario);
 
-        // Obtener datos completos de cada crédito asignado
+        // 1. Obtener Créditos
+        final idsCreditos = asignados
+            .where((a) => a.tipoEntidad == 'credito')
+            .map((a) => a.creditoId)
+            .toList();
+        
+        final batchCredits = await _creditService.getCreditsByIds(idsCreditos);
+        
         rawCredits = [];
-        for (var asignado in asignados) {
-          if (asignado.tipoEntidad == 'credito') {
-            final creditData = await _creditService.getCreditById(asignado.creditoId);
-            if (creditData != null) {
-              creditData['permiso_compartido'] = asignado.permisos;
-              rawCredits.add(creditData);
-            }
+        for (var a in asignados.where((a) => a.tipoEntidad == 'credito')) {
+          if (_adminNombre == null && a.propietarioNombre.isNotEmpty) _adminNombre = a.propietarioNombre;
+          final creditData = batchCredits.firstWhere((c) => c['id'].toString() == a.creditoId, orElse: () => {});
+          if (creditData.isNotEmpty) {
+            final Map<String, dynamic> creditCopy = Map<String, dynamic>.from(creditData);
+            creditCopy['permiso_compartido'] = a.permisos;
+            rawCredits.add(creditCopy);
           }
         }
-        // TODO: Cargar grupos de ahorro compartidos cuando se implemente
+
+        // 2. Obtener Grupos de Ahorro
+        final idsGrupos = asignados
+            .where((a) => a.tipoEntidad == 'grupo_ahorro')
+            .map((a) => a.creditoId)
+            .toList();
+
         rawGroups = [];
+        for (var id in idsGrupos) {
+          final grupo = await _savingsService.getGrupoById(id);
+          if (grupo != null) {
+            final a = asignados.firstWhere((asig) => asig.creditoId == id);
+            final json = grupo.toJson();
+            json['permiso_compartido'] = a.permisos;
+            // Para mostrar miembros también, necesitamos cargarlos
+            final miembros = await _savingsService.getGruposConMiembros(a.propietarioNombre);
+            final grupoConMiembros = miembros.firstWhere((m) => m['id'].toString() == id, orElse: () => json);
+            rawGroups.add({...json, ...grupoConMiembros});
+          }
+        }
       } else {
         // Modo normal: cargar créditos propios
         rawCredits = await _creditService.getFullCreditsData(widget.nombreUsuario);
@@ -456,6 +482,25 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
     return 0;
   }
 
+  bool _tienePermiso(String? permiso, {bool requiereSupervisor = false}) {
+    // 1. Si el rol global es admin, tiene acceso total
+    if (widget.rol == 'admin') return true;
+    
+    // 2. Determinar el nivel efectivo (el mayor entre su rol global y el permiso asignado)
+    // Esto protege en caso de que un supervisor reciba un crédito con etiqueta de 'empleado'
+    final String nivel = (widget.rol == 'supervisor' || permiso == 'supervisor' || permiso == 'total') 
+        ? 'supervisor' 
+        : (widget.rol == 'empleado' || permiso == 'empleado' || permiso == 'cobro') 
+            ? 'empleado' 
+            : permiso ?? 'lectura';
+
+    if (nivel == 'supervisor') return true;
+    if (requiereSupervisor) return false;
+    
+    // Si solo requiere nivel empleado (Abonar, Crear, Renovar)
+    return nivel == 'empleado';
+  }
+
   Future<void> _pagarCuotaCompleto(
     int financiamientoIndex,
     int numeroCuota,
@@ -474,7 +519,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
     
     // VALIDACIÓN DE PERMISOS
     final String? permiso = (f is Map) ? f['permiso_compartido'] : (f as CreditoUnico).permisoCompartido;
-    if (widget.modoTrabajador && permiso == 'lectura') {
+    if (widget.modoTrabajador && !_tienePermiso(permiso)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('🛑 Permiso denegado: Funciones de lectura no permiten registrar pagos.'),
@@ -496,6 +541,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         observaciones: observaciones,
         esPagoParcial: esPagoParcial,
         comprobantePath: comprobantePath,
+        rolUsuario: widget.rol,
+        adminNombre: _adminNombre ?? widget.nombreUsuario,
       );
 
       // 2. Registrar en bitácora
@@ -548,7 +595,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
   }
 
   Future<void> _pagarCreditoUnico(CreditoUnico credito, Pago pago) async {
-    if (widget.modoTrabajador && credito.permisoCompartido == 'lectura') {
+    if (widget.modoTrabajador && !_tienePermiso(credito.permisoCompartido)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('🛑 Permiso denegado: Funciones de lectura no permiten registrar pagos.'),
@@ -569,6 +616,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         referencia: pago.referencia ?? '',
         observaciones: pago.observaciones ?? '',
         esPagoParcial: pago.monto < credito.saldoPendiente,
+        rolUsuario: widget.rol,
+        adminNombre: _adminNombre ?? widget.nombreUsuario,
       );
 
       // 2. Registrar en bitácora
@@ -939,7 +988,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
               _buildListado(TipoCredito.grupal),
             ],
           ),
-          floatingActionButton: widget.modoTrabajador
+          floatingActionButton: (widget.modoTrabajador && widget.rol == 'cliente')
               ? null
               : FloatingActionButton(
                   onPressed: () {
@@ -947,7 +996,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                       context,
                       MaterialPageRoute(
                           builder: (_) =>
-                              CreditoPage(nombreUsuario: widget.nombreUsuario)),
+                              CreditoPage(nombreUsuario: _adminNombre ?? widget.nombreUsuario)),
                     ).then((_) => _loadData());
                   },
                   tooltip: 'Nuevo crédito',
@@ -1045,7 +1094,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
       return TarjetaCreditoUnico(
         credito: item,
         onPagoRealizado: (pago) => _pagarCreditoUnico(item, pago),
-        onEditar: widget.modoTrabajador ? null : () {
+        onEditar: (widget.modoTrabajador && !_tienePermiso(item.permisoCompartido, requiereSupervisor: true)) ? null : () {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -1056,11 +1105,11 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             ),
           ).then((_) => _loadData());
         },
-        onEliminar: widget.modoTrabajador ? null : () => _eliminarCredito(
+        onEliminar: (widget.modoTrabajador && !_tienePermiso(item.permisoCompartido, requiereSupervisor: true)) ? null : () => _eliminarCredito(
           item.id,
           item.nombreCliente,
         ),
-        onFallido: widget.modoTrabajador ? null : () => _cambiarFallido(
+        onFallido: (widget.modoTrabajador && !_tienePermiso(item.permisoCompartido, requiereSupervisor: true)) ? null : () => _cambiarFallido(
           item.id,
           item.nombreCliente,
           item.estadoDB ?? '',
@@ -1072,7 +1121,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
               builder: (_) => DetalleCreditoPage(
                 creditoId: item.id.toString(),
                 nombreUsuario: widget.nombreUsuario,
-                onEditar: () {
+                rol: widget.rol,
+                onEditar: (widget.modoTrabajador && !_tienePermiso(item.permisoCompartido, requiereSupervisor: true)) ? null : () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1083,10 +1133,12 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                     ),
                   ).then((_) => _loadData());
                 },
-                onEliminar: () => _eliminarCredito(
+                onEliminar: (widget.modoTrabajador && !_tienePermiso(item.permisoCompartido, requiereSupervisor: true)) ? null : () => _eliminarCredito(
                   item.id,
                   item.nombreCliente,
                 ),
+                modoTrabajador: widget.modoTrabajador,
+                permisoCompartido: item.permisoCompartido,
               ),
             ),
           );
@@ -1115,7 +1167,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
         numeroCredito: item['numeroCredito'],
         notas: item['notas'],
         estadoDB: item['estadoDB'],
-        onFallido: widget.modoTrabajador ? null : () => _cambiarFallido(
+        onFallido: (widget.modoTrabajador && !_tienePermiso(item['permiso_compartido'], requiereSupervisor: true)) ? null : () => _cambiarFallido(
           item['id'],
           item['nombre'],
           item['estadoDB'] ?? '',
@@ -1127,7 +1179,8 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
               builder: (_) => DetalleCreditoPage(
                 creditoId: item['id'].toString(),
                 nombreUsuario: widget.nombreUsuario,
-                onEditar: () {
+                rol: widget.rol,
+                onEditar: (widget.modoTrabajador && !_tienePermiso(item['permiso_compartido'], requiereSupervisor: true)) ? null : () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1138,15 +1191,17 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
                     ),
                   ).then((_) => _loadData());
                 },
-                onEliminar: () => _eliminarCredito(
+                onEliminar: (widget.modoTrabajador && !_tienePermiso(item['permiso_compartido'], requiereSupervisor: true)) ? null : () => _eliminarCredito(
                   item['id'],
                   item['nombre'],
                 ),
+                modoTrabajador: widget.modoTrabajador,
+                permisoCompartido: item['permiso_compartido'],
               ),
             ),
           );
         },
-        onEditar: widget.modoTrabajador ? null : () {
+        onEditar: (widget.modoTrabajador && !_tienePermiso(item['permiso_compartido'], requiereSupervisor: true)) ? null : () {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -1157,7 +1212,7 @@ class _SeguimientoCreditosPageState extends State<SeguimientoCreditosPage> {
             ),
           ).then((_) => _loadData());
         },
-        onEliminar: widget.modoTrabajador ? null : () => _eliminarCredito(
+        onEliminar: (widget.modoTrabajador && !_tienePermiso(item['permiso_compartido'], requiereSupervisor: true)) ? null : () => _eliminarCredito(
           item['id'],
           item['nombre'],
         ),

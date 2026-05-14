@@ -171,97 +171,51 @@ class UsuarioCard extends StatelessWidget {
                     ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // Botones de acción
-            SizedBox(
-              width: double.infinity,
-              child: Wrap(
-                alignment: WrapAlignment.end,
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _ActionButton(
-                    icon: Icons.badge_outlined,
-                    label: 'Rol',
-                    color: Colors.blue,
-                    onTap: onEditarRol,
-                  ),
-                  _ActionButton(
-                    icon: usuario.activo ? Icons.block : Icons.check_circle_outline,
-                    label: usuario.activo ? 'Desactivar' : 'Activar',
-                    color: usuario.activo ? Colors.orange : AppColors.primaryGreen,
-                    onTap: onToggleActivo,
-                  ),
-                  _ActionButton(
-                    icon: Icons.lock_reset,
-                    label: 'Contraseña',
-                    color: Colors.purple,
-                    onTap: onResetearContrasena,
-                  ),
-                  if (usuario.rol != 'cliente') // 👈 RESTRICCIÓN DE ROL
-                    _ActionButton(
-                      icon: Icons.assignment_ind_outlined,
-                      label: 'Asignar',
-                      color: AppColors.primaryGreen,
-                      onTap: onAsignarCredito,
+                // ── Menú de 3 puntos ────────────────────────────────────────
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Colors.grey),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'rol': onEditarRol(); break;
+                      case 'activo': onToggleActivo(); break;
+                      case 'pass': onResetearContrasena(); break;
+                      case 'registros': onAsignarCredito(); break;
+                      case 'eliminar': onEliminar(); break;
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    _buildMenuItem('rol', 'Cambiar Rol', Icons.badge_outlined, Colors.blue),
+                    _buildMenuItem(
+                      'activo', 
+                      usuario.activo ? 'Desactivar' : 'Activar', 
+                      usuario.activo ? Icons.block : Icons.check_circle_outline, 
+                      usuario.activo ? Colors.orange : AppColors.primaryGreen
                     ),
-                  _ActionButton(
-                    icon: Icons.delete_forever_outlined,
-                    label: 'Eliminar',
-                    color: AppColors.error,
-                    onTap: onEliminar,
-                  ),
-                ],
-              ),
+                    _buildMenuItem('pass', 'Contraseña', Icons.lock_reset, Colors.purple),
+                    if (usuario.rol != 'cliente')
+                      _buildMenuItem('registros', 'Registros', Icons.assignment_ind_outlined, AppColors.primaryGreen),
+                    const PopupMenuDivider(),
+                    _buildMenuItem('eliminar', 'Eliminar', Icons.delete_forever_outlined, AppColors.error),
+                  ],
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
-}
 
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _ActionButton({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 16, color: color),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
+  PopupMenuItem<String> _buildMenuItem(String value, String label, IconData icon, Color color) {
+    return PopupMenuItem<String>(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 12),
+          Text(label, style: const TextStyle(fontSize: 14)),
+        ],
       ),
     );
   }

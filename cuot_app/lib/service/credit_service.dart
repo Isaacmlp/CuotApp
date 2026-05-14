@@ -27,6 +27,7 @@ class CreditService {
   Future<List<Map<String, dynamic>>> getFullCreditsData(
     String usuarioNombre, {
     bool forceRefresh = false,
+    bool soloAprobados = true,
   }) async {
     // Retornar caché si es válido y del mismo usuario
     if (!forceRefresh &&
@@ -36,7 +37,7 @@ class CreditService {
     }
 
     try {
-      final response = await _supabase.client
+      var query = _supabase.client
           .schema('Financiamientos')
           .from('Creditos')
           .select('''
@@ -44,7 +45,13 @@ class CreditService {
             Clientes(*),
             Cuotas(*),
             Pagos(*)
-          ''')
+          ''');
+
+      if (soloAprobados) {
+        query = query.neq('estado', 'pendiente');
+      }
+
+      final response = await query
           .eq('usuario_nombre', usuarioNombre)
           .order('fecha_inicio', ascending: false, nullsFirst: false);
 
@@ -97,9 +104,13 @@ class CreditService {
     String? referencia,
     String? observaciones,
     bool esPagoParcial = false,
-    String? comprobantePath, // 👈 NUEVO
+    String? comprobantePath,
+    String? rolUsuario,
+    String? adminNombre,
   }) async {
     try {
+      final String estadoVerificacion = (rolUsuario == 'empleado') ? 'pendiente' : 'aprobado';
+      
       // 1. Insertar el registro de pago
       await _supabase.client
           .schema('Financiamientos')
@@ -112,8 +123,17 @@ class CreditService {
             'metodo_pago': metodoPago,
             'referencia': referencia,
             'observaciones': observaciones,
-            'comprobante_path': comprobantePath, // 👈 NUEVO: El nombre exacto en DB debe ser este
+            'comprobante_path': comprobantePath,
+            'estado_verificacion': estadoVerificacion,
+            'admin_responsable': adminNombre,
           });
+
+      // Si el pago está pendiente, NO actualizamos las cuotas todavía
+      if (estadoVerificacion == 'pendiente') {
+        print('🕒 Pago registrado como PENDIENTE. No se actualiza el saldo del crédito.');
+        invalidateCache();
+        return;
+      }
 
       // 2. Obtener la cuota actual
       final List<dynamic> cuotas = await _supabase.client
@@ -167,8 +187,9 @@ class CreditService {
     }
   }
 
-  /// Obtiene un crédito por su ID con todos sus detalles (cliente, cuotas, pagos)
-  Future<Map<String, dynamic>?> getCreditById(String id) async {
+  /// Obtiene varios créditos por sus IDs en una sola consulta
+  Future<List<Map<String, dynamic>>> getCreditsByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
     try {
       final response = await _supabase.client
           .schema('Financiamientos')
@@ -179,27 +200,41 @@ class CreditService {
             Cuotas(*),
             Pagos(*)
           ''')
-          .eq('id', id)
-          .single();
+          .inFilter('id', ids);
 
+      final data = List<Map<String, dynamic>>.from(response);
+
+      // Cargar renovaciones asociadas
       try {
         final renovacionesRes = await _supabase.client
             .schema('Financiamientos')
             .from('Renovaciones')
-            .select('*') // Selección completa para aislamiento por marca de tiempo (created_at).
-            .eq('credito_original_id', id);
+            .select('*')
+            .inFilter('credito_original_id', ids);
             
         final renovList = List<Map<String, dynamic>>.from(renovacionesRes);
-        response['Renovaciones'] = renovList;
+        
+        for (var credito in data) {
+          final cid = credito['id'].toString();
+          credito['Renovaciones'] = renovList
+              .where((r) => r['credito_original_id'].toString() == cid)
+              .toList();
+        }
       } catch (e) {
-        print('Error obteniendo renovaciones on single credit: $e');
+        print('Error obteniendo renovaciones en batch: $e');
       }
 
-      return response;
+      return data;
     } catch (e) {
-      print('Error en getCreditById: $e');
-      return null;
+      print('Error en getCreditsByIds: $e');
+      return [];
     }
+  }
+
+  /// Obtiene un crédito por su ID con todos sus detalles (cliente, cuotas, pagos)
+  Future<Map<String, dynamic>?> getCreditById(String id) async {
+    final results = await getCreditsByIds([id]);
+    return results.isNotEmpty ? results.first : null;
   }
 
   /// Actualiza un crédito de pago único
@@ -473,6 +508,135 @@ class CreditService {
       invalidateCache();
     } catch (e) {
       print('Error al actualizar estado del crédito: $e');
+      rethrow;
+    }
+  }
+
+  /// Obtiene créditos pendientes de aprobación para un administrador
+  Future<List<Map<String, dynamic>>> getCreditosPendientes(String adminNombre) async {
+    try {
+      final response = await _supabase.client
+          .schema('Financiamientos')
+          .from('Creditos')
+          .select('*, Clientes(*)')
+          .eq('admin_responsable', adminNombre)
+          .eq('estado', 'pendiente')
+          .order('fecha_inicio', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('❌ Error en getCreditosPendientes: $e');
+      return [];
+    }
+  }
+
+  /// Aprobar un crédito pendiente
+  Future<void> aprobarCredito(String id) async {
+    try {
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Creditos')
+          .update({'estado': 'Pendiente'}) // El estado 'Pendiente' en tu DB parece ser el inicial activo, 'pendiente' (minúscula) será el de espera.
+          .eq('id', id);
+    } catch (e) {
+      print('❌ Error en aprobarCredito: $e');
+      rethrow;
+    }
+  }
+
+  /// Elimina un pago por su ID
+  Future<void> deletePayment(String id) async {
+    try {
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Pagos')
+          .delete()
+          .eq('id', id);
+      invalidateCache();
+    } catch (e) {
+      print('❌ Error en deletePayment: $e');
+      rethrow;
+    }
+  }
+
+  /// Obtiene pagos pendientes de verificación para un administrador
+  Future<List<Map<String, dynamic>>> getPagosPendientes(String adminNombre) async {
+    try {
+      final response = await _supabase.client
+          .schema('Financiamientos')
+          .from('Pagos')
+          .select('''
+            *,
+            Creditos(concepto, Clientes(nombre))
+          ''')
+          .eq('admin_responsable', adminNombre)
+          .eq('estado_verificacion', 'pendiente')
+          .order('fecha_pago_real', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('❌ Error en getPagosPendientes: $e');
+      return [];
+    }
+  }
+
+  /// Aprobar un pago pendiente
+  Future<void> aprobarPago(Map<String, dynamic> pagoData) async {
+    try {
+      final String pagoId = pagoData['id'].toString();
+      final String creditId = pagoData['credito_id'].toString();
+      final int numeroCuota = pagoData['numero_cuota'];
+      final double montoPagado = (pagoData['monto'] as num).toDouble();
+
+      // 1. Actualizar estado del pago
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Pagos')
+          .update({'estado_verificacion': 'aprobado'})
+          .eq('id', pagoId);
+
+      // 2. Ejecutar la lógica de balance que se saltó al crear
+      // (Obtener cuota, restar monto, marcar pagada si procede)
+      final List<dynamic> cuotas = await _supabase.client
+          .schema('Financiamientos')
+          .from('Cuotas')
+          .select('monto')
+          .eq('credito_id', creditId)
+          .eq('numero_cuota', numeroCuota);
+
+      if (cuotas.isNotEmpty) {
+        final double montoActual = (cuotas[0]['monto'] as num).toDouble();
+        final double nuevoMonto = montoActual - montoPagado;
+        final bool pagada = nuevoMonto <= 0.01;
+
+        await _supabase.client
+            .schema('Financiamientos')
+            .from('Cuotas')
+            .update({
+              'monto': nuevoMonto < 0 ? 0 : nuevoMonto,
+              'pagada': pagada,
+            })
+            .eq('credito_id', creditId)
+            .eq('numero_cuota', numeroCuota);
+
+        if (pagada) {
+          final List<dynamic> allCuotas = await _supabase.client
+              .schema('Financiamientos')
+              .from('Cuotas')
+              .select('pagada')
+              .eq('credito_id', creditId);
+          
+          final bool todoPagado = allCuotas.every((c) => c['pagada'] == true);
+          if (todoPagado) {
+            await _supabase.client
+                .schema('Financiamientos')
+                .from('Creditos')
+                .update({'estado': 'Pagado'})
+                .eq('id', creditId);
+          }
+        }
+      }
+      invalidateCache();
+    } catch (e) {
+      print('❌ Error en aprobarPago: $e');
       rethrow;
     }
   }

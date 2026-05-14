@@ -12,15 +12,19 @@ class SavingsService {
   // GRUPOS
   // --------------------------------------------------------------------------
 
-  Future<List<Map<String, dynamic>>> getGruposConMiembros(String usuarioNombre) async {
+  Future<List<Map<String, dynamic>>> getGruposConMiembros(String usuarioNombre, {bool soloAprobados = true}) async {
     try {
-      final response = await _supabase.client
+      var query = _supabase.client
           .schema('Financiamientos')
           .from('Grupos_Ahorro')
           .select('*, Miembros_Grupo(*, Clientes(*))')
-          .eq('creado_por', usuarioNombre)
-          .order('fecha_creacion', ascending: false);
+          .eq('creado_por', usuarioNombre);
+      
+      if (soloAprobados) {
+        query = query.neq('estado', 'pendiente');
+      }
 
+      final response = await query.order('fecha_creacion', ascending: false);
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       print('Error en getGruposConMiembros: $e');
@@ -62,11 +66,21 @@ class SavingsService {
     }
   }
 
-  Future<GrupoAhorro> createGrupo(GrupoAhorro grupo) async {
+  Future<GrupoAhorro> createGrupo(GrupoAhorro grupo, {String? rolUsuario, String? adminResponsable}) async {
+    final data = grupo.toJson();
+    
+    // Si es empleado, el grupo nace pendiente
+    if (rolUsuario == 'empleado') {
+      data['estado'] = 'pendiente';
+    }
+    
+    // Siempre asignar el administrador responsable
+    data['admin_responsable'] = adminResponsable ?? grupo.creadoPor;
+
     final response = await _supabase.client
         .schema('Financiamientos')
         .from('Grupos_Ahorro')
-        .insert(grupo.toJson())
+        .insert(data)
         .select()
         .single();
 
@@ -276,13 +290,23 @@ class SavingsService {
     }
   }
 
-  Future<void> saveAporte(AporteGrupo aporte, {String? cuotaId}) async {
+  Future<void> saveAporte(AporteGrupo aporte, {String? cuotaId, String? rolUsuario, String? adminNombre}) async {
     try {
+      final String estadoVerificacion = (rolUsuario == 'empleado') ? 'pendiente' : 'aprobado';
+      final Map<String, dynamic> data = aporte.toJson();
+      data['estado_verificacion'] = estadoVerificacion;
+      data['admin_responsable'] = adminNombre;
+
       // 1. Insertar el aporte
       await _supabase.client
           .schema('Financiamientos')
           .from('Aportes_Grupo')
-          .insert(aporte.toJson());
+          .insert(data);
+
+      if (estadoVerificacion == 'pendiente') {
+        print('🕒 Aporte registrado como PENDIENTE. No se actualizan totales.');
+        return;
+      }
 
       // 2. Si hay cuotaId, actualizar la cuota
       if (cuotaId != null) {
@@ -617,8 +641,156 @@ class SavingsService {
         'pendientesCount': pendientesCount.toDouble(),
       };
     } catch (e) {
-      print('Error en getStatsTurno: $e');
-      return {'porCobrar': 0, 'cancelado': 0, 'total': 0};
+      return {'porCobrar': 0, 'cancelado': 0, 'total': 0, 'pendientesCount': 0};
     }
+  }
+  
+  /// Obtiene grupos pendientes de aprobación para un administrador
+  Future<List<Map<String, dynamic>>> getGruposPendientes(String adminNombre) async {
+    try {
+      final response = await _supabase.client
+          .schema('Financiamientos')
+          .from('Grupos_Ahorro')
+          .select('*, Miembros_Grupo(*, Clientes(*))')
+          .eq('admin_responsable', adminNombre)
+          .eq('estado', 'pendiente')
+          .order('fecha_creacion', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('❌ Error en getGruposPendientes: $e');
+      return [];
+    }
+  }
+
+  /// Aprobar un grupo pendiente
+  Future<void> aprobarGrupo(String id) async {
+    try {
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Grupos_Ahorro')
+          .update({'estado': 'activo'})
+          .eq('id', id);
+    } catch (e) {
+      print('❌ Error en aprobarGrupo: $e');
+      rethrow;
+    }
+  /// Obtiene aportes pendientes para un administrador
+  Future<List<Map<String, dynamic>>> getAportesPendientes(String adminNombre) async {
+    try {
+      final response = await _supabase.client
+          .schema('Financiamientos')
+          .from('Aportes_Grupo')
+          .select('''
+            *,
+            Miembros_Grupo(grupo_id, Clientes(nombre)),
+            Grupos_Ahorro:Miembros_Grupo!inner(Grupos_Ahorro(nombre_grupo))
+          ''')
+          .eq('admin_responsable', adminNombre)
+          .eq('estado_verificacion', 'pendiente')
+          .order('fecha_aporte', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('❌ Error en getAportesPendientes: $e');
+      return [];
+    }
+  }
+
+  /// Aprobar un aporte pendiente
+  Future<void> aprobarAporte(Map<String, dynamic> aporteData, {String? cuotaId}) async {
+    try {
+      final String aporteId = aporteData['id'].toString();
+      final AporteGrupo aporte = AporteGrupo.fromJson(aporteData);
+
+      // 1. Marcar como aprobado
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Aportes_Grupo')
+          .update({'estado_verificacion': 'aprobado'})
+          .eq('id', aporteId);
+
+      // 2. Ejecutar la lógica de actualización de saldos
+      await _procesarEfectoAporte(aporte, cuotaId: cuotaId);
+      
+    } catch (e) {
+      print('❌ Error en aprobarAporte: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _procesarEfectoAporte(AporteGrupo aporte, {String? cuotaId}) async {
+    // 2. Si hay cuotaId, actualizar la cuota
+    if (cuotaId != null) {
+      final cuotaData = await _supabase.client
+          .schema('Financiamientos')
+          .from('Cuotas_Ahorro')
+          .select('monto_pagado, monto_esperado, numero_cuota')
+          .eq('id', cuotaId)
+          .single();
+      
+      final double nuevoPagado = (cuotaData['monto_pagado'] as num).toDouble() + aporte.monto;
+      final double esperado = (cuotaData['monto_esperado'] as num).toDouble();
+      
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Cuotas_Ahorro')
+          .update({
+            'monto_pagado': nuevoPagado,
+            'pagada': nuevoPagado >= (esperado - 0.01),
+          })
+          .eq('id', cuotaId);
+    }
+
+    // 3. Actualizar el total del miembro
+    final miembroData = await _supabase.client
+        .schema('Financiamientos')
+        .from('Miembros_Grupo')
+        .select('total_aportado, grupo_id')
+        .eq('id', aporte.miembroId)
+        .single();
+
+    final double nuevoTotalMiembro =
+        (miembroData['total_aportado'] as num).toDouble() + aporte.monto;
+    final String grupoId = miembroData['grupo_id'];
+
+    await _supabase.client
+        .schema('Financiamientos')
+        .from('Miembros_Grupo')
+        .update({'total_aportado': nuevoTotalMiembro}).eq(
+            'id', aporte.miembroId);
+
+    // 4. Actualizar el total del grupo y recaudado_turno
+    final grupoData = await _supabase.client
+        .schema('Financiamientos')
+        .from('Grupos_Ahorro')
+        .select('total_acumulado, recaudado_turno, turno_actual')
+        .eq('id', grupoId)
+        .single();
+
+    final double nuevoTotalGrupo =
+        (grupoData['total_acumulado'] as num).toDouble() + aporte.monto;
+
+    bool isCurrentTurn = true;
+    if (cuotaId != null) {
+      final cuotaData = await _supabase.client
+          .schema('Financiamientos')
+          .from('Cuotas_Ahorro')
+          .select('numero_cuota')
+          .eq('id', cuotaId)
+          .single();
+      isCurrentTurn = cuotaData['numero_cuota'] == grupoData['turno_actual'];
+    }
+
+    final double nuevoRecaudadoTurno = isCurrentTurn
+        ? ((grupoData['recaudado_turno'] ?? 0) as num).toDouble() + aporte.monto
+        : ((grupoData['recaudado_turno'] ?? 0) as num).toDouble();
+
+    await _supabase.client
+        .schema('Financiamientos')
+        .from('Grupos_Ahorro')
+        .update({
+          'total_acumulado': nuevoTotalGrupo,
+          'recaudado_turno': nuevoRecaudadoTurno,
+        })
+        .eq('id', grupoId);
   }
 }

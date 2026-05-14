@@ -9,6 +9,7 @@ class Usuario {
   final bool activo;
   final DateTime? fechaCreacion;
   final String? cedulaUrl;
+  final Map<String, dynamic>? configAsignacion; // 👈 NUEVO: JSONB de configuración
 
   Usuario({
     this.id,
@@ -21,6 +22,7 @@ class Usuario {
     this.activo = true,
     this.fechaCreacion,
     this.cedulaUrl,
+    this.configAsignacion,
   });
 
   // Helpers de rol
@@ -59,6 +61,9 @@ class Usuario {
           ? DateTime.tryParse(json['fecha_creacion'].toString())
           : null,
       cedulaUrl: json['cedula_url']?.toString(),
+      configAsignacion: json['config_asignacion'] != null 
+          ? Map<String, dynamic>.from(json['config_asignacion']) 
+          : null,
     );
   }
 
@@ -71,5 +76,34 @@ class Usuario {
         'creado_por': creadoPor,
         'activo': activo,
         'cedula_url': cedulaUrl,
+        'config_asignacion': configAsignacion,
       };
+
+  Usuario copyWith({
+    String? id,
+    String? nombreCompleto,
+    String? correoElectronico,
+    String? telefono,
+    String? cedula,
+    String? rol,
+    String? creadoPor,
+    bool? activo,
+    DateTime? fechaCreacion,
+    String? cedulaUrl,
+    Map<String, dynamic>? configAsignacion,
+  }) {
+    return Usuario(
+      id: id ?? this.id,
+      nombreCompleto: nombreCompleto ?? this.nombreCompleto,
+      correoElectronico: correoElectronico ?? this.correoElectronico,
+      telefono: telefono ?? this.telefono,
+      cedula: cedula ?? this.cedula,
+      rol: rol ?? this.rol,
+      creadoPor: creadoPor ?? this.creadoPor,
+      activo: activo ?? this.activo,
+      fechaCreacion: fechaCreacion ?? this.fechaCreacion,
+      cedulaUrl: cedulaUrl ?? this.cedulaUrl,
+      configAsignacion: configAsignacion ?? this.configAsignacion,
+    );
+  }
 }

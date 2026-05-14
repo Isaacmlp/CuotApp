@@ -24,6 +24,9 @@ class RenovacionService {
       // 3. Si está aprobada, actualizar el crédito original
       if (renovacion.estado == 'aprobada') {
         await _aplicarRenovacionAlCredito(renovacion);
+      } else {
+        // Si está pendiente, no aplicamos nada al crédito todavía
+        print('🕒 Renovación pendiente de aprobación. No se aplica al crédito.');
       }
 
       // 4. Registrar en historial
@@ -271,6 +274,66 @@ class RenovacionService {
     } catch (e) {
       print('Error al obtener historial: $e');
       return [];
+    }
+  /// Obtener renovaciones pendientes para un administrador
+  Future<List<Map<String, dynamic>>> getRenovacionesPendientes(String adminNombre) async {
+    try {
+      final response = await _supabase.client
+          .schema('Financiamientos')
+          .from('Renovaciones')
+          .select('''
+            *,
+            Creditos!credito_original_id(concepto, Clientes(nombre))
+          ''')
+          .eq('estado', 'pendiente')
+          .eq('usuario_autoriza', adminNombre) // El usuario autoriza final es el admin que lo debe ver
+          .order('fecha_renovacion', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('❌ Error en getRenovacionesPendientes: $e');
+      return [];
+    }
+  }
+
+  /// Aprobar una renovación pendiente
+  Future<void> aprobarRenovacion(String id) async {
+    try {
+      // 1. Obtener la renovación completa
+      final response = await _supabase.client
+          .schema('Financiamientos')
+          .from('Renovaciones')
+          .select()
+          .eq('id', id)
+          .single();
+      
+      final renovacion = Renovacion.fromJson(response);
+
+      // 2. Aplicar al crédito
+      await _aplicarRenovacionAlCredito(renovacion);
+
+      // 3. Actualizar estado
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Renovaciones')
+          .update({'estado': 'aprobada'})
+          .eq('id', id);
+          
+      // 4. Registrar en historial
+      await _supabase.client
+          .schema('Financiamientos')
+          .from('Historial_Renovaciones')
+          .insert(HistorialRenovacion(
+            renovacionId: id,
+            estadoAnterior: 'pendiente',
+            estadoNuevo: 'aprobada',
+            usuarioId: renovacion.usuarioAutoriza,
+            observaciones: 'Renovación aprobada por administrador',
+          ).toJson());
+
+    } catch (e) {
+      print('❌ Error en aprobarRenovacion: $e');
+      rethrow;
     }
   }
 }

@@ -127,7 +127,7 @@ class _BitacoraPageState extends State<BitacoraPage> {
                                 const Spacer(),
                                 Text(
                                   a.createdAt != null 
-                                      ? DateFormat('dd/MM HH:mm').format(a.createdAt!)
+                                      ? DateFormat('dd/MM HH:mm').format(a.createdAt!.toLocal())
                                       : 'Hace poco',
                                   style: const TextStyle(fontSize: 11, color: Colors.grey),
                                 ),

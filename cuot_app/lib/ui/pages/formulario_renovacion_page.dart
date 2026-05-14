@@ -535,10 +535,10 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
 
       // DETERMINAR ROL Y ESTADO:
       // 1. Si es Admin, siempre se aprueba de inmediato.
-      // 2. Si es Empleado en Panel de Trabajo, queda pendiente.
+      // 2. Si es Empleado en Panel de Trabajo, queda pendiente (solicitada).
       // 3. Si es Empleado en su Panel Personal, se aprueba de inmediato.
-      final bool esAdmin = widget.rolActual?.toLowerCase() == 'admin';
-      final String estadoInicial = (esAdmin || !widget.esModoTrabajo) ? 'aprobada' : 'pendiente';
+      final bool esAdmin = _rolUsuario?.toLowerCase() == 'admin';
+      final String estadoInicial = (esAdmin || !widget.esModoTrabajo) ? 'aprobada' : 'solicitada';
       
       debugPrint('🔵 Iniciando guardado de renovación - Rol: ${widget.rolActual}, ModoTrabajo: ${widget.esModoTrabajo}, Estado: $estadoInicial');
 
@@ -590,7 +590,7 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
         incluirMora: _incluirMora,
         montoMora: _incluirMora ? _montoMora : 0,
         usuarioAutoriza: _adminResponsable ?? widget.nombreUsuario,
-        estado: (rolParaRenovacion == 'empleado') ? 'pendiente' : 'aprobada',
+        estado: estadoInicial,
         creadoPor: widget.nombreLogueado ?? widget.nombreUsuario,
         observaciones: _observacionesController.text.trim(),
       );
@@ -611,10 +611,10 @@ class _FormularioRenovacionPageState extends State<FormularioRenovacionPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(rolParaRenovacion == 'empleado' 
+            content: Text(estadoInicial == 'solicitada' 
                 ? '🕒 Renovación solicitada. En espera de aprobación.' 
                 : '✅ Renovación completada con éxito'),
-            backgroundColor: rolParaRenovacion == 'empleado' ? Colors.orange : AppColors.success,
+            backgroundColor: estadoInicial == 'solicitada' ? Colors.orange : AppColors.success,
             behavior: SnackBarBehavior.floating,
           ),
         );

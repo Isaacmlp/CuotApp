@@ -40,7 +40,7 @@ class RenovacionService {
             usuarioId: renovacion.usuarioAutoriza,
             observaciones: nuevaRenovacion.estado == 'aprobada' 
                 ? 'Renovación creada y aplicada' 
-                : 'Renovación solicitada (pendiente de aprobación)',
+                : 'Renovación solicitada (en espera)',
           ).toJson());
 
       // Determinar si debemos aplicar el efecto financiero de inmediato
@@ -301,7 +301,7 @@ class RenovacionService {
             *,
             Creditos!credito_original_id(concepto, Clientes(nombre))
           ''')
-          .eq('estado', 'pendiente')
+          .eq('estado', 'solicitada')
           .eq('usuario_autoriza', adminNombre) // El usuario autoriza final es el admin que lo debe ver
           .order('fecha_renovacion', ascending: false);
 
@@ -341,7 +341,7 @@ class RenovacionService {
           .from('Historial_Renovaciones')
           .insert(HistorialRenovacion(
             renovacionId: id,
-            estadoAnterior: 'pendiente',
+            estadoAnterior: 'solicitada',
             estadoNuevo: 'aprobada',
             usuarioId: renovacion.usuarioAutoriza,
             observaciones: 'Renovación aprobada por administrador',

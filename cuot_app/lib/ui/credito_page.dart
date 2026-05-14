@@ -292,8 +292,8 @@ class _CreditoPageState extends State<CreditoPage> {
             entidadId: creditId,
           );
 
-          // Si es empleado en modo trabajo, el crédito queda pendiente — no redirigir a detalle
-          if (widget.rolActual == 'empleado' && widget.esModoTrabajo) {
+          // Si es empleado en modo trabajo (o cualquier caso que resulte en 'empleado'), el crédito queda pendiente
+          if (rolParaController == 'empleado') {
             scaffoldMessenger.showSnackBar(
               const SnackBar(
                 content: Text('🕒 Crédito registrado. En espera de aprobación por tu administrador.'),
@@ -376,7 +376,7 @@ class _CreditoPageState extends State<CreditoPage> {
 
       if (mounted) {
         // Si el grupo se creó como pendiente (trabajador en modo trabajo) no redirigir al dashboard
-        if (widget.esModoTrabajo && (_rolUsuario == 'empleado' || _rolUsuario == 'supervisor')) {
+        if (rolParaGrupo == 'empleado') {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('🕒 Grupo registrado. En espera de aprobación por tu administrador/supervisor.'),

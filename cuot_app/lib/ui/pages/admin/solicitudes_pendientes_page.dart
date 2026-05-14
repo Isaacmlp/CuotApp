@@ -1145,7 +1145,7 @@ class _SolicitudesPendientesPageState extends State<SolicitudesPendientesPage>
       } else if (tipo == 'renovacion') {
         await _renovacionService.actualizarEstado(
           renovacionId: id,
-          estadoAnterior: 'pendiente',
+          estadoAnterior: 'solicitada',
           estadoNuevo: 'rechazada',
         );
       } else if (tipo == 'aporte') {

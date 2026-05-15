@@ -1,4 +1,5 @@
 import 'package:cuot_app/core/supabase/supabase_service.dart';
+import 'package:cuot_app/service/user_admin_service.dart';
 import 'package:cuot_app/Model/grupo_ahorro_model.dart';
 import 'package:cuot_app/Model/miembro_grupo_model.dart';
 import 'package:cuot_app/Model/aporte_grupo_model.dart';
@@ -651,11 +652,13 @@ class SavingsService {
   /// Obtiene grupos pendientes de aprobación para un administrador
   Future<List<Map<String, dynamic>>> getGruposPendientes(String adminNombre) async {
     try {
+      final team = await UserAdminService().getAdminTeam(adminNombre);
+
       final response = await _supabase.client
           .schema('Financiamientos')
           .from('Grupos_Ahorro')
           .select('*, Miembros_Grupo(*, Clientes(*))')
-          .ilike('admin_responsable', adminNombre)
+          .inFilter('admin_responsable', team)
           .eq('estado', 'pendiente')
           .order('fecha_creacion', ascending: false);
       return List<Map<String, dynamic>>.from(response);
@@ -682,6 +685,8 @@ class SavingsService {
   /// Obtiene aportes pendientes para un administrador
   Future<List<Map<String, dynamic>>> getAportesPendientes(String adminNombre) async {
     try {
+      final team = await UserAdminService().getAdminTeam(adminNombre);
+
       final response = await _supabase.client
           .schema('Financiamientos')
           .from('Aportes_Grupo')
@@ -690,7 +695,7 @@ class SavingsService {
             Miembros_Grupo(grupo_id, Clientes(nombre)),
             Grupos_Ahorro:Miembros_Grupo!inner(Grupos_Ahorro(nombre_grupo))
           ''')
-          .ilike('admin_responsable', adminNombre)
+          .inFilter('admin_responsable', team)
           .eq('estado_verificacion', 'pendiente')
           .order('fecha_aporte', ascending: false);
       return List<Map<String, dynamic>>.from(response);

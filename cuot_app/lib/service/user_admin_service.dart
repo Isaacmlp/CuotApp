@@ -239,7 +239,33 @@ class UserAdminService {
     return getUsuarios();
   }
 
+  /// Obtener la jerarquía de un administrador (él mismo + sus supervisores)
+  Future<List<String>> getAdminTeam(String adminNombre) async {
+    try {
+      final users = await getUsuarios();
+      List<String> team = [adminNombre];
+      
+      final currentUser = users.firstWhere(
+        (u) => u.nombre.trim().toLowerCase() == adminNombre.trim().toLowerCase(),
+        orElse: () => Usuario(nombreCompleto: adminNombre, correoElectronico: ''),
+      );
+      
+      if (currentUser.rol == 'admin') {
+        for (var u in users) {
+          if (u.rol == 'supervisor' && u.creadoPor?.trim().toLowerCase() == adminNombre.trim().toLowerCase()) {
+            team.add(u.nombreCompleto);
+          }
+        }
+      }
+      return team;
+    } catch (e) {
+      print('❌ Error en getAdminTeam: $e');
+      return [adminNombre];
+    }
+  }
+
   /// Eliminar un usuario permanentemente
+
   Future<void> eliminarUsuario(String usuarioId) async {
     try {
       await _supabase.client

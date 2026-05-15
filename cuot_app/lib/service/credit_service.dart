@@ -1,4 +1,5 @@
 import 'package:cuot_app/core/supabase/supabase_service.dart';
+import 'package:cuot_app/service/user_admin_service.dart';
 
 class CreditService {
   final SupabaseService _supabase = SupabaseService();
@@ -515,11 +516,13 @@ class CreditService {
   /// Obtiene créditos pendientes de aprobación para un administrador
   Future<List<Map<String, dynamic>>> getCreditosPendientes(String adminNombre) async {
     try {
+      final team = await UserAdminService().getAdminTeam(adminNombre);
+
       final response = await _supabase.client
           .schema('Financiamientos')
           .from('Creditos')
           .select('*, Clientes(*), Cuotas(*)')
-          .ilike('admin_responsable', adminNombre)
+          .inFilter('admin_responsable', team)
           .eq('estado', 'pendiente')
           .order('fecha_inicio', ascending: false);
       return List<Map<String, dynamic>>.from(response);
@@ -564,6 +567,8 @@ class CreditService {
   /// Obtiene pagos pendientes de verificación para un administrador
   Future<List<Map<String, dynamic>>> getPagosPendientes(String adminNombre) async {
     try {
+      final team = await UserAdminService().getAdminTeam(adminNombre);
+
       final response = await _supabase.client
           .schema('Financiamientos')
           .from('Pagos')
@@ -571,7 +576,7 @@ class CreditService {
             *,
             Creditos(concepto, Clientes(nombre))
           ''')
-          .ilike('admin_responsable', adminNombre)
+          .inFilter('admin_responsable', team)
           .eq('estado_verificacion', 'pendiente')
           .order('fecha_pago_real', ascending: false);
       return List<Map<String, dynamic>>.from(response);

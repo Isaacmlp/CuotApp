@@ -1,4 +1,6 @@
 import 'package:cuot_app/Model/renovacion_model.dart';
+import 'package:cuot_app/service/user_admin_service.dart';
+
 import 'package:cuot_app/core/supabase/supabase_service.dart';
 import 'package:flutter/material.dart';
 
@@ -157,7 +159,7 @@ class RenovacionService {
           .from('Renovaciones')
           .select('''
             *,
-            Creditos!Renovaciones_credito_original_id_fkey(concepto, Clientes(nombre))
+            Creditos:Renovaciones_credito_original_id_fkey(concepto, Clientes(nombre))
           ''')
           .eq('usuario_autoriza', usuarioNombre)
           .order('fecha_renovacion', ascending: false);
@@ -179,7 +181,7 @@ class RenovacionService {
           .from('Renovaciones')
           .select('''
             *,
-            Creditos!Renovaciones_credito_original_id_fkey(concepto, costo_inversion, margen_ganancia, numero_cuotas, modalidad_pago, Clientes(nombre, telefono))
+            Creditos:Renovaciones_credito_original_id_fkey(concepto, costo_inversion, margen_ganancia, numero_cuotas, modalidad_pago, Clientes(nombre, telefono))
           ''')
           .eq('usuario_autoriza', usuarioNombre)
           .order('fecha_renovacion', ascending: false);
@@ -280,15 +282,17 @@ class RenovacionService {
   /// Obtener renovaciones pendientes para un administrador
   Future<List<Map<String, dynamic>>> getRenovacionesPendientes(String adminNombre) async {
     try {
+      final team = await UserAdminService().getAdminTeam(adminNombre);
+
       final response = await _supabase.client
           .schema('Financiamientos')
           .from('Renovaciones')
           .select('''
             *,
-            Creditos!Renovaciones_credito_original_id_fkey(concepto, Clientes(nombre))
+            Creditos:Renovaciones_credito_original_id_fkey(concepto, Clientes(nombre))
           ''')
-          .eq('estado', 'solicitada')
-          .ilike('usuario_autoriza', adminNombre) // El admin que lo debe ver (case-insensitive)
+          .inFilter('estado', ['solicitada', 'pendiente'])
+          .inFilter('usuario_autoriza', team) // El admin o sus supervisores
           .order('fecha_renovacion', ascending: false);
 
       return List<Map<String, dynamic>>.from(response);

@@ -130,6 +130,7 @@ class HistorialRenovacion {
           : DateTime.now(),
       usuarioId: json['usuario_id'],
       observaciones: json['observaciones'],
+      comprobantePath: json['comprobante_path'],
     );
   }
 

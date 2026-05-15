@@ -159,7 +159,7 @@ class RenovacionService {
           .from('Renovaciones')
           .select('''
             *,
-            Creditos:Renovaciones_credito_original_id_fkey(concepto, Clientes(nombre))
+            Creditos:Creditos!Renovaciones_credito_original_id_fkey(concepto, Clientes(nombre))
           ''')
           .eq('usuario_autoriza', usuarioNombre)
           .order('fecha_renovacion', ascending: false);
@@ -181,7 +181,7 @@ class RenovacionService {
           .from('Renovaciones')
           .select('''
             *,
-            Creditos:Renovaciones_credito_original_id_fkey(concepto, costo_inversion, margen_ganancia, numero_cuotas, modalidad_pago, Clientes(nombre, telefono))
+            Creditos:Creditos!Renovaciones_credito_original_id_fkey(concepto, costo_inversion, margen_ganancia, numero_cuotas, modalidad_pago, Clientes(nombre, telefono))
           ''')
           .eq('usuario_autoriza', usuarioNombre)
           .order('fecha_renovacion', ascending: false);
@@ -289,7 +289,7 @@ class RenovacionService {
           .from('Renovaciones')
           .select('''
             *,
-            Creditos:Renovaciones_credito_original_id_fkey(concepto, Clientes(nombre))
+            Creditos:Creditos!Renovaciones_credito_original_id_fkey(concepto, Clientes(nombre))
           ''')
           .inFilter('estado', ['solicitada', 'pendiente'])
           .inFilter('usuario_autoriza', team) // El admin o sus supervisores

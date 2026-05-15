@@ -159,7 +159,7 @@ class RenovacionService {
           .from('Renovaciones')
           .select('''
             *,
-            Creditos:Creditos!Renovaciones_credito_original_id_fkey(concepto, Clientes(nombre))
+            Creditos!Renovaciones_credito_original_id_fkey(concepto, Clientes(nombre))
           ''')
           .eq('usuario_autoriza', usuarioNombre)
           .order('fecha_renovacion', ascending: false);
@@ -181,7 +181,7 @@ class RenovacionService {
           .from('Renovaciones')
           .select('''
             *,
-            Creditos:Creditos!Renovaciones_credito_original_id_fkey(concepto, costo_inversion, margen_ganancia, numero_cuotas, modalidad_pago, Clientes(nombre, telefono))
+            Creditos!Renovaciones_credito_original_id_fkey(concepto, costo_inversion, margen_ganancia, numero_cuotas, modalidad_pago, Clientes(nombre, telefono))
           ''')
           .eq('usuario_autoriza', usuarioNombre)
           .order('fecha_renovacion', ascending: false);
@@ -289,13 +289,22 @@ class RenovacionService {
           .from('Renovaciones')
           .select('''
             *,
-            Creditos:Creditos!Renovaciones_credito_original_id_fkey(concepto, Clientes(nombre))
+            Creditos!Renovaciones_credito_original_id_fkey(concepto, Clientes(nombre))
           ''')
           .inFilter('estado', ['solicitada', 'pendiente'])
-          .inFilter('usuario_autoriza', team) // El admin o sus supervisores
           .order('fecha_renovacion', ascending: false);
 
-      return List<Map<String, dynamic>>.from(response);
+      final List<Map<String, dynamic>> allPending = List<Map<String, dynamic>>.from(response);
+      
+      // Filtrar localmente ignorando mayúsculas/minúsculas y espacios
+      final lowercaseTeam = team.map((name) => name.trim().toLowerCase()).toList();
+      
+      final filtered = allPending.where((item) {
+        final authUser = (item['usuario_autoriza'] ?? item['creado_por'] ?? '').toString().trim().toLowerCase();
+        return lowercaseTeam.contains(authUser);
+      }).toList();
+
+      return filtered;
     } catch (e) {
       print('❌ Error en getRenovacionesPendientes: $e');
       return [];

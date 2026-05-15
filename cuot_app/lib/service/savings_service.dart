@@ -658,10 +658,16 @@ class SavingsService {
           .schema('Financiamientos')
           .from('Grupos_Ahorro')
           .select('*, Miembros_Grupo(*, Clientes(*))')
-          .inFilter('admin_responsable', team)
           .eq('estado', 'pendiente')
           .order('fecha_creacion', ascending: false);
-      return List<Map<String, dynamic>>.from(response);
+
+      final List<Map<String, dynamic>> allPending = List<Map<String, dynamic>>.from(response);
+      final lowercaseTeam = team.map((name) => name.trim().toLowerCase()).toList();
+      
+      return allPending.where((item) {
+        final authUser = (item['admin_responsable'] ?? item['creado_por'] ?? '').toString().trim().toLowerCase();
+        return lowercaseTeam.contains(authUser);
+      }).toList();
     } catch (e) {
       print('❌ Error en getGruposPendientes: $e');
       return [];
@@ -695,10 +701,16 @@ class SavingsService {
             Miembros_Grupo(grupo_id, Clientes(nombre)),
             Grupos_Ahorro:Miembros_Grupo!inner(Grupos_Ahorro(nombre_grupo))
           ''')
-          .inFilter('admin_responsable', team)
           .eq('estado_verificacion', 'pendiente')
           .order('fecha_aporte', ascending: false);
-      return List<Map<String, dynamic>>.from(response);
+
+      final List<Map<String, dynamic>> allPending = List<Map<String, dynamic>>.from(response);
+      final lowercaseTeam = team.map((name) => name.trim().toLowerCase()).toList();
+      
+      return allPending.where((item) {
+        final authUser = (item['admin_responsable'] ?? item['creado_por'] ?? '').toString().trim().toLowerCase();
+        return lowercaseTeam.contains(authUser);
+      }).toList();
     } catch (e) {
       print('❌ Error en getAportesPendientes: $e');
       return [];

@@ -239,25 +239,28 @@ class UserAdminService {
     return getUsuarios();
   }
 
-  /// Obtener la jerarquía de un administrador (él mismo + sus supervisores)
+  /// Obtener la jerarquía de un administrador (él mismo + toda su descendencia de usuarios)
   Future<List<String>> getAdminTeam(String adminNombre) async {
     try {
       final users = await getUsuarios();
-      List<String> team = [adminNombre];
+      Set<String> team = {adminNombre.trim().toLowerCase()};
+      Set<String> teamOriginalNames = {adminNombre};
       
-      final currentUser = users.firstWhere(
-        (u) => u.nombre.trim().toLowerCase() == adminNombre.trim().toLowerCase(),
-        orElse: () => Usuario(nombreCompleto: adminNombre, correoElectronico: ''),
-      );
-      
-      if (currentUser.rol == 'admin') {
+      bool added = true;
+      while (added) {
+        added = false;
         for (var u in users) {
-          if (u.rol == 'supervisor' && u.creadoPor?.trim().toLowerCase() == adminNombre.trim().toLowerCase()) {
-            team.add(u.nombreCompleto);
+          final creadorStr = (u.creadoPor ?? '').trim().toLowerCase();
+          final nombreStr = u.nombreCompleto.trim().toLowerCase();
+          
+          if (creadorStr.isNotEmpty && team.contains(creadorStr) && !team.contains(nombreStr)) {
+            team.add(nombreStr);
+            teamOriginalNames.add(u.nombreCompleto);
+            added = true;
           }
         }
       }
-      return team;
+      return teamOriginalNames.toList();
     } catch (e) {
       print('❌ Error en getAdminTeam: $e');
       return [adminNombre];

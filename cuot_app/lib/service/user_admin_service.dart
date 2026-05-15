@@ -239,10 +239,23 @@ class UserAdminService {
     return getUsuarios();
   }
 
-  /// Obtener la jerarquía de un administrador (él mismo + toda su descendencia de usuarios)
+  /// Obtener la jerarquía de un administrador
+  /// Si es admin: ve TODO en el sistema.
+  /// Si es supervisor: ve lo suyo y lo de sus empleados.
   Future<List<String>> getAdminTeam(String adminNombre) async {
     try {
       final users = await getUsuarios();
+      
+      final currentUser = users.firstWhere(
+        (u) => u.nombre.trim().toLowerCase() == adminNombre.trim().toLowerCase(),
+        orElse: () => Usuario(nombreCompleto: adminNombre, correoElectronico: '', rol: 'empleado'),
+      );
+      
+      if (currentUser.rol == 'admin') {
+        // El administrador ve todo lo creado por cualquier usuario
+        return users.map((u) => u.nombreCompleto).toList()..add(adminNombre)..add('Sistema');
+      }
+
       Set<String> team = {adminNombre.trim().toLowerCase()};
       Set<String> teamOriginalNames = {adminNombre};
       
